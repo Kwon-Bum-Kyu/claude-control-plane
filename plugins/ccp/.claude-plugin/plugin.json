@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "ccp",
   "version": "0.1.0",
   "description": "Gemini CLI wrapper + model router + ecc guardrail port — Claude as control plane, Gemini as sub-agent.",
@@ -8,28 +7,5 @@
   },
   "license": "MIT",
   "keywords": ["claude-code", "plugin", "gemini", "router", "control-plane"],
-  "minClaudeVersion": "1.0.0",
-  "engines": {
-    "node": ">=20.0.0",
-    "gemini_cli": ">=0.38.0"
-  },
-  "commands": [
-    { "name": "gemini:rescue", "path": "commands/gemini-rescue.md" },
-    { "name": "gemini:status", "path": "commands/gemini-status.md" },
-    { "name": "gemini:result", "path": "commands/gemini-result.md" },
-    { "name": "gemini:setup",  "path": "commands/gemini-setup.md" },
-    { "name": "ccp:audit",     "path": "commands/ccp-audit.md" }
-  ],
-  "agents": [
-    { "name": "gemini-rescue", "path": "agents/gemini-rescue.md" }
-  ],
-  "hooks": "./hooks/hooks.json",
-  "skills": [
-    { "name": "context-budget", "path": "skills/context-budget/SKILL.md" },
-    { "name": "ccp-router", "path": "skills/router/SKILL.md" }
-  ],
-  "scripts": {
-    "companion": "scripts/gemini-companion.mjs",
-    "audit": "scripts/harness-audit.js"
-  }
+  "hooks": "./hooks/hooks.json"
 }
