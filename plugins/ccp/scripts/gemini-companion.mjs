@@ -512,7 +512,7 @@ function cmdPreflight(_args) {
 // ---------------------------------------------------------------------------
 
 function cmdStatus(args) {
-  const jobId = args._[0];
+  const jobId = args.jobId ?? args._[0];
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
       message_ko: 'job_id 형식이 올바르지 않습니다 (UUID v4 필요)',
@@ -547,7 +547,7 @@ function cmdStatus(args) {
 // ---------------------------------------------------------------------------
 
 function cmdResult(args) {
-  const jobId = args._[0];
+  const jobId = args.jobId ?? args._[0];
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
       message_ko: 'job_id 형식이 올바르지 않습니다 (UUID v4 필요)',

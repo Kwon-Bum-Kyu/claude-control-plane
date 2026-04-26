@@ -206,7 +206,10 @@ function scoreFallbackHealth(jobs) {
 }
 
 function scorePluginCompat() {
-  // R4 — plugin.json 의 minClaudeVersion / engines 필드 존재 검증
+  // R4 — plugin.json 공식 스키마 준수 검증.
+  // Phase 5-A T5 에서 minClaudeVersion/engines 가 비표준 키로 확인되어 제거됨
+  // (`_workspace/05_phase5a_install_troubleshooting.md` §T5). 따라서 본 검사는
+  // 공식 plugins-reference 의 표준 키 5종만 검사한다 (B15 / 2026-04-27).
   const pluginJson = resolve(PLUGIN_ROOT, '.claude-plugin', 'plugin.json');
   if (!existsSync(pluginJson)) return { score: 0, note: 'plugin.json 부재' };
   let obj;
@@ -215,14 +218,26 @@ function scorePluginCompat() {
   } catch {
     return { score: 0, note: 'plugin.json 파싱 실패' };
   }
-  const has = (k) => k in (obj || {});
+  const nonEmpty = (k) => {
+    const v = obj?.[k];
+    if (v == null) return false;
+    if (typeof v === 'string') return v.length > 0;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return Boolean(v);
+  };
   const checks = [
-    has('minClaudeVersion'),
-    has('engines') && obj.engines?.node,
-    has('engines') && obj.engines?.gemini_cli,
+    nonEmpty('name'),
+    nonEmpty('version'),
+    nonEmpty('description'),
+    nonEmpty('author'),
+    nonEmpty('license'),
   ];
   const ok = checks.filter(Boolean).length;
-  return { score: Math.round((ok / checks.length) * 5), note: `${ok}/3 fields 충족` };
+  return {
+    score: Math.round((ok / checks.length) * 5),
+    note: `${ok}/${checks.length} 표준 필드 충족 (name/version/description/author/license)`,
+  };
 }
 
 function scoreSecretLeak(jobs) {

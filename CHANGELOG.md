@@ -6,6 +6,22 @@ Claude Control Plane 플러그인 개발 하네스의 산출물 변경 이력. �
 
 ---
 
+## 2026-04-27 — Phase 5-B 후속 패치 (T6·T7·T8 전수 RESOLVED, G1 게이트 보강)
+
+### Added
+- `_workspace/02_arch_decisions.md` 원칙 8 신설 — Phase 6+ G1 게이트에 8개 정합성 검사 항목(G1-A~G1-H) 정식 편입. 메타 원인 "명세-구현 일관성 검증 부재" 차단 목적
+- `_workspace/04_token_report.md` §1.1 신설 — Gemini CLI input 토큰 baseline ≈10K 명문화, 비교지표 `output+thoughts` 통일 SSOT 선언 (B16)
+- `_workspace/01_backlog.md` B14·B15·B16 추가 후 동일자 전수 RESOLVED (Phase 5-B 런타임 테스트 T6~T8 후속)
+
+### Changed
+- `plugins/ccp/scripts/gemini-companion.mjs:515,550` — `cmdStatus`/`cmdResult` 가 `args.jobId ?? args._[0]` 동시 허용. positional·`--job-id` 플래그 양쪽 입구 PASS, invalid UUID 거부 회귀 검증 (B14, T6)
+- `plugins/ccp/scripts/harness-audit.js` `scorePluginCompat()` — 검사 대상을 비표준 `minClaudeVersion`/`engines` 에서 공식 plugins-reference 표준 5필드(`name`/`version`/`description`/`author`/`license`)로 변경. audit 재실행 시 `plugin_compat: 0/5 → 5/5`, 총점 27/35 → 33/35 (B15, T7)
+
+### 미해결 (Phase 6+ 위임)
+- B13 (`--files` 매핑) — Phase 5-A 이월
+
+---
+
 ## [Unreleased] — Phase 3 S3 진입 준비
 
 ### 진입 조건
