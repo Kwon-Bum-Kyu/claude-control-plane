@@ -348,10 +348,11 @@ function detectAuthMethod() {
 
 function probeOAuth() {
   // R17 — `gemini auth status` 미지원. probe 호출로 판정.
+  // timeout: macOS 실측 spawnSync 9.6~11.7s (cold start). 30s 여유.
   const r = spawnSync(
     'gemini',
     ['-p', 'ping', '-o', 'json'],
-    { encoding: 'utf8', timeout: 8000 }
+    { encoding: 'utf8', timeout: 30000 }
   );
   if (r.error) return { ok: false, reason: 'spawn_error' };
   if (r.status === 0) return { ok: true };
@@ -362,11 +363,22 @@ function probeOAuth() {
   return { ok: false, reason: `exit_${r.status}` };
 }
 
+// Gemini CLI 가 stdout 첫 줄에 비-JSON 경고("MCP issues detected." 등) 를 섞어
+// 출력하는 환경이 있다. 첫 `{` ~ 마지막 `}` 슬라이스로 JSON 본문만 안전하게 추출.
+function extractJsonBlob(stdout) {
+  const s = typeof stdout === 'string' ? stdout : '';
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start === -1 || end === -1 || end < start) return null;
+  return s.slice(start, end + 1);
+}
+
 function parseGeminiTokens(stdout) {
   // CLI 0.38.2+ -o json 출력에서 stats.models[*].tokens 합산.
   // 실패 시 words×1.3 추정으로 fallback.
+  const blob = extractJsonBlob(stdout);
   try {
-    const obj = JSON.parse(stdout);
+    const obj = blob ? JSON.parse(blob) : null;
     const models = obj?.stats?.models;
     if (models && typeof models === 'object') {
       let input = 0,
@@ -406,8 +418,9 @@ function parseGeminiTokens(stdout) {
 
 function extractGeminiBody(stdout) {
   // -o json 모드: response 필드를 우선, 실패 시 stdout 원본.
+  const blob = extractJsonBlob(stdout);
   try {
-    const obj = JSON.parse(stdout);
+    const obj = blob ? JSON.parse(blob) : null;
     if (typeof obj?.response === 'string') return obj.response;
     if (typeof obj?.text === 'string') return obj.text;
   } catch {
@@ -563,10 +576,14 @@ function cmdResult(args) {
 // ---------------------------------------------------------------------------
 
 function buildGeminiArgs(prompt, { maxTokens, files }) {
-  const args = ['-p', prompt, '-o', 'json'];
-  if (maxTokens) args.push('--max-output-tokens', String(maxTokens));
-  if (files) args.push('--all-files', files);
-  return args;
+  // Gemini CLI 0.38.x 실 플래그만 사용.
+  // - `--max-output-tokens`/`--all-files` 미존재 → 인자 제외.
+  // - maxTokens: prompt 내 문구로 soft hint, post-call enforceContextBudget 가 hard cap.
+  // - files: MVP 미지원 (백로그 B12 — `--include-directories` 매핑 검토).
+  const cappedPrompt = maxTokens
+    ? `${prompt}\n\n(최대 ${maxTokens} 토큰 이내로 답변)`
+    : prompt;
+  return ['-p', cappedPrompt, '-o', 'json'];
 }
 
 function runGeminiSync(prompt, opts) {
@@ -587,6 +604,14 @@ function cmdRescue(args) {
     });
   }
   assertGlobInsidePluginRoot(args.files);
+
+  // MVP: --files 미지원 (Gemini CLI 0.38.x 매핑 부재). 백로그 B13.
+  if (args.files) {
+    emitError('CCP-INVALID-001', {
+      message_ko: '`--files` 는 MVP 에서 지원되지 않습니다',
+      action_ko: 'task 본문에 파일 내용을 직접 포함하거나, `--fallback-claude` 로 Claude 본체를 사용하세요. 추적: 백로그 B13.',
+    });
+  }
 
   if (args.fallbackClaude) {
     // R13 — companion 호출 생략, mode=fallback_claude envelope 만 반환.
@@ -677,7 +702,8 @@ function rescueForeground({ task, maxTokens, files }) {
   // session_id 추출 시도 (-o json 모드)
   let sessionId = null;
   try {
-    const obj = JSON.parse(stdoutText);
+    const blob = extractJsonBlob(stdoutText);
+    const obj = blob ? JSON.parse(blob) : null;
     if (obj?.session_id && /^[0-9a-f-]{36}$/i.test(obj.session_id)) sessionId = obj.session_id;
   } catch {
     /* ignore */
@@ -804,7 +830,8 @@ function cmdTaskWorker(args) {
 
   let sessionId = null;
   try {
-    const obj = JSON.parse(stdoutText);
+    const blob = extractJsonBlob(stdoutText);
+    const obj = blob ? JSON.parse(blob) : null;
     if (obj?.session_id && /^[0-9a-f-]{36}$/i.test(obj.session_id)) sessionId = obj.session_id;
   } catch {
     /* ignore */
