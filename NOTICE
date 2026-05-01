@@ -1,0 +1,38 @@
+CCP — Claude Control Plane
+Copyright (c) 2026 KBK / CCP contributors
+
+This product includes software developed by the following projects:
+
+================================================================================
+codex-plugin-cc
+================================================================================
+
+Copyright (c) OpenAI
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Source: https://github.com/openai/codex-plugin-cc
+Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (refs/heads/release/v1.0.4)
+
+Borrowed components (function-level adaptation, isolated under
+plugins/ccp/scripts/lib/codex_adapted/):
+
+  - state.mjs           (from plugins/codex/scripts/lib/state.mjs)
+  - tracked-jobs.mjs    (from plugins/codex/scripts/lib/tracked-jobs.mjs)
+  - process.mjs         (from plugins/codex/scripts/lib/process.mjs)
+  - args.mjs            (from plugins/codex/scripts/lib/args.mjs)
+  - job-control.mjs     (from plugins/codex/scripts/lib/job-control.mjs)
+
+Each adapted file carries a 5-field header documenting the source path,
+upstream commit SHA, original license, modifications, and the CCP commit
+SHA at adaptation time. See ATTRIBUTION.md §6 for the full table.
+
+================================================================================
+
+This NOTICE file is provided in accordance with the Apache License 2.0
+section 4(d). It must be preserved in any redistribution of CCP, whether
+in source or binary form.

@@ -222,15 +222,28 @@ const ERROR_CATALOG = {
 // Argument parsing
 // ---------------------------------------------------------------------------
 
+// codex 전용 옵션이 gemini-companion 으로 새어 들어오면 즉시 거부 (B1-S3-5).
+// 호환성 매트릭스(README §모델 호환성) 와 일관.
+const GEMINI_UNSUPPORTED = new Set(['--effort', '--write', '--sandbox']);
+
 function parseFlags(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const tok = argv[i];
+    if (GEMINI_UNSUPPORTED.has(tok)) {
+      emitError('CCP-INVALID-001', {
+        message_ko: `\`${tok}\` 는 gemini 측에서 지원되지 않습니다`,
+        action_ko: '호환성 매트릭스(README §모델 호환성)를 확인하고, codex 전용 옵션은 `/ccp:codex-rescue` 에서 사용하세요.',
+        details: { unsupported_flag: tok, suggested: '/ccp:codex-rescue' },
+      });
+    }
     if (tok === '--background') out.background = true;
     else if (tok === '--fallback-claude') out.fallbackClaude = true;
     else if (tok === '--summary-only') out.summaryOnly = true;
     else if (tok === '--renew') out.renew = true;
     else if (tok === '--max-tokens') out.maxTokens = parseInt(argv[++i], 10);
+    else if (tok === '--timeout-ms') out.timeoutMs = parseInt(argv[++i], 10);
+    else if (tok === '--poll-interval-ms') out.pollIntervalMs = parseInt(argv[++i], 10);
     else if (tok === '--files') out.files = argv[++i];
     else if (tok === '--job-id') out.jobId = argv[++i];
     else if (tok === '--task') out.task = argv[++i];
@@ -586,10 +599,12 @@ function buildGeminiArgs(prompt, { maxTokens, files }) {
   return ['-p', cappedPrompt, '-o', 'json'];
 }
 
-function runGeminiSync(prompt, opts) {
+const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // B17: 사용자 대형 작업 허용 (Phase 5-C)
+
+function runGeminiSync(prompt, opts, timeoutMs) {
   const r = spawnSync('gemini', buildGeminiArgs(prompt, opts), {
     encoding: 'utf8',
-    timeout: 60000,
+    timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : FOREGROUND_DEFAULT_TIMEOUT_MS,
     env: process.env,
   });
   return r;
@@ -664,7 +679,7 @@ function rescueForeground({ task, maxTokens, files }) {
   };
   writeMeta(jobId, meta);
 
-  const r = runGeminiSync(task, { maxTokens, files });
+  const r = runGeminiSync(task, { maxTokens, files }, args.timeoutMs);
   if (r.error || r.status === null) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
@@ -754,6 +769,7 @@ function rescueBackground({ task, maxTokens, files }) {
     gemini_session_id: null,
     gemini_cli_version: geminiVersion(),
     max_tokens: maxTokens,
+    timeout_ms: Number.isFinite(args.timeoutMs) ? args.timeoutMs : null,
     files: files ?? null,
     token_usage: null,
     result_file_path: null,
@@ -795,7 +811,7 @@ function cmdTaskWorker(args) {
   meta.started_at = nowIso();
   writeMeta(jobId, meta);
 
-  const r = runGeminiSync(meta.prompt, { maxTokens: meta.max_tokens, files: meta.files });
+  const r = runGeminiSync(meta.prompt, { maxTokens: meta.max_tokens, files: meta.files }, meta.timeout_ms);
   if (r.error || r.status === null) {
     meta.status = 'failed';
     meta.completed_at = nowIso();

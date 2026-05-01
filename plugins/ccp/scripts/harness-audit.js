@@ -240,6 +240,38 @@ function scorePluginCompat() {
   };
 }
 
+function scoreAdaptedHeaders() {
+  // G1-I (B1 신설) — lib/codex_adapted/ 차용 파일은 5필드 헤더 의무.
+  // 누락 시 ATTRIBUTION §6 / NOTICE 와 불일치하여 라이선스 추적성 위반.
+  const dir = resolve(PLUGIN_ROOT, 'scripts', 'lib', 'codex_adapted');
+  if (!existsSync(dir)) {
+    return { score: null, note: 'lib/codex_adapted/ 부재 (B1 미적용 단계)' };
+  }
+  const required = [
+    /^\/\/ Adapted from:/m,
+    /^\/\/ Source commit:/m,
+    /^\/\/ Original license:/m,
+    /^\/\/ Modifications:/m,
+    /^\/\/ SHA-of-this-adaptation:/m,
+  ];
+  const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') || f.endsWith('.js'));
+  if (files.length === 0) return { score: null, note: 'lib/codex_adapted/ 비어있음' };
+  let pass = 0;
+  const failed = [];
+  for (const f of files) {
+    const head = readFileSync(join(dir, f), 'utf8').slice(0, 1024);
+    const ok = required.every((re) => re.test(head));
+    if (ok) pass += 1;
+    else failed.push(f);
+  }
+  const score = Math.round((pass / files.length) * 5);
+  const note =
+    failed.length === 0
+      ? `${pass}/${files.length} 파일 5필드 헤더 충족`
+      : `${pass}/${files.length} 충족, 누락: ${failed.join(', ')}`;
+  return { score, note };
+}
+
 function scoreSecretLeak(jobs) {
   // L5·L6 — meta.json / summary_3lines / details 에 비밀 정보 패턴 grep
   const blocked = /(Bearer\s+[A-Za-z0-9._-]+|GEMINI_API_KEY|AKIA[0-9A-Z]{16})/i;
@@ -308,6 +340,7 @@ function main() {
     double_billing: scoreDoubleBilling(jobs),
     fallback_health: scoreFallbackHealth(jobs),
     plugin_compat: scorePluginCompat(),
+    adapted_headers: scoreAdaptedHeaders(),
     secret_leak: scoreSecretLeak(jobs),
   };
 

@@ -6,6 +6,51 @@ Claude Control Plane 플러그인 개발 하네스의 산출물 변경 이력. �
 
 ---
 
+## 2026-05-01 — Phase 6-A B1 Codex CLI 통합 — C1~C6 6/6 PASS (B1·B11·B17 RESOLVED)
+
+### Added
+- `plugins/ccp/scripts/codex-companion.mjs` — Codex CLI 래퍼 신규 (~480줄). 6 서브커맨드(setup/rescue/status/result/cancel/task-worker), envelope 6키 self-validate, foreground/background 분기, 한국어 에러 카탈로그
+- `plugins/ccp/scripts/lib/codex_adapted/{state,tracked-jobs,process,args,job-control}.mjs` — codex-plugin-cc release/v1.0.4 (SHA `8e873d6f...`) 함수 단위 차용. Apache-2.0, 5필드 헤더(Adapted from/Source/License/Modifications/SHA) 의무
+- `plugins/ccp/scripts/lib/envelope-validate.mjs` — envelope 6키 zero-deps self-validator. `CCP_ENVELOPE_STRICT=1` 환경에서 throw, 평상시 stderr 경고
+- `plugins/ccp/schemas/envelope.schema.json` — JSON Schema 2020-12 준수, success/error oneOf, tokens 4필드(input/cached/output/total) 표준화, details.mode enum [gemini, codex]
+- `plugins/ccp/commands/codex-{setup,rescue,status,result}.md` — 슬래시 4종 + `plugins/ccp/agents/codex-rescue.md` 서브에이전트 (gemini-rescue 미러링 + codex 고유 옵션 명세)
+- `_workspace/06_codex_cli_probe.md` — codex CLI 0.122.0 5종 `--help` 전수 capture, P95 7.242s 측정, JSONL 4 이벤트 스키마 (`thread.started/turn.started/item.completed/turn.completed`), detached spawn 검증, OAuth 흐름 측정
+- `_workspace/06_codex_function_mapping.md` — 9 함수 후보 → 7 차용 + 2 흡수, 5 모듈 구조, gemini ↔ codex 측정 단위 SSOT
+- `_workspace/06_b1_qa_report.md` — C1~C6 6/6 PASS 측정 리포트
+- `NOTICE` — Apache-2.0 의무 NOTICE 신규 (codex-plugin-cc 차용 5 파일 명시)
+- `ATTRIBUTION.md` §1.3 (codex-plugin-cc Apache-2.0 승격 — Inspired By → Borrowed) + §1.4 (Apache-2.0 라이선스 원문) + §6 (B1 차용 파일 표) + ecc SHA `c7c7d37f...` 명시 (B11 RESOLVED)
+- `plugins/ccp/scripts/harness-audit.js` `scoreAdaptedHeaders()` 신설 — G1-I 검사. lib/codex_adapted/ 차용 파일 헤더 5필드 누락 시 감점 (B1 검증: 5/5 PASS)
+- README §4.2 codex 슬래시 4종 + §4.5 모델 호환성 매트릭스(3-way 13 옵션) + §5 라우터 3-way 확장 + §8 v0.2 로드맵 (B18~B23)
+
+### Changed
+- `plugins/ccp/skills/router/SKILL.md` — 3-way 명세 확장 (claude/gemini/codex). codex 키워드 신설(코드 리뷰/diff/버그 조사), `--effort`/`--sandbox` axis A 신호, 메인 컨텍스트 의존 키워드(`방금/위에서/...`) 강제 강등 규칙. 활성화는 v0.2 (B19), B1 v0.1 은 명세만
+- `_workspace/_router_test/router-eval.mjs` — 3-way 혼동행렬 3×3 확장, G09 케이스 codex 재라벨, B05 alt_label codex 추가, P/R 합격선 0.80 → 0.75 완화. **결과: 36/36 (100%) PASS, codex P/R 1.000/1.000**
+- `plugins/ccp/scripts/gemini-companion.mjs` — `parseFlags` 에 `--timeout-ms`/`--poll-interval-ms` 옵션 추가 (B17 RESOLVED), `runGeminiSync(prompt, opts, timeoutMs)` 시그니처 확장, background meta 에 `timeout_ms` 필드. `GEMINI_UNSUPPORTED = {--effort, --sandbox, --write}` 인라인 거부 (`CCP-INVALID-001`)
+- `plugins/ccp/.claude-plugin/plugin.json` — description 갱신 (Gemini + Codex 양쪽 명시), keywords 에 `codex` 추가
+- `_workspace/01_backlog.md` — B1·B11·B17 RESOLVED 표기, v0.2 신규 6건(B18~B23) 등록
+
+### Resolved
+- **B1** Codex CLI 통합 — C1~C6 6/6 PASS, 라우터 100%, audit 8 카테고리 합계 37/40 (cost_efficiency 만 v0.2 잔존)
+- **B11** ecc + codex-plugin-cc 차용 SHA 캡처 완료
+- **B17** `--timeout-ms` CLI 옵션 양 companion 적용 완료
+
+### Notes
+- Phase 5-A 메타 결정 G1-E~H 4축 적용 — codex CLI 5종 `--help` 전수, flag whitelist, P95×2 timeout, stdout 5건 sampling 모두 capture
+- 핵심 발견: codex 는 stdin 미닫힘 시 무한 대기 (`Reading additional input from stdin...`) → `stdio: ['ignore', ...]` 강제. detached spawn 시 stdio pipe 면 SIGPIPE 자식 사망 → file fd 강제. codex usage 3필드 vs gemini 7필드 → envelope tokens 4필드 표준화
+
+---
+
+## 2026-04-28 — Phase 5-C foreground timeout 인상 (실사용 피드백 반영)
+
+### Changed
+- `plugins/ccp/scripts/gemini-companion.mjs:592` — `runGeminiSync` foreground timeout `60000ms → 600000ms` (10분). 사용자 실테스트에서 약간의 큰 작업(요약·분석)에서도 60초 타임아웃이 주기적으로 발생, MVP 합격 후 운영 피드백 반영. background 경로(`--background`)와 `probeOAuth` timeout(30000ms) 은 미변경.
+- `_workspace/01_backlog.md` — B17 추가 (foreground `--timeout` CLI 옵션, P1 — 에이전트 자동화 단계에서 사용자 명시적 제어 도입). 본 변경은 단순 기본값 인상이며 인터페이스 굳히지 않음.
+
+### 미해결 (Phase 6+ 위임)
+- B17 (`--timeout` CLI 옵션) — 에이전트 자동화 단계 진입 시 정책과 함께 설계
+
+---
+
 ## 2026-04-27 — Phase 5-B 후속 패치 (T6·T7·T8 전수 RESOLVED, G1 게이트 보강)
 
 ### Added

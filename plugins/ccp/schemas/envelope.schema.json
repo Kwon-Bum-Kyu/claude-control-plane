@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/KBK/claude-control-plane/schemas/envelope.schema.json",
+  "title": "CCP Companion Envelope",
+  "description": "CCP 의 모든 슬래시·서브에이전트 호출이 stdout 으로 emit 하는 단일 JSON 포맷. gemini/codex 양 companion 출력 직전 self-validate 한다. 6키 SSOT — _workspace/01_schema.md §2 참조.",
+  "type": "object",
+  "oneOf": [
+    { "$ref": "#/$defs/successEnvelope" },
+    { "$ref": "#/$defs/errorEnvelope" }
+  ],
+  "$defs": {
+    "successEnvelope": {
+      "type": "object",
+      "required": ["summary", "tokens", "exit_code"],
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 500,
+          "description": "RC-1 — Claude 메인 컨텍스트로 돌아가는 요약. 500자 이하."
+        },
+        "result_path": {
+          "type": ["string", "null"],
+          "description": "결과 원본 파일 경로(상대 또는 절대). foreground 시 null 허용."
+        },
+        "tokens": { "$ref": "#/$defs/tokens" },
+        "exit_code": {
+          "type": "integer",
+          "enum": [0]
+        },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+    "errorEnvelope": {
+      "type": "object",
+      "required": ["error", "exit_code"],
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "object",
+          "required": ["code", "message_ko", "action_ko", "recovery"],
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "pattern": "^CCP-[A-Z]+-[0-9]{3}$",
+              "description": "에러 카탈로그 SSOT — _workspace/01_error_messages.md"
+            },
+            "message_ko": { "type": "string" },
+            "action_ko": { "type": "string" },
+            "recovery": {
+              "type": "string",
+              "enum": ["retry", "fallback_claude", "abort", "user_action_required"]
+            }
+          }
+        },
+        "exit_code": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "details": { "$ref": "#/$defs/details" }
+      }
+    },
+    "tokens": {
+      "type": "object",
+      "description": "측정 단위 SSOT (B16 / B1 §6 갱신) — 4 필드 표준화. gemini 7필드·codex 3필드 차이를 companion 측에서 흡수하여 반환.",
+      "required": ["input", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "input": { "type": "integer", "minimum": 0 },
+        "cached": { "type": "integer", "minimum": 0 },
+        "output": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "details": {
+      "type": "object",
+      "description": "모델별 상세 정보. mode 에 따라 분기되는 키가 다르다.",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["gemini", "codex"]
+        },
+        "job_id": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "duration_ms": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "mode": { "const": "gemini" } } },
+          "then": {
+            "properties": {
+              "gemini_session_id": {
+                "type": ["string", "null"],
+                "description": "UUIDv4 — gemini stats.session.id"
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "codex" } } },
+          "then": {
+            "properties": {
+              "codex_thread_id": {
+                "type": ["string", "null"],
+                "description": "UUIDv7 — codex turn.completed.thread_id (probe §3.1)"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
