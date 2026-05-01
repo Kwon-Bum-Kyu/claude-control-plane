@@ -6,6 +6,53 @@ Claude Control Plane 플러그인 개발 하네스의 산출물 변경 이력. �
 
 ---
 
+## 2026-05-02 — Phase 6-A B19 라우터 추천 훅 활성 (B19 RESOLVED)
+
+### Added
+- `plugins/ccp/scripts/lib/router.mjs` — 4축 라우터 결정 로직(`classify(input, opts)`)을 재사용 모듈로 추출. router-eval.mjs 와 hooks/router-suggest.js 가 동일 구현을 import
+- `plugins/ccp/hooks/router-suggest.js` — UserPromptSubmit 훅. 결정이 `gemini`/`codex` 면 `[CCP-ROUTER-001]` system reminder 로 추천 메시지 주입(슬래시 힌트·axis·reason·matched 키워드 포함). `claude` 결정은 noop, JSON 파싱 실패는 silent
+- `plugins/ccp/hooks/hooks.json` — UserPromptSubmit 에 router-suggest 훅 등록 (suggest-compact 와 병렬)
+
+### Changed
+- `_workspace/_router_test/router-eval.mjs` — 인라인 `classify`/`classifyByKeyword`/키워드 사전 제거, `lib/router.mjs` import. TARGETS 도 모듈 export 사용. 헤더에 B19 모듈 추출 주석 추가
+- `plugins/ccp/skills/router/SKILL.md` — B1 v0.1 미활성 표기를 v0.2 B19 RESOLVED 로 갱신, 추천 훅 활성·자동 위임 미수행 명시. v0.3 백로그에서 B19 제거
+- `_workspace/01_backlog.md` — B19 RESOLVED 마킹 (산출물·공수 실측·회귀 결과 기록), 누적 현황·변경 이력 갱신
+
+### Verified
+- 훅 6 시나리오 PASS — gemini slash / codex slash / claude 단순 수정(noop) / diff 키워드(codex C축 추천) / 메인 컨텍스트 의존(noop) / JSON 파싱 실패(silent)
+- router-eval 50/50 = 100% — 리팩터 전후 동일 결과(claude 1.000/0.952, gemini 0.933/1.000, codex 1.000/1.000)
+- audit 점수 37/40 유지 (8 카테고리 모두 영향 없음)
+
+### Why
+- B20 50 케이스 데이터셋 확보(2026-05-02) 로 P/R ≥ 0.93 검증 → B19 추천 훅 활성화 진입 조건 충족
+- 자동 위임은 의도적으로 미수행 — 원칙 4(자동 fallback 금지) 준수, 사용자가 추천을 보고 직접 슬래시 호출
+- 라우터 로직을 단일 모듈로 추출함으로써 G1-A(명세-구현 일관성) 강제: 향후 알고리즘 변경 시 router-eval 과 훅이 자동 동기화됨
+
+---
+
+## 2026-05-02 — Phase 6-A B20 codex 회귀 14건 추가 (50 케이스 데이터셋, B20 RESOLVED)
+
+### Added
+- `_workspace/_router_test/router-eval.mjs` — X01~X14 codex 정답 케이스 14건 추가. axis A user_explicit 5건 (slash 3 + `--effort`/`--sandbox` 2), axis B mid_review_codex 4건 (5K~30K + review/diff/버그조사 키워드), axis C 5건 (단일 키워드 3 + 다중 매칭 우위 2)
+- `_workspace/_router_test/EVAL_DATASET.md` §8 — X01~X14 라벨링 근거 5개 하위 절(8.1~8.5) 신규. 각 케이스 결정 신호·매칭 키워드·KW_CLAUDE 회피 검증 명시
+
+### Changed
+- `_workspace/_router_test/router-eval.mjs` 헤더 — "B1 36 케이스" → "B20 50 케이스" 갱신
+- `_workspace/_router_test/EVAL_DATASET.md` §1·§2·§9 — 50 케이스 라벨 분포 (claude 21 / gemini 14 / codex 15) 갱신, B1 36 케이스 분포는 §2.2 히스토리로 보존
+- `plugins/ccp/skills/router/SKILL.md` — 36 케이스 → 50 케이스 표기 갱신 (정확도 측정 절차·B1 적용 범위)
+- `_workspace/01_backlog.md` — B20 RESOLVED 마킹, 누적 현황 (P1 RESOLVED 1건 추가), 변경 이력 갱신
+
+### Verified
+- router-eval 50/50 = 100% PASS — 전체 정확도 100%, 명확 케이스 100%, 경계 케이스 5/5 (alt 허용)
+- 모델별 P/R: claude 1.000/0.952, gemini 0.933/1.000, codex 1.000/1.000 (전 모델 ≥ 0.93)
+- 혼동 행렬: 실제 codex 15건 모두 codex 예측, 오분류 0건 (B02만 claude→gemini alt 허용 매칭, 기존 동일)
+
+### Why
+- 결정 #4 옵션 C Phase 1 (B1 v0.1 명세만 3-way) 상태에서 codex 정답 데이터가 G09 1건뿐이어서 자동 라우팅 활성화(B19) 합격선 검증 불가
+- B20 으로 codex 라벨 1 → 15 건 확장하여 P/R 통계적 유의성 확보. v0.2 B19 진입 데이터셋 요건 충족
+
+---
+
 ## 2026-05-01 — Phase 6-A B1 Codex CLI 통합 — C1~C6 6/6 PASS (B1·B11·B17 RESOLVED)
 
 ### Added

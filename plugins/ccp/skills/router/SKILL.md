@@ -1,16 +1,17 @@
 ---
 name: router
-description: "CCP 모델 라우터 — Claude 본체 vs Gemini vs Codex 3-way 위임 결정 로직. 사용자 명시 > 입력 크기 > 키워드 > fallback 4축 우선순위. /gemini:rescue·/ccp:codex-rescue 호출 결정·라우팅 판단·R3 회피 검토 시 반드시 사용. **B1 v0.1: 명세만 3-way 확장, 활성화는 v0.2 (B19)**."
+description: "CCP 모델 라우터 — Claude 본체 vs Gemini vs Codex 3-way 위임 결정 로직. 사용자 명시 > 입력 크기 > 키워드 > fallback 4축 우선순위. /gemini:rescue·/ccp:codex-rescue 호출 결정·라우팅 판단·R3 회피 검토 시 반드시 사용. **v0.2 (B19 RESOLVED): hooks/router-suggest.js UserPromptSubmit 추천 활성, 자동 위임은 미수행**."
 ---
 
 # CCP Router — 3-way 라우팅 스킬 (Claude / Gemini / Codex)
 
 CCP 메인 Claude 컨텍스트에서 작업 위임 여부를 판정한다. 합격 기준 정확도 ≥ 80% (`_workspace/02_router_accuracy_spec.md` §0.3, AC-2).
 
-**B1 v0.1 적용 범위 (결정 #4 옵션 C Phase 1):**
-- 본 SKILL.md 의 3-way 명세는 **참조용**. 자동 라우팅(UserPromptSubmit 추천 훅)은 v0.2 (B19) 진입까지 비활성.
-- 사용자 슬래시 명시 호출(`/gemini:rescue` / `/ccp:codex-rescue`)은 즉시 작동.
-- 36 케이스 데이터셋은 3-way 라벨로 재라벨링되어 router-eval 에서 측정.
+**v0.2 적용 범위 (B19 RESOLVED — 2026-05-02, 결정 #4 옵션 C Phase 1):**
+- 본 SKILL.md 의 4축 알고리즘은 `plugins/ccp/scripts/lib/router.mjs` 가 코드로 미러링. router-eval 50/50 (100%) 검증 통과.
+- **추천 훅 활성**: `hooks/router-suggest.js` 가 UserPromptSubmit 시 결정 결과를 system reminder 로 주입 (`[CCP-ROUTER-001]`). 결정이 `claude` 면 noop.
+- **자동 위임 미수행**: 추천만 표시하고 사용자가 직접 슬래시 호출 (`/gemini:rescue` / `/ccp:codex-rescue`) — 원칙 4 (자동 fallback 금지) 준수.
+- B20 데이터셋: 50 케이스 (codex 15 / gemini 14 / claude 21).
 
 ## 트리거 조건
 
@@ -45,7 +46,7 @@ CCP 메인 Claude 컨텍스트에서 작업 위임 여부를 판정한다. 합�
 | 추정 입력 토큰 | review/diff 키워드 | 결정 | reason |
 |---|---|---|---|
 | < 5,000 | — | `claude` | `too_small` (위임 비용이 절감보다 큼) |
-| 5,000 ~ 30,000 | review/PR/diff/버그조사 키워드 매칭 | `codex` (B1 v0.1: 명세만, v0.2 활성화) | `mid_review_codex` |
+| 5,000 ~ 30,000 | review/PR/diff/버그조사 키워드 매칭 | `codex` | `mid_review_codex` |
 | 5,000 ~ 30,000 | 그 외 | (C 축으로 진행) | — |
 | > 30,000 | — | `gemini` | `too_large` (1M 컨텍스트 활용) |
 
@@ -130,10 +131,10 @@ CCP 메인 Claude 컨텍스트에서 작업 위임 여부를 판정한다. 합�
 
 ## 정확도 측정 절차
 
-`_workspace/02_router_accuracy_spec.md` §1~3 의 36 케이스 데이터셋을 사용.
+`_workspace/_router_test/EVAL_DATASET.md` §2 의 50 케이스 데이터셋을 사용 (B20 확장 — codex 15 / gemini 14 / claude 21).
 
 ```
-정확도 = (예측 == 정답 라벨) 건수 / 36
+정확도 = (예측 == 정답 라벨) 건수 / 50
 ```
 
 합격 기준 (PRD §7 AC-2 — B1 v0.1 갱신):
@@ -152,16 +153,15 @@ CCP 메인 Claude 컨텍스트에서 작업 위임 여부를 판정한다. 합�
 3. 경계 케이스 라벨 재검토
 4. 그래도 미달 시 `scope-guard` 에 통보 → 자동 라우팅 제거 후 슬래시 수동 호출만 지원하는 안 검토
 
-## Phase 6+ / v0.2 백로그 (`_workspace/01_backlog.md` 동결)
+## Phase 6+ / v0.3 백로그 (`_workspace/01_backlog.md`)
 
-본 B1 v0.1 라우터에서 제외된 기능:
+현재 v0.2 라우터에서 제외된 기능:
 
 - 한국어 매직 키워드 자동 감지 ("`@gemini`", "`@codex`", "`@claude`")
 - 비용/지연 가중 다목적 최적화
 - ML 분류기 (현재는 규칙 기반)
-- 라우터 자동 위임 활성화 + UserPromptSubmit 추천 훅 (B19)
 - review·adversarial-review 슬래시 (B18) — git diff 추출 로직 의존
-- 추천 모드 (옵션 D — 라우터가 모델 추천만 하고 사용자가 확정)
+- 라우터 자동 위임 (옵션 D — 추천 후 사용자 confirm 없이 슬래시 자동 실행, 원칙 4 위배 가능)
 
 ## Why
 
