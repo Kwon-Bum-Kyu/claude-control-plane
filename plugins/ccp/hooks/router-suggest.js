@@ -20,6 +20,17 @@ const SLASH_HINT = {
   codex: '/ccp:codex-rescue',
 };
 
+// B21-3 (2026-05-03) — 헤드리스 자동화 의심 시 메타 우회 차단 안내.
+// B9 §8.5.4 가 보고한 12회 메타 우회 (Skill→Agent→companion→직접 CLI) 차단 목적.
+// 사용자 슬래시 직접 호출 흔적이 없고 자동화 키워드가 보이면 권장 패턴 1줄 추가.
+const HEADLESS_HINT = /headless|claude\s*-p|스크립트|자동화|automation|cron|CI/i;
+const SLASH_PRESENT = /\/(?:ccp:codex-|gemini:|ccp:gemini-)/;
+
+function isLikelyHeadless(promptText) {
+  if (SLASH_PRESENT.test(promptText)) return false;
+  return HEADLESS_HINT.test(promptText);
+}
+
 function readStdinSync() {
   try {
     return readFileSync(0, 'utf8');
@@ -40,7 +51,7 @@ function clamp(text) {
     : text.slice(0, SUMMARY_MAX_CHARS - 16) + '...(truncated)';
 }
 
-function buildMessage(decision) {
+function buildMessage(decision, headlessSuspected) {
   const slash = SLASH_HINT[decision.target];
   if (!slash) return null;
 
@@ -50,10 +61,18 @@ function buildMessage(decision) {
     : '';
   const reason = decision.reason || 'unknown';
 
-  return clamp(
+  const baseLine =
     `[CCP-ROUTER-001] 라우터 추천: ${decision.target} (axis ${decision.axis}, ${reason})${tokenInfo}${matched}. ` +
-      `필요 시 \`${slash} "<task>"\` 로 위임하세요. 자동 위임은 수행하지 않습니다.`
-  );
+    `필요 시 \`${slash} "<task>"\` 로 위임하세요. 자동 위임은 수행하지 않습니다.`;
+
+  if (!headlessSuspected) return clamp(baseLine);
+
+  const companionScript = decision.target === 'codex' ? 'codex-companion.mjs' : 'gemini-companion.mjs';
+  const headlessLine =
+    ` [CCP-META-WARN] 헤드리스 의심: 메타 탐색(\`--help\`, \`Skill\`→\`Agent\` 우회) 대신 ` +
+    `\`node plugins/ccp/scripts/${companionScript} rescue --task <task>\` 직접 호출 권장.`;
+
+  return clamp(baseLine + headlessLine);
 }
 
 async function main() {
@@ -91,7 +110,8 @@ async function main() {
     return emit({});
   }
 
-  const message = buildMessage(decision);
+  const headlessSuspected = isLikelyHeadless(prompt);
+  const message = buildMessage(decision, headlessSuspected);
   if (!message) return emit({});
 
   emit({

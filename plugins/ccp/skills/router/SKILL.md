@@ -129,6 +129,28 @@ CCP 메인 Claude 컨텍스트에서 작업 위임 여부를 판정한다. 합�
 2. 사용자 의도 존중 — 명시적 재호출이 의도성을 보장
 3. 디버깅 가능성 — fallback 사유를 사용자가 인지
 
+## ⚠️ 헤드리스 자동화 시 Anti-pattern (B21-3, 2026-05-03)
+
+`claude -p` 헤드리스 호출에서 라우터가 gemini/codex 결정을 추천한 경우 다음 메타 우회 패턴이 발생할 수 있다. B9 §8.5.4 (`ccp_report.md`) 가 보고한 12회 메타 시도 누적 사례 — net negative 2.1배 토큰 회귀의 직접 원인이다.
+
+### 하지 말 것 (메타 우회 누적 금지)
+
+- ❌ `gemini-companion.mjs --help` / `rescue --help` 인터페이스 탐색
+- ❌ `Skill ccp:gemini-rescue` → `Agent ccp:gemini-rescue` → companion 직접 호출의 3중 진입점 시도
+- ❌ 동일 task 를 여러 변형으로 재시도 (한국어 → 영어 → minimal case)
+- ❌ `grep "rescue|--task"` 등 소스 직접 탐색
+
+### 권장 패턴 (사전 스크립트화)
+
+- ✅ 슬래시 사전 스크립트화: `claude -p "/gemini:rescue <task>" -- ...`
+- ✅ companion 직접 호출: `node plugins/ccp/scripts/gemini-companion.mjs rescue --task <task>`
+- ✅ 실패 시 1회 재시도 후 즉시 사용자 안내 (`--fallback-claude` 명시 호출만 허용, 자동 fallback 금지)
+
+### 가드
+
+- `hooks/router-suggest.js` (B19 + B21-3 확장) 가 UserPromptSubmit 시 `headless|claude -p|스크립트|자동화` 키워드를 감지하면 `[CCP-META-WARN]` 안내를 추가 주입.
+- 사용자/스크립트가 `/gemini:rescue` 등 슬래시를 명시 입력하면 헤드리스 의심을 해제하고 표준 `[CCP-ROUTER-001]` 만 emit.
+
 ## 정확도 측정 절차
 
 `_workspace/_router_test/EVAL_DATASET.md` §2 의 50 케이스 데이터셋을 사용 (B20 확장 — codex 15 / gemini 14 / claude 21).

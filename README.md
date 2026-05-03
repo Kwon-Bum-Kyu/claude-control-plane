@@ -217,9 +217,37 @@ CCP 라우터는 **4축 우선순위** 로 Claude / Gemini / Codex 3 경로 중 
    [axis D] fallback → Claude (보수적)
 ```
 
-- **자동화 검증**: 36 케이스 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델 (`_workspace/06_b1_qa_report.md` C6).
+- **자동화 검증**: 50 케이스 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델 (`_workspace/06_b1_qa_report.md` C6 + B20).
 - **투명성**: 모든 호출 결과 `details.mode` 필드에 결정 결과 노출 (`gemini` | `codex`).
-- **B1 v0.1 적용 범위**: SKILL.md 명세는 3-way 로 확장. **자동 라우팅(추천 훅) 활성화는 v0.2 (B19)**. 현재는 사용자 슬래시 명시 호출만 작동.
+- **추천 훅 활성** (B19, v0.2): UserPromptSubmit 시 결정 결과를 `[CCP-ROUTER-001]` system reminder 로 주입. 자동 위임은 미수행 — 사용자가 직접 슬래시 호출.
+
+### 5.1 토큰 절감 패턴 (canonical 권장)
+
+CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** 패턴에서 가장 강하게 작동합니다.
+
+```
+✅ 권장:  /gemini:rescue 이 디렉토리 전체 요약
+✅ 권장:  /ccp:codex-rescue 이 PR diff 검토
+```
+
+이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다. 본 프로젝트 T5 fixture canonical 측정 (N=2): 메인 846K + 외부 오프로드 179K = 총 1,025K (`_workspace/04_token_report.md` §11).
+
+### 5.2 헤드리스 자동화 권고 패턴 (B21-3)
+
+`claude -p` 헤드리스 호출에서는 모델이 위임 진입점을 탐색하다가 메타 우회(예: `Skill→Agent→companion --help`)를 12회까지 누적해 토큰이 오히려 2.1배 증가하는 사례가 보고되었습니다 (B9 §8.5.4). 헤드리스 자동화에서 위임 효과를 보려면 다음 패턴을 사용하세요.
+
+```bash
+# ✅ 권장 1: 슬래시 사전 스크립트화
+claude -p "/gemini:rescue 이 디렉토리 전체 요약" -- ...
+
+# ✅ 권장 2: companion 직접 호출 (메타 진입점 우회 차단)
+node plugins/ccp/scripts/gemini-companion.mjs rescue --task "이 디렉토리 요약"
+node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
+
+# ❌ 금지: rescue --help / Skill→Agent 우회 / 동일 task 변형 재시도
+```
+
+`hooks/router-suggest.js` 가 `headless|claude -p|스크립트|자동화|automation|cron|CI` 키워드를 감지하면 `[CCP-META-WARN]` 안내를 자동 추가합니다.
 
 오판 의심 시 `/ccp:audit` 으로 router_accuracy 카테고리 점수를 확인하세요.
 
