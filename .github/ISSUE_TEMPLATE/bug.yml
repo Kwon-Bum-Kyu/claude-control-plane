@@ -1,0 +1,97 @@
+name: Bug report
+description: Report a defect in CCP (router decision, slash command, hook, audit, envelope)
+title: "[bug] "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. CCP wraps several external CLIs (Claude Code, Gemini CLI, Codex CLI),
+        so accurate environment information is required for triage.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-sentence description of the defect.
+      placeholder: "/gemini:rescue returns ENOENT when the prompt contains a Korean code block"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Minimal steps. Include the exact slash command or shell invocation.
+      placeholder: |
+        1. `/gemini:rescue --background "summarize this 50KB log"`
+        2. Wait until status transitions to `running`
+        3. Observe envelope.exit_code == 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: What did you expect, and what did you observe?
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: OS / kernel
+      description: e.g. `macOS 15.1 (Darwin 24.1.0)`, `Ubuntu 22.04 (Linux 6.5.0)`
+      placeholder: macOS 15.1 (Darwin 24.1.0)
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output of `node --version`. CCP requires `>= 20.0.0`.
+      placeholder: v22.12.0
+    validations:
+      required: true
+
+  - type: input
+    id: claude_code
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`.
+      placeholder: 1.x.x
+    validations:
+      required: true
+
+  - type: input
+    id: gemini_cli
+    attributes:
+      label: Gemini CLI version
+      description: Output of `gemini --version`. Leave empty if not used.
+      placeholder: 0.38.x
+
+  - type: input
+    id: codex_cli
+    attributes:
+      label: Codex CLI version
+      description: Output of `codex --version`. Leave empty if not used.
+      placeholder: 0.x.x
+
+  - type: textarea
+    id: envelope
+    attributes:
+      label: Envelope or error output
+      description: Paste the JSON envelope (or error log) returned by the failing command. Redact secrets.
+      render: json
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I ran `/gemini:setup` (and `/codex:setup` if applicable) and OAuth is healthy
+          required: true
+        - label: I confirmed the issue still reproduces on the latest `main`
+          required: true

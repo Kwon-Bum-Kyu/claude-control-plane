@@ -6,6 +6,32 @@ Claude Control Plane 플러그인 개발 하네스의 산출물 변경 이력. �
 
 ---
 
+## 2026-05-04 — v0.1.0 release-prep Step 4 — GitHub workflows + 가이드 docs (N6·N7 RESOLVED, G3 PASS)
+
+### Added
+- `.github/PULL_REQUEST_TEMPLATE.md` — Summary / Test plan (5 체크) / Borrowed-code (3 체크) / DCO sign-off / Notes 섹션 (N6-1)
+- `.github/workflows/ci.yml` — Node 20·22 매트릭스 4잡: `lint`(node --check 전 .mjs/.js), `router-eval`(65/65), `router-suggest`(9/9), `audit`(envelope `exit_code`+`summary` 정규식 파싱으로 ≥33/40 임계 강제) (N6-2)
+- `.github/workflows/release.yml` — `v*.*.*` 태그 푸시 시 GitHub Release 자동 생성, CHANGELOG.md `## <tag>` 섹션 awk 발췌, LICENSE/NOTICE/ATTRIBUTION/CHANGELOG 첨부, `-test`/`-rc`/`-beta` 접미사 prerelease 처리 (N6-3)
+- `.github/ISSUE_TEMPLATE/{bug,feature,question}.yml` + `config.yml` — bug 템플릿은 OS/Node/Claude Code/Gemini CLI/Codex CLI 버전 강제 수집 (N6-4)
+- `docs/en/` 5문서 — getting-started, router, slash-commands, architecture, troubleshooting (N7-1)
+- `docs/ko/` 5문서 — en 본 기반 한국어 보조 번역, 1차 페르소나(KBK) 가독성 유지 (N7-2)
+
+### Changed
+- `README.md` 헤더 — `📚 Documentation: English · 한국어` 링크 추가 (A2-revise)
+- `_workspace/07_v0.1.0_release_tasks.md` — Step 4 체크박스 N6·N7 [x] + 작업 결과 누적 로그 6행 + G3 게이트 PASS 표기
+
+### Verified
+- 회귀 — router-eval 65/65 + router-suggest 9/9 + harness-audit 36/40 (≥33 임계) 회귀 0건
+- CI lint 잡 로컬 dry-run — 모든 `.mjs`/`.js` `node --check` PASS
+- dead link 0건 — README · docs/en/* · docs/ko/*
+- G3 게이트 PASS — Step 5 (Public 분기) 진입 가능, D1 (Public owner) · D3 (clean copy 위치) 사용자 결정 대기
+
+### Notes
+- v0.1.0 release 직전 CHANGELOG.md 에 `## v0.1.0` 헤더 한 줄 추가 필요 (release.yml 의 awk 섹션 발췌가 매칭).
+- `.github/ISSUE_TEMPLATE/config.yml` 의 docs URL placeholder 는 D1 결정 후 실제 owner 로 치환 필요.
+
+---
+
 ## 2026-05-02 — Phase 6-A B19 라우터 추천 훅 활성 (B19 RESOLVED)
 
 ### Added

@@ -8,6 +8,8 @@
 
 > ⚠️ **비공식 프로젝트**: CCP 는 Anthropic·Google 과 무관한 독립 커뮤니티 프로젝트입니다. "Claude", "Gemini", "Claude Code" 는 각 소유자의 상표이며, 본 프로젝트는 상호운용성 목적의 명목적 사용에 한합니다.
 
+📚 **Documentation**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md)
+
 ---
 
 ## 1. 소개

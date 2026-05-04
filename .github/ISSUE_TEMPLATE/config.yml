@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the docs first
+    url: https://github.com/claude-control-plane/claude-control-plane/tree/main/docs/en
+    about: getting-started, router, slash-commands, troubleshooting, architecture (replace owner once D1 resolves)
+  - name: Claude Code documentation
+    url: https://docs.claude.com/en/docs/claude-code/overview
+    about: Plugin system, hooks, subagents — upstream reference

@@ -1,0 +1,115 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: lint (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: node --check on plugin scripts
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r f; do
+            if ! node --check "$f"; then
+              echo "::error file=$f::syntax check failed"
+              fail=1
+            fi
+          done < <(find plugins/ccp/scripts -type f -name '*.mjs')
+          while IFS= read -r f; do
+            if ! node --check "$f"; then
+              echo "::error file=$f::syntax check failed"
+              fail=1
+            fi
+          done < <(find plugins/ccp/hooks -type f -name '*.js')
+          # harness-audit.js is a CommonJS-style .js entry point
+          node --check plugins/ccp/scripts/harness-audit.js || fail=1
+          exit $fail
+
+  router-eval:
+    name: router-eval (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: run router-eval (must be 65/65 = 100%)
+        run: node _workspace/_router_test/router-eval.mjs
+
+  router-suggest:
+    name: router-suggest hook regression (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: run router-suggest hook regression (9/9)
+        run: node _workspace/_router_test/router-suggest-test.mjs
+
+  audit:
+    name: harness-audit (>= 33/40)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: run harness-audit and enforce threshold
+        run: |
+          set -euo pipefail
+          out=$(node plugins/ccp/scripts/harness-audit.js --format json)
+          echo "$out"
+          echo "$out" | node -e '
+            let buf = "";
+            process.stdin.on("data", c => buf += c);
+            process.stdin.on("end", () => {
+              let env;
+              try { env = JSON.parse(buf); } catch (e) {
+                console.error("::error::audit envelope is not valid JSON");
+                process.exit(1);
+              }
+              if (env.exit_code !== 0) {
+                console.error(`::error::audit exit_code=${env.exit_code}, expected 0`);
+                process.exit(1);
+              }
+              const m = String(env.summary || "").match(/Total score (\d+)\/(\d+)/);
+              if (!m) {
+                console.error("::error::audit summary missing total score");
+                process.exit(1);
+              }
+              const total = parseInt(m[1], 10);
+              const max = parseInt(m[2], 10);
+              const threshold = 33;
+              console.log(`audit total=${total} max=${max} threshold=${threshold}`);
+              if (total < threshold) {
+                console.error(`::error::harness-audit total ${total}/${max} is below ${threshold}/40 threshold`);
+                process.exit(1);
+              }
+            });
+          '
