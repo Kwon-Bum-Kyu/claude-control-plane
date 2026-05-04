@@ -135,7 +135,7 @@ function readJobs(sinceTs) {
 // ---------------------------------------------------------------------------
 
 function scoreContextEfficiency(jobs) {
-  // RC-1 — summary 길이 ≤ 500 자 / total summary length stays small
+  // RC-1 — summary length <= 500 chars / total summary length stays small
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   const compliant = jobs.filter(
     (j) => !j.summary_3lines || j.summary_3lines.length <= 500
@@ -144,12 +144,12 @@ function scoreContextEfficiency(jobs) {
   return {
     score: Math.round(ratio * 5),
     n: jobs.length,
-    note: `${compliant}/${jobs.length} jobs ≤ 500자`,
+    note: `${compliant}/${jobs.length} jobs <= 500 chars`,
   };
 }
 
 function scoreCostEfficiency(jobs) {
-  // 토큰 통계 존재 비율 (실제 절감률은 S4-4 측정 리포트에서 확정)
+  // Ratio of jobs with token stats present (actual savings rate finalized in the S4-4 measurement report)
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   const measured = jobs.filter(
     (j) => j.token_usage && j.token_usage.estimated === false
@@ -158,19 +158,19 @@ function scoreCostEfficiency(jobs) {
   return {
     score: Math.round(ratio * 5),
     n: jobs.length,
-    note: `${measured}/${jobs.length} jobs CLI stats 실측`,
+    note: `${measured}/${jobs.length} jobs with measured CLI stats`,
   };
 }
 
 function scoreRouterAccuracy() {
-  // S4-3 리포트(_workspace/04_router_report.md) 존재 시 인용, 없으면 N/A
+  // Cite the S4-3 report (_workspace/04_router_report.md) if present; otherwise N/A
   const report = resolve(REPO_ROOT, '_workspace', '04_router_report.md');
-  if (!existsSync(report)) return { score: null, note: 'router report 미작성 (S4-3 대기)' };
-  return { score: 5, note: 'router report 작성 완료' };
+  if (!existsSync(report)) return { score: null, note: 'router report not written (waiting on S4-3)' };
+  return { score: 5, note: 'router report completed' };
 }
 
 function scoreDoubleBilling(jobs) {
-  // R1 — meta.summary_3lines 의 길이가 result_file_path 본문 크기보다 작아야 함
+  // R1 — meta.summary_3lines must be shorter than the result_file_path body size
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   let safe = 0;
   for (const j of jobs) {
@@ -197,26 +197,26 @@ function scoreDoubleBilling(jobs) {
 }
 
 function scoreFallbackHealth(jobs) {
-  // R6 — OAuth 만료 후 사용자 재호출 회복률 추정.
-  // 여기서는 OAuth 에러 코드 비율과 사용자 재호출(--fallback-claude) 카운트로 근사.
+  // R6 — Estimate recovery rate after user re-invocation following OAuth expiry.
+  // Here we approximate it with the OAuth error-code ratio and user re-invocation (--fallback-claude) count.
   if (jobs.length === 0) return { score: null, note: 'no jobs' };
   const oauth = jobs.filter((j) => j.error?.code === 'CCP-OAUTH-001').length;
-  if (oauth === 0) return { score: 5, note: 'OAuth 에러 0건' };
-  return { score: 3, note: `OAuth 에러 ${oauth}건 — 재호출 추적 미구현(P1)` };
+  if (oauth === 0) return { score: 5, note: '0 OAuth errors' };
+  return { score: 3, note: `${oauth} OAuth errors - re-invocation tracking not implemented (P1)` };
 }
 
 function scorePluginCompat() {
-  // R4 — plugin.json 공식 스키마 준수 검증.
-  // Phase 5-A T5 에서 minClaudeVersion/engines 가 비표준 키로 확인되어 제거됨
-  // (`_workspace/05_phase5a_install_troubleshooting.md` §T5). 따라서 본 검사는
-  // 공식 plugins-reference 의 표준 키 5종만 검사한다 (B15 / 2026-04-27).
+  // R4 — Verify compliance with the official plugin.json schema.
+  // In Phase 5-A T5, minClaudeVersion/engines were confirmed as nonstandard keys and removed
+  // (`_workspace/05_phase5a_install_troubleshooting.md` §T5). Therefore this check
+  // validates only the 5 standard keys from the official plugins-reference (B15 / 2026-04-27).
   const pluginJson = resolve(PLUGIN_ROOT, '.claude-plugin', 'plugin.json');
-  if (!existsSync(pluginJson)) return { score: 0, note: 'plugin.json 부재' };
+  if (!existsSync(pluginJson)) return { score: 0, note: 'plugin.json missing' };
   let obj;
   try {
     obj = JSON.parse(readFileSync(pluginJson, 'utf8'));
   } catch {
-    return { score: 0, note: 'plugin.json 파싱 실패' };
+    return { score: 0, note: 'plugin.json parse failed' };
   }
   const nonEmpty = (k) => {
     const v = obj?.[k];
@@ -236,16 +236,16 @@ function scorePluginCompat() {
   const ok = checks.filter(Boolean).length;
   return {
     score: Math.round((ok / checks.length) * 5),
-    note: `${ok}/${checks.length} 표준 필드 충족 (name/version/description/author/license)`,
+    note: `${ok}/${checks.length} standard fields present (name/version/description/author/license)`,
   };
 }
 
 function scoreAdaptedHeaders() {
-  // G1-I (B1 신설) — lib/codex_adapted/ 차용 파일은 5필드 헤더 의무.
-  // 누락 시 ATTRIBUTION §6 / NOTICE 와 불일치하여 라이선스 추적성 위반.
+  // G1-I (added in B1) — borrowed files under lib/codex_adapted/ require a 5-field header.
+  // Missing headers break license traceability by diverging from ATTRIBUTION §6 / NOTICE.
   const dir = resolve(PLUGIN_ROOT, 'scripts', 'lib', 'codex_adapted');
   if (!existsSync(dir)) {
-    return { score: null, note: 'lib/codex_adapted/ 부재 (B1 미적용 단계)' };
+    return { score: null, note: 'lib/codex_adapted/ missing (pre-B1 stage)' };
   }
   const required = [
     /^\/\/ Adapted from:/m,
@@ -255,7 +255,7 @@ function scoreAdaptedHeaders() {
     /^\/\/ SHA-of-this-adaptation:/m,
   ];
   const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') || f.endsWith('.js'));
-  if (files.length === 0) return { score: null, note: 'lib/codex_adapted/ 비어있음' };
+  if (files.length === 0) return { score: null, note: 'lib/codex_adapted/ is empty' };
   let pass = 0;
   const failed = [];
   for (const f of files) {
@@ -267,13 +267,13 @@ function scoreAdaptedHeaders() {
   const score = Math.round((pass / files.length) * 5);
   const note =
     failed.length === 0
-      ? `${pass}/${files.length} 파일 5필드 헤더 충족`
-      : `${pass}/${files.length} 충족, 누락: ${failed.join(', ')}`;
+      ? `${pass}/${files.length} files have the 5-field header`
+      : `${pass}/${files.length} pass, missing: ${failed.join(', ')}`;
   return { score, note };
 }
 
 function scoreSecretLeak(jobs) {
-  // L5·L6 — meta.json / summary_3lines / details 에 비밀 정보 패턴 grep
+  // L5·L6 — grep secret-pattern matches in meta.json / summary_3lines / details
   const blocked = /(Bearer\s+[A-Za-z0-9._-]+|GEMINI_API_KEY|AKIA[0-9A-Z]{16})/i;
   let leaks = 0;
   for (const j of jobs) {
@@ -283,7 +283,7 @@ function scoreSecretLeak(jobs) {
   return {
     score: leaks === 0 ? 5 : 0,
     n: jobs.length,
-    note: leaks === 0 ? '비밀 정보 누출 0건' : `${leaks}건 누출 의심`,
+    note: leaks === 0 ? '0 secret leaks' : `${leaks} suspected leaks`,
   };
 }
 
@@ -295,22 +295,22 @@ function renderMarkdown({ scores, jobs, since, generatedAt }) {
   const lines = [];
   lines.push(`# CCP Audit Report`);
   lines.push('');
-  lines.push(`- 생성 시각: ${generatedAt}`);
-  lines.push(`- 감사 범위: ${since ? `since ${since}` : '전체 jobs'}`);
-  lines.push(`- 스캔된 job 수: ${jobs.length}`);
+  lines.push(`- Generated at: ${generatedAt}`);
+  lines.push(`- Audit scope: ${since ? `since ${since}` : 'all jobs'}`);
+  lines.push(`- Jobs scanned: ${jobs.length}`);
   lines.push('');
-  lines.push('## 7 카테고리 점수');
+  lines.push('## 7 Category Scores');
   lines.push('');
-  lines.push('| 카테고리 | 점수 (0~5) | 비고 |');
+  lines.push('| Category | Score (0-5) | Note |');
   lines.push('|---------|----------|------|');
   for (const [k, v] of Object.entries(scores)) {
     lines.push(`| ${k} | ${v.score ?? 'N/A'} | ${v.note ?? ''} |`);
   }
   lines.push('');
-  lines.push('## 명세 SSOT');
+  lines.push('## Spec SSOT');
   lines.push('- `_workspace/01_command_spec.md` §"/ccp:audit"');
   lines.push('- `_workspace/02_regression_cases.md` (RC-1~RC-7)');
-  lines.push('- `_workspace/02_arch_decisions.md` 원칙 7 (서브에이전트 격리)');
+  lines.push('- `_workspace/02_arch_decisions.md` Principle 7 (subagent isolation)');
   return lines.join('\n');
 }
 
@@ -326,10 +326,10 @@ function main() {
   if (jobs.length === 0) {
     return emitError(
       'CCP-AUDIT-001',
-      '감사할 세션 데이터가 없습니다',
+      'No session data available to audit',
       args.since
-        ? `--since ${args.since} 이후 _workspace/_jobs/ 에 meta.json 이 없습니다.`
-        : '_workspace/_jobs/ 가 비어있거나 부재합니다.'
+        ? `No meta.json exists in _workspace/_jobs/ since ${args.since}.`
+        : '_workspace/_jobs/ is empty or missing.'
     );
   }
 
@@ -370,18 +370,18 @@ function main() {
       );
     }
   } catch (err) {
-    return emitError('CCP-AUDIT-002', '감사 스크립트 실행에 실패했습니다', '잠시 후 재시도하세요.', {
+    return emitError('CCP-AUDIT-002', 'Failed to run the audit script', 'Retry shortly.', {
       stage: 'write_report',
       reason: err.message,
     });
   }
 
-  // details.scores 는 점수만 평탄화 (상세는 리포트 파일에)
+  // details.scores flattens scores only; detailed output stays in the report file
   const flatScores = {};
   for (const [k, v] of Object.entries(scoreEntries)) flatScores[k] = v.score;
 
   emitSuccess({
-    summary: `전체 점수 ${totalScore}/${maxScore}. 스캔된 job ${jobs.length}건. 리포트: ${resultRel}`,
+    summary: `Total score ${totalScore}/${maxScore}. ${jobs.length} jobs scanned. Report: ${resultRel}`,
     result_path: resultRel,
     details: { scores: flatScores, jobs_count: jobs.length, since: args.since ?? null },
   });

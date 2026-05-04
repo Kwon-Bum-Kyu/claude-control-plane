@@ -1,7 +1,7 @@
 // Adapted from: codex-plugin-cc plugins/codex/scripts/lib/state.mjs
 // Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Original license: Apache-2.0 (see ATTRIBUTION.md §1.3, NOTICE)
-// Modifications: 한국어 에러 메시지, _workspace/_jobs/ 경로 통일, mode:"codex" 메타 필드, gemini-companion 와 폴더 구조 일치
+// Modifications: localised error messages, unified _workspace/_jobs/ path, mode:"codex" meta field, folder layout aligned with gemini-companion
 // SHA-of-this-adaptation: <to be filled at B1 merge>
 
 import {
@@ -16,7 +16,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 /**
- * job 메타파일 read. 미존재 또는 파싱 실패 시 null.
+ * Read a job metadata file. Returns null if missing or parse fails.
  * @param {string} jobsDir
  * @param {string} jobId
  */
@@ -31,7 +31,7 @@ export function readMeta(jobsDir, jobId) {
 }
 
 /**
- * job 메타파일 write (atomic 풍 — 임시파일 → rename 은 codex-plugin-cc 패턴 유지).
+ * Write a job metadata file (atomic-style - keep the codex-plugin-cc temp-file -> rename pattern).
  * @param {string} jobsDir
  * @param {string} jobId
  * @param {object} meta
@@ -44,7 +44,7 @@ export function writeMeta(jobsDir, jobId, meta) {
 }
 
 /**
- * job 디렉터리 보장. 없으면 생성, 있으면 그대로.
+ * Ensure the job directory exists. Create it if missing.
  */
 export function ensureJobDir(jobsDir, jobId) {
   const dir = join(jobsDir, jobId);
@@ -53,14 +53,14 @@ export function ensureJobDir(jobsDir, jobId) {
 }
 
 /**
- * background job 큐 진입 — 신규 jobId 생성 후 meta.json 을 queued 상태로 초기화한다.
- * codex-plugin-cc 의 enqueueBackgroundTask 를 함수 단위 차용.
+ * Enter the background-job queue - create a new jobId, then initialize meta.json in queued state.
+ * Function-level adaptation of codex-plugin-cc's enqueueBackgroundTask.
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
  * @param {string} opts.mode      "codex" | "gemini"
  * @param {string} opts.prompt
- * @param {object} [opts.params]  model/effort/sandbox 등
+ * @param {object} [opts.params]  model/effort/sandbox, etc.
  * @param {string} [opts.claudeSessionId]
  * @returns {{ jobId: string, dir: string, meta: object }}
  */
@@ -92,12 +92,12 @@ export function enqueueBackgroundJob({ jobsDir, mode, prompt, params = {}, claud
 }
 
 /**
- * meta.state 전이 (queued → running → completed | failed | cancelled).
- * 동시성 충돌 회피를 위해 read-modify-write 단순 패턴을 사용 (codex-plugin-cc 동일).
+ * Transition meta.state (queued -> running -> completed | failed | cancelled).
+ * Uses a simple read-modify-write pattern to avoid concurrency conflicts (same as codex-plugin-cc).
  *
  * @param {string} jobsDir
  * @param {string} jobId
- * @param {object} patch  부분 업데이트 (state, pid, exit_code, completed_at 등)
+ * @param {object} patch  partial update (state, pid, exit_code, completed_at, etc.)
  */
 export function patchMeta(jobsDir, jobId, patch) {
   const cur = readMeta(jobsDir, jobId);
@@ -110,15 +110,15 @@ export function patchMeta(jobsDir, jobId, patch) {
 }
 
 /**
- * polling — meta.state 가 terminal 상태가 될 때까지 또는 timeout 까지 대기.
- * codex-plugin-cc 의 waitForSingleJobSnapshot 를 함수 단위 차용.
+ * Poll until meta.state reaches a terminal state or times out.
+ * Function-level adaptation of codex-plugin-cc's waitForSingleJobSnapshot.
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
  * @param {string} opts.jobId
- * @param {number} opts.timeoutMs       총 대기 한도
- * @param {number} opts.pollIntervalMs  polling 주기
- * @returns {Promise<object>} 최종 meta
+ * @param {number} opts.timeoutMs       total wait limit
+ * @param {number} opts.pollIntervalMs  polling interval
+ * @returns {Promise<object>} final meta
  */
 export async function waitForJob({ jobsDir, jobId, timeoutMs, pollIntervalMs }) {
   const TERMINAL = new Set(['completed', 'failed', 'cancelled']);
@@ -134,7 +134,7 @@ export async function waitForJob({ jobsDir, jobId, timeoutMs, pollIntervalMs }) 
 }
 
 /**
- * 모든 job 디렉터리 나열 (정렬: created_at 내림차순)
+ * List all job directories (sorted by created_at descending)
  */
 export function listJobs(jobsDir) {
   if (!existsSync(jobsDir)) return [];

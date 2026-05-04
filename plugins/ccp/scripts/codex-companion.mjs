@@ -27,7 +27,7 @@ import { findLatestResumableJob } from './lib/codex_adapted/tracked-jobs.mjs';
 import { assertEnvelope } from './lib/envelope-validate.mjs';
 
 // ---------------------------------------------------------------------------
-// Constants & paths (gemini-companion 와 동일 패턴)
+// Constants & paths (same pattern as gemini-companion)
 // ---------------------------------------------------------------------------
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -43,10 +43,10 @@ const JOBS_DIR =
 
 const SUMMARY_MAX_CHARS = 500;
 const SUMMARY_TOKEN_CAP = 1500;
-const DEFAULT_TIMEOUT_MS = 240000; // probe §2 — codex_exec P95 7.242s × 2 + 마진
+const DEFAULT_TIMEOUT_MS = 240000; // probe §2 — codex_exec P95 7.242s × 2 + margin
 const DEFAULT_POLL_INTERVAL_MS = 2000;
-const PROBE_OAUTH_TIMEOUT_MS = 30000; // gemini 와 동일 (cold start 여유)
-const FOREGROUND_TIMEOUT_MS = 600000; // 사용자 큰 작업 허용 (gemini-companion B17 정책 미러)
+const PROBE_OAUTH_TIMEOUT_MS = 30000; // same as gemini (cold start buffer)
+const FOREGROUND_TIMEOUT_MS = 600000; // allow large user tasks (mirrors gemini-companion B17 policy)
 const MIN_NODE_MAJOR = 20;
 const MIN_CODEX_VERSION = '0.122.0';
 
@@ -74,7 +74,7 @@ function emitSuccess({ summary, result_path, tokens, details }) {
 }
 
 function emitBackground({ job_id, next_action, details }) {
-  // background queued 응답 — schema 우회 단순 형식 (gemini-companion 동일)
+  // background queued response — simple schema-bypass format (same as gemini-companion)
   const env = { job_id, status: 'queued', next_action };
   if (details && typeof details === 'object') env.details = sanitizeDetails(details);
   process.stdout.write(JSON.stringify(env) + '\n');
@@ -87,8 +87,8 @@ function emitError(code, opts = {}) {
     emit({
       error: {
         code: 'CCP-INVALID-001',
-        message_ko: `알 수 없는 에러 코드: ${code}`,
-        action_ko: '내부 버그입니다. 이슈로 보고해주세요.',
+        message: `Unknown error code: ${code}`,
+        action: 'This is an internal bug. Please report it as an issue.',
         recovery: 'abort',
       },
       exit_code: 1,
@@ -97,8 +97,8 @@ function emitError(code, opts = {}) {
   }
   const merged = {
     code,
-    message_ko: opts.message_ko ?? cat.message_ko,
-    action_ko: opts.action_ko ?? cat.action_ko,
+    message: opts.message ?? cat.message,
+    action: opts.action ?? cat.action,
     recovery: cat.recovery,
   };
   const env = { error: merged, exit_code: 1 };
@@ -116,11 +116,11 @@ function clampSummary(text) {
 }
 
 function sanitizeDetails(details) {
-  // L6 — gemini-companion sanitizeDetails 와 동일 정책
+  // L6 — same policy as gemini-companion sanitizeDetails
   const blocked = /token|secret|api[_-]?key|authorization|password/i;
   const out = {};
   for (const [k, v] of Object.entries(details)) {
-    if (blocked.test(k) && k !== 'codex_thread_id') continue; // thread_id 는 비밀 아님
+    if (blocked.test(k) && k !== 'codex_thread_id') continue; // thread_id is not secret
     if (typeof v === 'string' && /Bearer\s+[A-Za-z0-9._-]+/i.test(v)) continue;
     out[k] = v;
   }
@@ -128,100 +128,100 @@ function sanitizeDetails(details) {
 }
 
 function normalizeTokens(tokens) {
-  // codex usage 3필드(input/cached/output) → CCP 표준 4필드(input/cached/output/total)
+  // codex usage has 3 fields (input/cached/output) -> CCP standard 4 fields (input/cached/output/total)
   if (!tokens || typeof tokens !== 'object') return { input: 0, output: 0 };
   const input = Number.isFinite(tokens.input) ? tokens.input : 0;
   const cached = Number.isFinite(tokens.cached) ? tokens.cached : 0;
   const output = Number.isFinite(tokens.output) ? tokens.output : 0;
-  // total = 신규 청구분만 (cached 는 재사용분이므로 차감)
+  // total = newly billed tokens only (subtract cached reused tokens)
   const total = Math.max(0, input - cached) + output;
   return { input, cached, output, total };
 }
 
 // ---------------------------------------------------------------------------
-// Error catalog — codex 측 변형 + 공용 코드
+// Error catalog — codex-side variants + shared codes
 // ---------------------------------------------------------------------------
 
-const FALLBACK_HINT_KO = ' Claude 본체로 재시도하시려면 원문을 다시 입력하세요.';
+const FALLBACK_HINT_KO = ' Re-enter the original prompt to retry in Claude.';
 
 const ERROR_CATALOG = {
   'CCP-SETUP-101': {
-    message_ko: 'Codex CLI가 설치되어 있지 않습니다',
-    action_ko: '`brew install codex` 또는 `npm install -g @openai/codex` 실행 후 `/ccp:codex-setup` 을 재실행하세요.',
+    message: 'Codex CLI is not installed',
+    action: 'Run `brew install codex` or `npm install -g @openai/codex`, then rerun `/ccp:codex-setup`.',
     recovery: 'abort',
   },
   'CCP-SETUP-102': {
-    message_ko: 'Codex CLI 버전이 요구사항(>=0.122.0)보다 낮습니다',
-    action_ko: 'Codex CLI 를 업데이트한 후 `/ccp:codex-setup` 을 재실행하세요.',
+    message: 'Codex CLI version is below the requirement (>=0.122.0)',
+    action: 'Update Codex CLI, then rerun `/ccp:codex-setup`.',
     recovery: 'abort',
   },
   'CCP-SETUP-002': {
-    message_ko: 'Node.js 버전이 요구사항보다 낮습니다',
-    action_ko: 'Node.js 20 이상을 설치한 후 재실행하세요.',
+    message: 'Node.js version is below the requirement',
+    action: 'Install Node.js 20+ and rerun.',
     recovery: 'abort',
   },
   'CCP-OAUTH-101': {
-    message_ko: 'Codex 인증이 필요합니다',
-    action_ko:
-      '`codex login` 으로 인증하거나 `/ccp:codex-rescue --fallback-claude "<원본 task>"` 로 처리하세요.' +
+    message: 'Codex authentication is required',
+    action:
+      'Authenticate with `codex login` or handle it with `/ccp:codex-rescue --fallback-claude "<original task>"`.' +
       FALLBACK_HINT_KO,
     recovery: 'fallback_claude',
   },
   'CCP-CODEX-001': {
-    message_ko: 'Codex CLI 실행에 실패했습니다',
-    action_ko: 'stderr 로그를 확인하거나 Claude 본체로 재시도하세요.',
+    message: 'Failed to run Codex CLI',
+    action: 'Check stderr logs or retry in Claude.',
     recovery: 'retry',
   },
   'CCP-CODEX-002': {
-    message_ko: 'Codex 응답에서 유효한 JSONL 이벤트를 찾을 수 없습니다',
-    action_ko: '`--verbose` 로 재실행하거나 stderr 로그를 확인하세요.',
+    message: 'Could not find a valid JSONL event in the Codex response',
+    action: 'Rerun with `--verbose` or check stderr logs.',
     recovery: 'retry',
   },
   'CCP-CTX-001': {
-    message_ko: '서브에이전트 응답이 요약 임계를 초과했습니다',
-    action_ko:
-      '`/ccp:codex-result <job_id> --summary-only` 로 요약만 회수하세요.' +
+    message: 'Subagent response exceeded the summary threshold',
+    action:
+      'Fetch only the summary with `/ccp:codex-result <job_id> --summary-only`.' +
       FALLBACK_HINT_KO,
     recovery: 'abort',
   },
   'CCP-JOB-001': {
-    message_ko: '해당 job 을 찾을 수 없습니다',
-    action_ko: 'job_id 를 다시 확인하세요.',
+    message: 'Could not find that job',
+    action: 'Check the job_id and try again.',
     recovery: 'abort',
   },
   'CCP-JOB-002': {
-    message_ko: 'job 이 아직 완료되지 않았습니다',
-    action_ko: '`/ccp:codex-status <job_id>` 로 상태를 확인한 뒤 다시 시도하세요.',
+    message: 'The job has not finished yet',
+    action: 'Check `/ccp:codex-status <job_id>` and try again.',
     recovery: 'retry',
   },
   'CCP-JOB-003': {
-    message_ko: 'job 메타데이터가 손상되었습니다',
-    action_ko: 'job 디렉터리를 삭제하고 새 job 을 생성하세요.',
+    message: 'Job metadata is corrupted',
+    action: 'Delete the job directory and create a new job.',
     recovery: 'abort',
   },
   'CCP-JOB-004': {
-    message_ko: '결과 파일이 유실되었습니다',
-    action_ko: '새로운 `/ccp:codex-rescue` 호출로 재실행하세요.',
+    message: 'The result file is missing',
+    action: 'Rerun with a new `/ccp:codex-rescue` call.',
     recovery: 'abort',
   },
   'CCP-JOB-409': {
-    message_ko: '현재 상태에서는 취소할 수 없습니다',
-    action_ko: 'job 상태를 확인한 뒤 다시 시도하세요.',
+    message: 'Cannot cancel in the current state',
+    action: 'Check the job state and try again.',
     recovery: 'abort',
   },
   'CCP-INVALID-001': {
-    message_ko: '인자 파싱에 실패했습니다',
-    action_ko: '사용법을 확인한 뒤 다시 입력하세요.',
+    message: 'Failed to parse arguments',
+    action: 'Check the usage and try again.',
     recovery: 'abort',
   },
   'CCP-TIMEOUT-001': {
-    message_ko: 'Codex 응답이 지연되었습니다',
-    action_ko: '재시도하거나 `--background` 로 비동기 실행하세요.',
+    message: 'Codex response timed out',
+    action: 'Retry or run asynchronously with `--background`.',
     recovery: 'retry',
   },
   'CCP-UNSUPPORTED-101': {
-    message_ko: '해당 옵션은 codex 측에서 지원되지 않습니다',
-    action_ko: '호환성 매트릭스(README §모델 호환성)를 참조하세요.',
+    message: 'This option is not supported by codex',
+    action: 'See the compatibility matrix (README §Model Compatibility).',
     recovery: 'abort',
   },
 };
@@ -254,7 +254,7 @@ function nodeMajor() {
 }
 
 function probeOAuth(timeoutMs = PROBE_OAUTH_TIMEOUT_MS) {
-  // probe §5: codex login status 는 stdout=빈 문자열, stderr 에 "Logged in using ChatGPT" 출력
+  // probe §5: codex login status uses empty stdout and prints "Logged in using ChatGPT" to stderr
   const r = spawnSync('codex', ['login', 'status'], {
     encoding: 'utf8',
     timeout: timeoutMs,
@@ -278,7 +278,7 @@ function probeOAuth(timeoutMs = PROBE_OAUTH_TIMEOUT_MS) {
 // ---------------------------------------------------------------------------
 
 function parseCodexJsonl(text) {
-  // probe §3.1: 4 이벤트 — thread.started / turn.started / item.completed / turn.completed
+  // probe §3.1: 4 events — thread.started / turn.started / item.completed / turn.completed
   const events = [];
   const lines = String(text || '').split(/\r?\n/);
   for (const line of lines) {
@@ -287,7 +287,7 @@ function parseCodexJsonl(text) {
     try {
       events.push(JSON.parse(t));
     } catch {
-      // 비-JSON 라인은 무시 (extractJsonBlob 동등)
+      // Ignore non-JSON lines (equivalent to extractJsonBlob)
     }
   }
   return events;
@@ -340,7 +340,7 @@ function handleSetup() {
     emitError('CCP-OAUTH-101', { details: { probe_reason: auth.reason } });
   }
   emitSuccess({
-    summary: `Codex CLI ${ver} 인증 확인 완료. ${auth.detail}`,
+    summary: `Codex CLI ${ver} authentication verified. ${auth.detail}`,
     tokens: { input: 0, output: 0, total: 0 },
     details: { mode: 'codex', codex_version: ver, node_version: process.versions.node },
   });
@@ -355,20 +355,20 @@ function handleRescue(parsed) {
   const prompt = positional.join(' ').trim();
   if (!prompt) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'rescue 는 PROMPT 인자가 필요합니다',
-      action_ko: '`/ccp:codex-rescue "<task>"` 형식으로 호출하세요.',
+      message: 'rescue requires a PROMPT argument',
+      action: 'Call it as `/ccp:codex-rescue "<task>"`.',
     });
   }
 
   if (flags.fallbackClaude) {
     emitSuccess({
-      summary: 'fallback-claude: Claude 본체에서 처리할 task 입니다.',
+      summary: 'fallback-claude: This task should be handled by main Claude.',
       tokens: { input: 0, output: 0, total: 0 },
       details: { mode: 'codex', fallback: true },
     });
   }
 
-  // OAuth 사전 검증 (foreground/background 공통)
+  // OAuth preflight check (shared by foreground/background)
   const auth = probeOAuth();
   if (!auth.ok) {
     emitError('CCP-OAUTH-101', { details: { probe_reason: auth.reason } });
@@ -466,8 +466,8 @@ function handleStatus(parsed) {
   const jobId = parsed.flags.jobId || parsed.positional[0];
   if (!jobId) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'status 는 jobId 인자가 필요합니다',
-      action_ko: '`/ccp:codex-status <job_id>` 형식으로 호출하세요.',
+      message: 'status requires a jobId argument',
+      action: 'Call it as `/ccp:codex-status <job_id>`.',
     });
   }
   const meta = snapshotJob(JOBS_DIR, jobId);
@@ -496,8 +496,8 @@ function handleResult(parsed) {
   const jobId = parsed.flags.jobId || parsed.positional[0];
   if (!jobId) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'result 는 jobId 인자가 필요합니다',
-      action_ko: '`/ccp:codex-result <job_id>` 형식으로 호출하세요.',
+      message: 'result requires a jobId argument',
+      action: 'Call it as `/ccp:codex-result <job_id>`.',
     });
   }
   const meta = snapshotJob(JOBS_DIR, jobId);
@@ -515,7 +515,7 @@ function handleResult(parsed) {
   if (!meta.result_path || !existsSync(meta.result_path)) {
     emitError('CCP-JOB-004', { details: { job_id: jobId, result_path: meta.result_path } });
   }
-  // 본문은 summary 만 envelope 에 포함, 원본은 result_path 로 노출
+  // Include only the summary in the envelope; expose the original via result_path
   const summary = (meta.summary_3lines || '').slice(0, SUMMARY_MAX_CHARS);
   emitSuccess({
     summary,
@@ -531,15 +531,15 @@ function handleResult(parsed) {
 }
 
 // ---------------------------------------------------------------------------
-// Cancel subcommand (B1 신설)
+// Cancel subcommand (new in B1)
 // ---------------------------------------------------------------------------
 
 function handleCancel(parsed) {
   const jobId = parsed.flags.jobId || parsed.positional[0];
   if (!jobId) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'cancel 은 jobId 인자가 필요합니다',
-      action_ko: '`/ccp:codex-cancel <job_id>` 형식으로 호출하세요.',
+      message: 'cancel requires a jobId argument',
+      action: 'Call it as `/ccp:codex-cancel <job_id>`.',
     });
   }
   const r = cancelJob({ jobsDir: JOBS_DIR, jobId });
@@ -562,7 +562,7 @@ function handleCancel(parsed) {
 function handleTaskWorker(parsed) {
   const jobId = parsed.positional[0];
   if (!jobId) {
-    process.exit(64); // 인자 부재 — envelope 출력 없음 (자식 stderr 로그만)
+    process.exit(64); // Missing argument — no envelope output (child stderr logs only)
   }
   const meta = readMetaFromState(JOBS_DIR, jobId);
   if (!meta) {
@@ -578,7 +578,7 @@ function handleTaskWorker(parsed) {
   const start = Date.now();
   const r = runCodexSync({ bin: 'codex', args, cwd: process.cwd(), timeoutMs: meta.params?.timeoutMs || DEFAULT_TIMEOUT_MS });
   const duration = Date.now() - start;
-  // 결과 파일 작성
+  // Write result file
   const resultPath = join(JOBS_DIR, jobId, 'result.txt');
   let summary = '';
   let tokens = { input: 0, output: 0, total: 0 };
@@ -641,8 +641,8 @@ function main() {
       return handleTaskWorker(parsed);
     default:
       emitError('CCP-INVALID-001', {
-        message_ko: `알 수 없는 서브커맨드: ${cmd || '(empty)'}`,
-        action_ko: 'setup | rescue | status | result | cancel 중 하나를 사용하세요.',
+        message: `Unknown subcommand: ${cmd || '(empty)'}`,
+        action: 'Use one of: setup | rescue | status | result | cancel.',
       });
   }
 }

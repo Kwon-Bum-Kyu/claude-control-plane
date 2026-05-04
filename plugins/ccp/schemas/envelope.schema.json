@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/KBK/claude-control-plane/schemas/envelope.schema.json",
   "title": "CCP Companion Envelope",
-  "description": "CCP 의 모든 슬래시·서브에이전트 호출이 stdout 으로 emit 하는 단일 JSON 포맷. gemini/codex 양 companion 출력 직전 self-validate 한다. 6키 SSOT — _workspace/01_schema.md §2 참조.",
+  "description": "Single JSON format emitted on stdout by every CCP slash command and subagent. Both gemini and codex companions self-validate before output. 6-key SSOT.",
   "type": "object",
   "oneOf": [
     { "$ref": "#/$defs/successEnvelope" },
@@ -17,11 +17,11 @@
         "summary": {
           "type": "string",
           "maxLength": 500,
-          "description": "RC-1 — Claude 메인 컨텍스트로 돌아가는 요약. 500자 이하."
+          "description": "RC-1 — Summary returned to the main Claude context. 500 chars or fewer."
         },
         "result_path": {
           "type": ["string", "null"],
-          "description": "결과 원본 파일 경로(상대 또는 절대). foreground 시 null 허용."
+          "description": "Path (relative or absolute) to the full result file. May be null in foreground mode."
         },
         "tokens": { "$ref": "#/$defs/tokens" },
         "exit_code": {
@@ -38,16 +38,16 @@
       "properties": {
         "error": {
           "type": "object",
-          "required": ["code", "message_ko", "action_ko", "recovery"],
+          "required": ["code", "message", "action", "recovery"],
           "additionalProperties": false,
           "properties": {
             "code": {
               "type": "string",
               "pattern": "^CCP-[A-Z]+-[0-9]{3}$",
-              "description": "에러 카탈로그 SSOT — _workspace/01_error_messages.md"
+              "description": "Error catalogue SSOT (see CCP error code registry)."
             },
-            "message_ko": { "type": "string" },
-            "action_ko": { "type": "string" },
+            "message": { "type": "string", "description": "Human-readable error message (English)." },
+            "action": { "type": "string", "description": "Recovery instruction shown to the user (English)." },
             "recovery": {
               "type": "string",
               "enum": ["retry", "fallback_claude", "abort", "user_action_required"]
@@ -63,7 +63,7 @@
     },
     "tokens": {
       "type": "object",
-      "description": "측정 단위 SSOT (B16 / B1 §6 갱신) — 4 필드 표준화. gemini 7필드·codex 3필드 차이를 companion 측에서 흡수하여 반환.",
+      "description": "Measurement-unit SSOT (B16 / B1 §6) — 4 standardised fields. gemini's 7 fields and codex's 3 fields are absorbed into this shape inside each companion.",
       "required": ["input", "output"],
       "additionalProperties": false,
       "properties": {
@@ -75,7 +75,7 @@
     },
     "details": {
       "type": "object",
-      "description": "모델별 상세 정보. mode 에 따라 분기되는 키가 다르다.",
+      "description": "Per-model detail block. Keys vary by mode.",
       "required": ["mode"],
       "properties": {
         "mode": {
@@ -104,7 +104,7 @@
             "properties": {
               "codex_thread_id": {
                 "type": ["string", "null"],
-                "description": "UUIDv7 — codex turn.completed.thread_id (probe §3.1)"
+                "description": "UUIDv7 — codex turn.completed.thread_id"
               }
             }
           }

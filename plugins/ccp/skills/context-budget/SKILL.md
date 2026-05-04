@@ -1,75 +1,75 @@
 ---
 name: context-budget
-description: "메인 Claude 컨텍스트 토큰 예산을 추정·경고하는 스킬. UserPromptSubmit·PreCompact 훅에서 호출되어 50/75/90% 임계 초과 시 압축·위임 권고 주입. 컨텍스트 사용량이 50%를 넘었거나 대용량 작업 직전 검토 시 반드시 사용."
+description: "Estimates the main Claude context token budget and warns when usage crosses 50/75/90% thresholds. Invoked from UserPromptSubmit / PreCompact hooks. Apply when context utilisation exceeds 50% or before any large incoming task."
 ---
 
 # Context Budget Skill
 
-CCP 메인 Claude 컨텍스트 토큰 예산을 추정하고, 임계값을 넘었을 때 자발적 압축(`/compact`) 또는 Gemini 위임(`/gemini:rescue`) 을 사용자에게 권고한다.
+Estimates the main Claude context token budget and recommends voluntary compaction (`/compact`) or Gemini delegation (`/gemini:rescue`) when thresholds are crossed.
 
 ## Attribution
 
-본 스킬은 **ecc (External Claude Code) 의 `strategic-compact` 패턴**을 포팅한 것이다.
+This skill is a port of **the `strategic-compact` pattern from ecc (External Claude Code)**.
 
-- 원본 출처: ecc strategic-compact (보고서 §3.3)
-- 라이선스: MIT (원본 허용 라이선스)
-- 변경 사항: CCP 명명 규칙(`CCP-COMPACT-001`) 적용, 한국어 메시지화, 자동 `/compact` 트리거 제거 (원칙 4 — 사용자 의도 우선)
-- 상세 attribution: `ATTRIBUTION.md` 참조 (S4-8 산출 예정)
+- Source: ecc strategic-compact
+- License: MIT (permissive — preserved in `ATTRIBUTION.md` §1.1)
+- Modifications: applied CCP naming convention (`CCP-COMPACT-001`), translated messages, removed automatic `/compact` trigger (Principle 4 — user intent first)
+- Full attribution: `ATTRIBUTION.md` §1.1
 
-## 트리거 조건
+## Trigger conditions
 
-본 스킬을 적용하는 경우:
+Apply this skill when:
 
-- 메인 컨텍스트 사용량 추정값이 **50% 이상**
-- 사용자가 대용량 첨부 파일 또는 long prompt 입력 직전
-- `UserPromptSubmit` / `PreCompact` 훅이 발화
+- Estimated main-context utilisation ≥ **50%**
+- The user is about to attach a large file or send a long prompt
+- `UserPromptSubmit` or `PreCompact` hook fires
 
-50% 미만에서는 트리거하지 않는다 (불필요한 알람 방지).
+Below 50% the skill does NOT trigger (avoids unnecessary alerts).
 
-## 토큰 추정 공식
+## Token estimation formula
 
 ```
 estimated_tokens = words × 1.3
 ```
 
-근거: `.claude/skills/token-budget-check/SKILL.md` §2. 정확한 토크나이저 호출보다 `words×1.3` 휴리스틱이 충분히 보수적이며 모든 환경에서 동작한다.
+Rationale: see `.claude/skills/token-budget-check/SKILL.md` §2. The `words × 1.3` heuristic is sufficiently conservative and works in every environment without invoking a tokenizer.
 
-## 임계값 매트릭스
+## Threshold matrix
 
-| 사용률 | 레벨 | 권고 메시지 |
-|-------|------|------------|
-| < 50% | OK | (트리거 안 함) |
-| 50% ~ 75% | INFO | "컨텍스트 사용량 50% 이상. 새로운 대형 작업은 `/gemini:rescue` 위임을 고려하세요." |
-| 75% ~ 90% | WARNING (`CCP-COMPACT-001`) | "75% 도달 — `/compact` 로 수동 압축하거나 대형 작업을 `/gemini:rescue` 로 위임하세요." |
-| ≥ 90% | CRITICAL (`CCP-COMPACT-001`) | "90% 임박 — `/compact` 또는 `/gemini:rescue --background` 권장." |
+| Utilisation | Level | Recommendation |
+|-------------|-------|----------------|
+| < 50% | OK | (no trigger) |
+| 50% – 75% | INFO | "Context usage above 50%. Consider delegating new large tasks via `/gemini:rescue`." |
+| 75% – 90% | WARNING (`CCP-COMPACT-001`) | "75% reached — compact manually with `/compact`, or delegate large tasks via `/gemini:rescue`." |
+| ≥ 90% | CRITICAL (`CCP-COMPACT-001`) | "90% imminent — `/compact` or `/gemini:rescue --background` recommended." |
 
-`decision: "block"` 은 사용하지 않음 — 사용자 흐름을 차단하지 않는다 (원칙 4).
+`decision: "block"` is never used — the user flow is not interrupted (Principle 4).
 
-## 자동 /compact 금지 규칙
+## No auto `/compact` rule
 
-ecc 원본은 strategic-compact 자동 트리거를 포함하지만, CCP 는 다음 이유로 **자동 호출을 금지**한다.
+The ecc original triggers strategic-compact automatically. CCP forbids automatic invocation for the following reasons:
 
-1. 사용자 의도 존중 — `/compact` 는 사용자가 명시적으로 호출해야 함
-2. 이중 청구(R1) 방지 — 자동 압축 후 사용자가 같은 작업을 재요청하면 토큰이 두 배
-3. 디버깅 가능성 — 사용자가 "왜 압축됐지?" 를 추적 가능
+1. **User intent**: `/compact` must be invoked explicitly.
+2. **R1 (double billing) prevention**: if the user re-issues the same task after an automatic compaction, tokens are charged twice.
+3. **Debuggability**: the user can answer "why did it compact?" without log spelunking.
 
-자동 압축 트리거는 `_workspace/01_backlog.md` Phase 6+ 백로그로 동결.
+The auto-compact trigger is frozen as a Phase 6+ backlog item in `_workspace/01_backlog.md`.
 
-## 통합 지점
+## Integration points
 
-- `plugins/ccp/hooks/suggest-compact.js` — UserPromptSubmit·PreCompact 훅에서 본 스킬의 임계값 매트릭스를 사용
-- `plugins/ccp/scripts/gemini-companion.mjs` — companion 응답 출력 가드 (`enforceContextBudget`) 가 같은 1,500 토큰·500 자 임계 적용
+- `plugins/ccp/hooks/suggest-compact.js` — UserPromptSubmit / PreCompact hook consumes the threshold matrix above
+- `plugins/ccp/scripts/gemini-companion.mjs` — companion output guard (`enforceContextBudget`) applies the same 1,500-token / 500-character cap
 
-## 합격 기준 (회귀 케이스 — `_workspace/02_regression_cases.md`)
+## Acceptance criteria (regression — `_workspace/02_regression_cases.md`)
 
-- RC-1 `main_context_delta ≤ 500` — 메인 컨텍스트 유입 500자 이하 보장
-- 75% 도달 시 `additionalContext` 메시지 1회 주입
-- 사용자 prompt 원본을 `additionalContext` 에 echo 금지
+- RC-1 `main_context_delta ≤ 500` — main-context inflow ≤ 500 chars
+- At the 75% threshold, `additionalContext` is injected exactly once
+- The user's raw prompt MUST NOT be echoed inside `additionalContext`
 
-## 명세 SSOT
+## Spec SSOT
 
-- `_workspace/02_arch_decisions.md` 원칙 5 (2+ 훅) · 원칙 4 (자동 fallback 금지)
-- `_workspace/03_hook_feasibility.md` §1 UserPromptSubmit 사양
-- `_workspace/03_hook_strategy.md` §2.1 (suggest-compact 사양)
-- `_workspace/02_token_scenarios.md` T1~T7 토큰 절감 기준
-- `.claude/skills/token-budget-check/SKILL.md` (메타 스킬)
+- `_workspace/02_arch_decisions.md` Principle 5 (≥ 2 hooks) · Principle 4 (no auto-fallback)
+- `_workspace/03_hook_feasibility.md` §1 UserPromptSubmit spec
+- `_workspace/03_hook_strategy.md` §2.1 (suggest-compact spec)
+- `_workspace/02_token_scenarios.md` T1~T7 token-saving criteria
+- `.claude/skills/token-budget-check/SKILL.md` (meta-skill)

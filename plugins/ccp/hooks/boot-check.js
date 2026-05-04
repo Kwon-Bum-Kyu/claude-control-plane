@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // CCP — boot-check hook
 // Event: SessionStart (startup | resume | clear | compact)
-// Behavior: companion preflight 실행 — Node ≥ v20, gemini --version ≥ 0.38.0,
-//           OAuth 자격(GEMINI_API_KEY env 또는 ~/.gemini/google_accounts.json) 확인.
-//           실패 시 additionalContext 로 한국어 안내, 성공 시 noop.
-// Failure-silent: 훅이 세션 부팅을 차단하지 않는다.
+// Behavior: run companion preflight — Node ≥ v20, gemini --version ≥ 0.38.0,
+//           and check OAuth credentials (GEMINI_API_KEY env or ~/.gemini/google_accounts.json).
+//           On failure, send English guidance via additionalContext; on success, noop.
+// Failure-silent: the hook does not block session startup.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -58,21 +58,21 @@ function main() {
   const issues = [];
   if (nodeMajor() < MIN_NODE_MAJOR) {
     issues.push(
-      `Node.js ${process.versions.node} (CCP 는 ≥ v${MIN_NODE_MAJOR} 필요) — \`/gemini:setup\` 실행 권장`
+      `Node.js ${process.versions.node} (CCP requires ≥ v${MIN_NODE_MAJOR}) — run \`/gemini:setup\``
     );
   }
   const ver = geminiVersion();
   if (!ver) {
-    issues.push('Gemini CLI 미설치 — `npm install -g @google/gemini-cli` 후 `/gemini:setup` 실행');
+    issues.push('Gemini CLI not installed — install `@google/gemini-cli` globally, then run `/gemini:setup`');
   }
   if (!detectAuth()) {
-    issues.push('Gemini OAuth 자격 미확인 — `/gemini:setup` 실행 권장');
+    issues.push('Gemini OAuth credentials not found — run `/gemini:setup`');
   }
 
   if (issues.length === 0) return emit({});
 
   const message = clamp(
-    `[CCP] 시작 점검 알림: ${issues.join(' · ')}`
+    `[CCP] Startup check: ${issues.join(' · ')}`
   );
 
   emit({

@@ -1,5 +1,5 @@
 ---
-description: --background 으로 발행된 job 의 현재 상태를 조회합니다.
+description: Checks the current status of a job created with --background.
 argument-hint: <job_id>
 allowed-tools:
   - Bash
@@ -7,31 +7,31 @@ allowed-tools:
 
 # /gemini:status
 
-`--background` 모드로 시작된 Gemini 작업의 진행 상태를 조회합니다.
+Checks the progress state of a Gemini job started in `--background` mode.
 
-## 사용법
+## Usage
 
 ```
 /gemini:status <job_id>
 ```
 
-| 인자 | 설명 |
+| Argument | Description |
 |------|------|
-| `<job_id>` | `/gemini:rescue --background` 응답의 UUID v4 (필수) |
+| `<job_id>` | UUID v4 returned by `/gemini:rescue --background` (required) |
 
-## 실행 동작
+## Behavior
 
-1. UUID v4 패턴 검증 (`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).
-2. `gemini-companion.mjs status <job_id>` 호출 — companion 이 `_workspace/_jobs/<job_id>/meta.json` 을 읽음.
-3. 메인 Claude 는 meta.json 을 직접 읽지 않습니다 — 권한 분리·스키마 변환 레이어 유지.
+1. Validate the UUID v4 pattern (`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).
+2. Call `gemini-companion.mjs status <job_id>` — the companion reads `_workspace/_jobs/<job_id>/meta.json`.
+3. Main Claude does not read `meta.json` directly, preserving the permission boundary and schema-conversion layer.
 
-## 호출 패턴
+## Invocation Pattern
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" status <job_id>
 ```
 
-## 출력 (성공)
+## Output (Success)
 
 ```json
 {
@@ -45,26 +45,26 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" status <job_id>
     "created_at": "2026-04-26T09:00:00Z",
     "started_at": "2026-04-26T09:00:01Z",
     "completed_at": "2026-04-26T09:00:12Z",
-    "next_action": "/gemini:result <job_id> (status=completed 시)"
+    "next_action": "/gemini:result <job_id> (when status=completed)"
   }
 }
 ```
 
-## 에러 코드
+## Error Codes
 
-| 코드 | 원인 | recovery |
+| Code | Cause | recovery |
 |------|------|:---:|
-| `CCP-INVALID-001` | UUID 형식 위반 | abort |
-| `CCP-JOB-001` | job 디렉토리 부재 | abort |
-| `CCP-JOB-003` | meta.json 파싱 실패 | abort |
+| `CCP-INVALID-001` | invalid UUID format | abort |
+| `CCP-JOB-001` | job directory missing | abort |
+| `CCP-JOB-003` | failed to parse `meta.json` | abort |
 
-## 합격 기준
+## Acceptance Criteria
 
-- 1초 내 응답.
-- `details.status` 필드는 `01_schema.md` §1.2 enum (`queued|running|completed|failed`)과 정확히 일치.
+- Respond within 1 second.
+- `details.status` must exactly match the enum in `01_schema.md` §1.2 (`queued|running|completed|failed`).
 
-## 명세 SSOT
+## Spec SSOT
 
 - `_workspace/01_command_spec.md` §"/gemini:status"
-- `_workspace/01_schema.md` §1 Job 메타데이터
+- `_workspace/01_schema.md` §1 Job metadata
 - `_workspace/01_error_messages.md`

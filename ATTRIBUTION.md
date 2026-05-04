@@ -48,6 +48,62 @@ SOFTWARE.
 
 ---
 
+### 1.5 oh-my-claudecode (omc) — N4 매직 키워드 패턴 차용 (2026-05-04)
+
+- **출처:** https://github.com/Yeachan-Heo/oh-my-claudecode
+- **저작권:** © Yeachan Heo (2025)
+- **라이선스:** MIT (copyright preservation 의무)
+- **Source commit:** `1e9f197bcc85602da87ad35b18d908a0575b8583`
+- **Source file:** `src/features/magic-keywords.ts`
+- **차용 결정:** `_workspace/07_v0.1.0_release_tasks.md` §2.4 N4 — 라우터 키워드 매칭 false positive 차단을 위한 패턴 프리미티브 5개만 차용. omc 의 enhancement action (ultrawork·search·analyze·ultrathink) 은 차용 범위 외.
+- **차용 위치 (격리):** `plugins/ccp/scripts/lib/omc_adapted/magic-keywords.mjs` (단일 파일)
+- **차용 함수 5개 + 상수 2개:**
+
+| 차용 식별자 | 종류 | 원본 위치 | 변경 사항 |
+|------------|------|----------|----------|
+| `removeCodeBlocks(text)` | 함수 | `magic-keywords.ts:20-22` | TS → JS, 로직 1:1 |
+| `escapeRegExp(s)` | 함수 | `magic-keywords.ts:42-44` | TS → JS, 로직 1:1 |
+| `hasActionableTrigger(text, trigger)` | 함수 | `magic-keywords.ts:46-62` | TS → JS, 로직 1:1 |
+| `isInformationalKeywordContext(text, position, len)` | 함수 | `magic-keywords.ts:32-37` | TS → JS, 로직 1:1 |
+| `INFORMATIONAL_INTENT_PATTERNS` | regex 배열 | `magic-keywords.ts:24-29` | 4개 패턴 (EN+KO+JA+ZH) 1:1 |
+| `INFORMATIONAL_CONTEXT_WINDOW` | 상수 | `magic-keywords.ts:30` | 80 1:1 |
+| `CODE_BLOCK_PATTERN`, `INLINE_CODE_PATTERN` | regex | `magic-keywords.ts:14-15` | 1:1 |
+
+- **변경 범위:**
+  1. TypeScript 타입 어노테이션 제거 (런타임 동작 동일)
+  2. ES Module export 변환 (named export 6종)
+  3. JSDoc 한 줄 보존
+- **CCP 통합 지점:** `plugins/ccp/scripts/lib/router.mjs` (N3) 가 `hasActionableTrigger`·`removeCodeBlocks` 를 import 하여 4축 알고리즘 axis C (키워드 매칭) 에서 사용.
+- **회귀 검증:** 스모크 테스트 5/5 PASS (2026-05-04). N5 router-eval 65 케이스 통합 검증 예정.
+
+### 1.6 MIT 라이선스 원문 (omc 적용)
+
+```
+MIT License
+
+Copyright (c) 2025 Yeachan Heo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+---
+
 ### 1.3 codex-plugin-cc (B1 Codex 통합 — 함수 단위 차용)
 
 - **출처:** https://github.com/openai/codex-plugin-cc

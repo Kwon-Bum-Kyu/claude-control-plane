@@ -1,5 +1,5 @@
 ---
-description: "--background 으로 발행된 codex job 의 현재 상태를 조회합니다."
+description: "Checks the current status of a codex job created with --background."
 argument-hint: <job_id>
 allowed-tools:
   - Bash
@@ -7,21 +7,21 @@ allowed-tools:
 
 # /ccp:codex-status
 
-background 로 등록된 codex job 의 진행 상태를 조회합니다 (queued / running / completed / failed / cancelled / timeout).
+Checks the progress state of a codex job created in background mode (queued / running / completed / failed / cancelled / timeout).
 
-## 사용법
+## Usage
 
 ```
 /ccp:codex-status <job_id>
 ```
 
-## 호출 패턴
+## Invocation Pattern
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status <job_id>
 ```
 
-## 출력 (성공)
+## Output (Success)
 
 ```json
 {
@@ -40,15 +40,15 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status <job_id>
 }
 ```
 
-## 에러 코드
+## Error Codes
 
-| 코드 | 원인 | recovery |
+| Code | Cause | recovery |
 |------|------|:---:|
-| `CCP-JOB-001` | job_id 미존재 | abort |
-| `CCP-JOB-003` | meta.json 손상 | abort |
-| `CCP-INVALID-001` | job_id 인자 부재 | abort |
+| `CCP-JOB-001` | job_id does not exist | abort |
+| `CCP-JOB-003` | meta.json is corrupted | abort |
+| `CCP-INVALID-001` | missing job_id argument | abort |
 
-## 명세 SSOT
+## Spec SSOT
 
 - `_workspace/06_codex_function_mapping.md` §3.1
 - `plugins/ccp/scripts/lib/codex_adapted/state.mjs`

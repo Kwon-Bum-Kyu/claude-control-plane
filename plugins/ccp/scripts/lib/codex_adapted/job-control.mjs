@@ -1,7 +1,7 @@
 // Adapted from: codex-plugin-cc plugins/codex/scripts/lib/job-control.mjs
 // Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Original license: Apache-2.0 (see ATTRIBUTION.md §1.3, NOTICE)
-// Modifications: enqueue/dequeue/cancel 통합 인터페이스, envelope 6키 통합, CCP-* 에러 코드 매핑, 한국어 메시지
+// Modifications: unified enqueue/dequeue/cancel interface, integration with the 6-key envelope, mapping to CCP-* error codes, localised messages
 // SHA-of-this-adaptation: <to be filled at B1 merge>
 
 import { join } from 'node:path';
@@ -14,13 +14,13 @@ import {
 import { spawnDetachedWorker, killPid, isAlive } from './process.mjs';
 
 /**
- * background 작업 디스패치 — meta 등록 + detached worker spawn.
- * codex-companion 의 'rescue --background' 진입점이 호출한다.
+ * Background job dispatch - register meta + spawn a detached worker.
+ * Called by the codex-companion 'rescue --background' entry point.
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
  * @param {string} opts.mode             "codex" | "gemini"
- * @param {string} opts.workerScriptPath  task-worker 진입 스크립트 (codex-companion 자체)
+ * @param {string} opts.workerScriptPath  task-worker entry script (codex-companion itself)
  * @param {string} opts.prompt
  * @param {object} [opts.params]
  * @param {string} [opts.cwd]
@@ -48,7 +48,7 @@ export function dispatchBackgroundJob(opts) {
   });
   const stdoutPath = meta.stdout_path;
   const stderrPath = meta.stderr_path;
-  // worker 인자: task-worker <jobId>
+  // Worker args: task-worker <jobId>
   const args = [workerScriptPath, 'task-worker', jobId];
   const { pid } = spawnDetachedWorker({
     bin: nodeBin,
@@ -63,16 +63,16 @@ export function dispatchBackgroundJob(opts) {
 }
 
 /**
- * 진행 중 job 취소. SIGTERM 전송 후 meta 를 'cancelled' 로 전이.
+ * Cancel an in-flight job. Sends SIGTERM, then moves meta to 'cancelled'.
  * @returns {{ ok: boolean, jobId: string, code?: string, error?: string }}
  */
 export function cancelJob({ jobsDir, jobId }) {
   const meta = readMeta(jobsDir, jobId);
   if (!meta) {
-    return { ok: false, jobId, code: 'CCP-JOB-404', error: '해당 job 을 찾을 수 없습니다' };
+    return { ok: false, jobId, code: 'CCP-JOB-404', error: 'Job not found' };
   }
   if (meta.state !== 'running' && meta.state !== 'queued') {
-    return { ok: false, jobId, code: 'CCP-JOB-409', error: `현재 상태(${meta.state})에서는 취소할 수 없습니다` };
+    return { ok: false, jobId, code: 'CCP-JOB-409', error: `Cannot cancel in current state (${meta.state})` };
   }
   if (meta.pid && isAlive(meta.pid)) {
     killPid(meta.pid);
@@ -85,14 +85,14 @@ export function cancelJob({ jobsDir, jobId }) {
 }
 
 /**
- * polling wrapper — companion 측 awaitWithTimeout 패턴
+ * Polling wrapper - mirrors the companion-side awaitWithTimeout pattern
  */
 export async function awaitJobResult({ jobsDir, jobId, timeoutMs, pollIntervalMs }) {
   return waitForJob({ jobsDir, jobId, timeoutMs, pollIntervalMs });
 }
 
 /**
- * job state 단일 조회
+ * Single job-state lookup
  */
 export function snapshotJob(jobsDir, jobId) {
   return readMeta(jobsDir, jobId);

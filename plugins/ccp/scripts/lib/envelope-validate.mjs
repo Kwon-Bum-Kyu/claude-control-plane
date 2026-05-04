@@ -1,12 +1,13 @@
-// CCP — envelope 6키 self-validator (B1-S2-2)
-// schemas/envelope.schema.json 의 핵심 제약을 zero-deps 로 강제한다.
-// 양 companion (gemini/codex) 출력 직전 호출되어 SSOT 위반 시 throw.
+// CCP — envelope 6-key self-validator (B1-S2-2)
+// Enforces the core constraints from schemas/envelope.schema.json with zero deps.
+// Both companions (gemini / codex) call this just before stdout emit; SSOT
+// violations cause a stderr warning (or throw under CCP_ENVELOPE_STRICT=1).
 //
-// 검사 항목 (audit cross-check 가능):
-//  - oneOf success | error
-//  - success: summary ≤ 500자, exit_code === 0, tokens {input, output} 필수
-//  - error: code 패턴 ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
-//  - details.mode enum [gemini, codex] (있을 때만)
+// Checks (cross-checkable by audit):
+//   - oneOf success | error
+//   - success: summary ≤ 500 chars, exit_code === 0, tokens {input, output} required
+//   - error: code matches ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
+//   - details.mode enum [gemini, codex] (when present)
 
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
@@ -60,11 +61,11 @@ export function validateEnvelope(env) {
       if (typeof e.code !== 'string' || !ERROR_CODE_RE.test(e.code)) {
         errors.push(`error.code "${e.code}" does not match ${ERROR_CODE_RE}`);
       }
-      if (typeof e.message_ko !== 'string' || e.message_ko.length === 0) {
-        errors.push('error.message_ko required');
+      if (typeof e.message !== 'string' || e.message.length === 0) {
+        errors.push('error.message required');
       }
-      if (typeof e.action_ko !== 'string' || e.action_ko.length === 0) {
-        errors.push('error.action_ko required');
+      if (typeof e.action !== 'string' || e.action.length === 0) {
+        errors.push('error.action required');
       }
       if (!RECOVERY_ENUM.has(e.recovery)) {
         errors.push(`error.recovery "${e.recovery}" not in enum`);
@@ -87,8 +88,9 @@ export function validateEnvelope(env) {
 }
 
 /**
- * 출력 직전 강제 검증. 위반 시 stderr 경고 + 그대로 emit (개발 단계 차단 회피).
- * 환경변수 CCP_ENVELOPE_STRICT=1 일 때는 throw.
+ * Final-gate validation just before emit. On violation we write to stderr and
+ * return the envelope as-is (so we don't block dev workflows). When
+ * CCP_ENVELOPE_STRICT=1 is set we throw instead.
  */
 export function assertEnvelope(env) {
   const r = validateEnvelope(env);

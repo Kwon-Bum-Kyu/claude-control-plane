@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // CCP — rescue-finalize hook
 // Event: SubagentStop
-// Behavior: gemini-rescue 서브에이전트 종료 직후 _workspace/_jobs/<id>/meta.json 의
-//           status 가 running 으로 멈춰있으면 failed 로 마감 (orphan 정리).
-// Failure-silent: 어떤 에러도 사용자 흐름을 차단하지 않는다.
+// Behavior: right after the gemini-rescue subagent stops, if
+//           _workspace/_jobs/<id>/meta.json is stuck at status=running, finalize it as failed
+//           to clean up the orphan.
+// Failure-silent: no error blocks user flow.
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -11,7 +12,7 @@ import { join, resolve } from 'node:path';
 const REPO_ROOT = process.env.CLAUDE_PROJECT_ROOT || process.cwd();
 const JOBS_DIR =
   process.env.CCP_JOBS_DIR || resolve(REPO_ROOT, '_workspace', '_jobs');
-const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5분 이상 running 이면 orphan 으로 간주
+const STALE_THRESHOLD_MS = 5 * 60 * 1000; // Consider running jobs older than 5 minutes as orphaned
 
 function readStdinSync() {
   try {
@@ -51,7 +52,7 @@ function tryFinalize(jobDir) {
 }
 
 function main() {
-  // 입력 페이로드는 사용하지 않음 — JOBS_DIR 만 스캔.
+  // The input payload is unused — only scan JOBS_DIR.
   readStdinSync();
   if (!existsSync(JOBS_DIR)) return emit({});
   let finalized = 0;

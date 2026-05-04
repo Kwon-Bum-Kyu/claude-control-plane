@@ -1,5 +1,5 @@
 ---
-description: ecc harness-audit.js 포팅. 토큰 사용량/컨텍스트 효율을 7카테고리로 점수화한 리포트를 생성합니다.
+description: Port of ecc harness-audit.js. Generates a report that scores token usage and context efficiency across 7 categories.
 argument-hint: "[--since <date>] [--format md|json]"
 allowed-tools:
   - Bash
@@ -7,44 +7,44 @@ allowed-tools:
 
 # /ccp:audit
 
-CCP 의 토큰 사용량·컨텍스트 효율·라우터 정확도·OAuth 회복·이중 청구 방어를 7 카테고리로 점수화하여 감사 리포트를 생성합니다 (`scripts/harness-audit.js` — ecc `harness-audit.js` 포팅).
+Generates an audit report that scores CCP token usage, context efficiency, router accuracy, OAuth recovery, and double-billing protection across 7 categories (`scripts/harness-audit.js`, ported from ecc `harness-audit.js`).
 
-## 사용법
+## Usage
 
 ```
 /ccp:audit [--since <date>] [--format md|json]
 ```
 
-| 인자 | 설명 |
+| Argument | Description |
 |------|------|
-| `--since <date>` | 감사 기간 시작 (`YYYY-MM-DD`, 기본 7일 전) |
-| `--format md\|json` | 출력 포맷 (기본 `md`) |
+| `--since <date>` | Audit start date (`YYYY-MM-DD`, default: 7 days ago) |
+| `--format md\|json` | Output format (default: `md`) |
 
-## 실행 동작
+## Behavior
 
-1. `harness-audit.js` 호출.
-2. `_workspace/_jobs/*/meta.json` 과 최근 세션 로그를 스캔.
-3. 7 카테고리 점수 산출 (각 0~5):
-   - **Context Efficiency** — `summary` 길이 평균, RC-1 (`main_context_delta ≤ 500`) 준수율
-   - **Cost Efficiency** — T1~T7 토큰 절감률 평균
-   - **Router Accuracy** — 36 케이스 데이터셋 정확도 (≥ 80% PASS)
-   - **Double-billing Detection (R1)** — `result.md` 원본 메인 유입 0건 검증
-   - **Fallback Health (R6)** — OAuth 만료 후 사용자 재호출 성공률
-   - **Plugin Compatibility (R4)** — `minClaudeVersion`·`engines.node`·`engines.gemini_cli` 충족도
-   - **Secret Leak Check (L5·L6)** — envelope `details` 비밀 정보 grep, `.gitignore` 격리 확인
-4. 결과를 `_workspace/_audits/<YYYY-MM-DDTHHMMSSZ>.md` 또는 `.json` 에 영속화.
+1. Invoke `harness-audit.js`.
+2. Scan `_workspace/_jobs/*/meta.json` and recent session logs.
+3. Compute 7 category scores (0-5 each):
+   - **Context Efficiency** — average `summary` length and RC-1 (`main_context_delta ≤ 500`) compliance
+   - **Cost Efficiency** — average token savings across T1-T7
+   - **Router Accuracy** — accuracy on the 36-case dataset (≥ 80% PASS)
+   - **Double-billing Detection (R1)** — verifies zero raw `result.md` leakage into main context
+   - **Fallback Health (R6)** — user reinvocation success rate after OAuth expiry
+   - **Plugin Compatibility (R4)** — compliance with `minClaudeVersion`, `engines.node`, and `engines.gemini_cli`
+   - **Secret Leak Check (L5·L6)** — grep for secrets in envelope `details` and verify `.gitignore` isolation
+4. Persist the result to `_workspace/_audits/<YYYY-MM-DDTHHMMSSZ>.md` or `.json`.
 
-## 호출 패턴
+## Invocation Pattern
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js" [--since <date>] [--format md|json]
 ```
 
-## 출력 (성공)
+## Output (Success)
 
 ```json
 {
-  "summary": "전체 점수 35/35. 주의 카테고리: 없음",
+  "summary": "Total score 35/35. Warning categories: none",
   "result_path": "_workspace/_audits/2026-04-26T093000Z.md",
   "tokens": { "input": 0, "output": 0 },
   "exit_code": 0,
@@ -62,23 +62,23 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js" [--since <date>] [--format
 }
 ```
 
-> **S2-5 details 수납 규칙:** `scores` 객체는 envelope 루트가 아닌 `details` 서브오브젝트에 수납.
+> **S2-5 details placement rule:** Store the `scores` object in the `details` subobject, not at the envelope root.
 
-## 에러 코드
+## Error Codes
 
-| 코드 | 원인 | recovery |
+| Code | Cause | recovery |
 |------|------|:---:|
-| `CCP-AUDIT-001` | 감사 대상 데이터 없음 | abort |
-| `CCP-AUDIT-002` | harness-audit 스크립트 실패 | retry |
+| `CCP-AUDIT-001` | No audit target data | abort |
+| `CCP-AUDIT-002` | harness-audit script failed | retry |
 
-## 합격 기준
+## Acceptance Criteria
 
-- 30초 내 응답.
-- 7 카테고리 모두 점수 산출 (누락 0건).
-- 리포트 파일이 `_workspace/_audits/` 에 영속화.
+- Respond within 30 seconds.
+- Produce scores for all 7 categories (0 missing).
+- Persist the report file under `_workspace/_audits/`.
 
-## 명세 SSOT
+## Spec SSOT
 
 - `_workspace/01_command_spec.md` §"/ccp:audit"
-- `_workspace/02_arch_decisions.md` 원칙 7
-- `_workspace/02_regression_cases.md` (RC-1~RC-7 검증 항목)
+- `_workspace/02_arch_decisions.md` Principle 7
+- `_workspace/02_regression_cases.md` (RC-1~RC-7 verification items)

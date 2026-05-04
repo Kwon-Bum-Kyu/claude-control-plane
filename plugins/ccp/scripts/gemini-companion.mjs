@@ -78,8 +78,8 @@ function emitError(code, opts = {}) {
     emit({
       error: {
         code: 'CCP-INVALID-001',
-        message_ko: `알 수 없는 에러 코드: ${code}`,
-        action_ko: '내부 버그입니다. 이슈로 보고해주세요.',
+        message: `Unknown error code: ${code}`,
+        action: 'This is an internal bug. Please report it as an issue.',
         recovery: 'abort',
       },
       exit_code: 1,
@@ -88,8 +88,8 @@ function emitError(code, opts = {}) {
   }
   const merged = {
     code,
-    message_ko: opts.message_ko ?? cat.message_ko,
-    action_ko: opts.action_ko ?? cat.action_ko,
+    message: opts.message ?? cat.message,
+    action: opts.action ?? cat.action,
     recovery: cat.recovery,
   };
   if (opts.details && typeof opts.details === 'object')
@@ -105,8 +105,8 @@ function clampSummary(text) {
 }
 
 function sanitizeDetails(details) {
-  // L6 스펙: 비밀 정보 차단. _workspace/03_r18_decision.md 결정 — IDE 토큰 등은
-  // 4중 방어선으로 차단되지만 envelope details 에는 추가 보호선을 둔다.
+  // L6 spec: block secrets. Per _workspace/03_r18_decision.md, IDE tokens and
+  // similar values are already blocked by four layers, but envelope details adds one more guard.
   const blocked = /token|secret|api[_-]?key|authorization|password/i;
   const out = {};
   for (const [k, v] of Object.entries(details)) {
@@ -122,98 +122,98 @@ function sanitizeDetails(details) {
 // ---------------------------------------------------------------------------
 
 const FALLBACK_HINT_KO =
-  ' Claude 본체로 재시도하시려면 원문을 다시 입력하세요.';
+  ' To retry with the main Claude agent, re-enter the original prompt.';
 
 const ERROR_CATALOG = {
   'CCP-SETUP-001': {
-    message_ko: 'Gemini CLI가 설치되어 있지 않습니다',
-    action_ko: '`npm install -g @google/gemini-cli` 실행 후 `/gemini:setup` 을 재실행하세요.',
+    message: 'Gemini CLI is not installed',
+    action: 'Run `npm install -g @google/gemini-cli`, then rerun `/gemini:setup`.',
     recovery: 'abort',
   },
   'CCP-SETUP-002': {
-    message_ko: 'Node.js 버전이 요구사항보다 낮습니다',
-    action_ko: 'Node.js 20 이상을 설치한 후 `/gemini:setup` 을 재실행하세요.',
+    message: 'Your Node.js version is below the requirement',
+    action: 'Install Node.js 20 or later, then rerun `/gemini:setup`.',
     recovery: 'abort',
   },
   'CCP-OAUTH-001': {
-    message_ko: 'Gemini OAuth 토큰이 만료되었거나 유효하지 않습니다',
-    action_ko:
-      '`/gemini:setup --renew` 로 재인증하거나 `/gemini:rescue --fallback-claude "<원본 task>"` 로 처리하세요.' +
+    message: 'The Gemini OAuth token is expired or invalid',
+    action:
+      'Re-authenticate with `/gemini:setup --renew`, or handle it with `/gemini:rescue --fallback-claude "<original task>"`.' +
       FALLBACK_HINT_KO,
     recovery: 'fallback',
   },
   'CCP-GEMINI-001': {
-    message_ko: 'Gemini CLI 실행에 실패했습니다',
-    action_ko: '`--verbose` 로 재실행해 상세 로그를 확인하거나 Claude 본체로 재시도하세요.',
+    message: 'Gemini CLI failed to run',
+    action: 'Rerun with `--verbose` to inspect detailed logs, or retry with the main Claude agent.',
     recovery: 'retry',
   },
   'CCP-GEMINI-002': {
-    message_ko: 'Gemini 무료 티어 쿼터를 초과했습니다',
-    action_ko:
-      '잠시 후 재시도하거나 `/gemini:rescue --fallback-claude "<원본 task>"` 로 처리하세요.' +
+    message: 'The Gemini free-tier quota has been exceeded',
+    action:
+      'Try again later, or handle it with `/gemini:rescue --fallback-claude "<original task>"`.' +
       FALLBACK_HINT_KO,
     recovery: 'fallback',
   },
   'CCP-CTX-001': {
-    message_ko: '서브에이전트 응답이 요약 임계를 초과했습니다',
-    action_ko:
-      '`/gemini:result <job_id> --summary-only` 로 요약만 회수하세요.' +
+    message: 'The subagent response exceeded the summary threshold',
+    action:
+      'Retrieve only the summary with `/gemini:result <job_id> --summary-only`.' +
       FALLBACK_HINT_KO,
     recovery: 'abort',
   },
   'CCP-ROUTER-001': {
-    message_ko: '라우팅 결정이 비효율적일 수 있습니다',
-    action_ko: '다음 호출부터 Claude 본체로 처리하거나 `--force-claude` 옵션을 사용하세요.',
+    message: 'The routing decision may be inefficient',
+    action: 'Use the main Claude agent on the next call, or use the `--force-claude` option.',
     recovery: 'abort',
   },
   'CCP-COMPACT-001': {
-    message_ko: '컨텍스트 사용량이 75%를 넘었습니다',
-    action_ko: '`/compact` 로 세션을 수동 압축하거나 대형 작업을 `/gemini:rescue` 로 위임하세요.',
+    message: 'Context usage has exceeded 75%',
+    action: 'Manually compact the session with `/compact`, or delegate large work to `/gemini:rescue`.',
     recovery: 'abort',
   },
   'CCP-API-001': {
-    message_ko: 'Claude Code 버전이 CCP 요구사항보다 낮습니다',
-    action_ko: 'Claude Code 를 최신 버전으로 업데이트한 뒤 재시도하세요.',
+    message: 'Your Claude Code version is below the CCP requirement',
+    action: 'Update Claude Code to the latest version, then try again.',
     recovery: 'abort',
   },
   'CCP-JOB-001': {
-    message_ko: '해당 job 을 찾을 수 없습니다',
-    action_ko: 'job_id 를 다시 확인하세요.',
+    message: 'That job could not be found',
+    action: 'Check the `job_id` again.',
     recovery: 'abort',
   },
   'CCP-JOB-002': {
-    message_ko: 'job 이 아직 완료되지 않았습니다',
-    action_ko: '`/gemini:status <job_id>` 로 상태를 확인한 뒤 다시 시도하세요.',
+    message: 'The job is not complete yet',
+    action: 'Check the status with `/gemini:status <job_id>`, then try again.',
     recovery: 'retry',
   },
   'CCP-JOB-003': {
-    message_ko: 'job 메타데이터가 손상되었습니다',
-    action_ko: 'job 디렉터리를 삭제하고 새 job 을 생성하세요.',
+    message: 'The job metadata is corrupted',
+    action: 'Delete the job directory and create a new job.',
     recovery: 'abort',
   },
   'CCP-JOB-004': {
-    message_ko: '결과 파일이 유실되었습니다',
-    action_ko: '새로운 `/gemini:rescue` 호출로 재실행하세요.',
+    message: 'The result file is missing',
+    action: 'Run it again with a new `/gemini:rescue` call.',
     recovery: 'abort',
   },
   'CCP-AUDIT-001': {
-    message_ko: '감사할 세션 데이터가 없습니다',
-    action_ko: '`--since` 범위를 조정해 다시 시도하세요.',
+    message: 'There is no session data to audit',
+    action: 'Adjust the `--since` range and try again.',
     recovery: 'abort',
   },
   'CCP-AUDIT-002': {
-    message_ko: '감사 스크립트 실행에 실패했습니다',
-    action_ko: '잠시 후 재시도하거나 로그를 확인하세요.',
+    message: 'The audit script failed to run',
+    action: 'Try again later, or check the logs.',
     recovery: 'retry',
   },
   'CCP-INVALID-001': {
-    message_ko: '인자 파싱에 실패했습니다',
-    action_ko: '사용법을 확인한 뒤 다시 입력하세요.',
+    message: 'Failed to parse arguments',
+    action: 'Check the usage, then enter it again.',
     recovery: 'abort',
   },
   'CCP-TIMEOUT-001': {
-    message_ko: 'Gemini 응답이 지연되었습니다',
-    action_ko: '재시도하거나 `--background` 로 비동기 실행하세요.',
+    message: 'The Gemini response timed out',
+    action: 'Retry, or run it asynchronously with `--background`.',
     recovery: 'retry',
   },
 };
@@ -222,8 +222,8 @@ const ERROR_CATALOG = {
 // Argument parsing
 // ---------------------------------------------------------------------------
 
-// codex 전용 옵션이 gemini-companion 으로 새어 들어오면 즉시 거부 (B1-S3-5).
-// 호환성 매트릭스(README §모델 호환성) 와 일관.
+// Reject immediately if Codex-only options leak into gemini-companion (B1-S3-5).
+// Kept consistent with the compatibility matrix (README §Model Compatibility).
 const GEMINI_UNSUPPORTED = new Set(['--effort', '--write', '--sandbox']);
 
 function parseFlags(argv) {
@@ -232,8 +232,8 @@ function parseFlags(argv) {
     const tok = argv[i];
     if (GEMINI_UNSUPPORTED.has(tok)) {
       emitError('CCP-INVALID-001', {
-        message_ko: `\`${tok}\` 는 gemini 측에서 지원되지 않습니다`,
-        action_ko: '호환성 매트릭스(README §모델 호환성)를 확인하고, codex 전용 옵션은 `/ccp:codex-rescue` 에서 사용하세요.',
+        message: `\`${tok}\` is not supported by Gemini`,
+        action: 'Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.',
         details: { unsupported_flag: tok, suggested: '/ccp:codex-rescue' },
       });
     }
@@ -261,20 +261,20 @@ function parseFlags(argv) {
 
 function assertGlobInsidePluginRoot(glob) {
   if (!glob) return;
-  // 절대 경로일 때만 검사. 상대 glob 은 cwd 기준으로 의도된 패턴 허용.
+  // Check only absolute paths. Relative globs are allowed as intended patterns from cwd.
   if (!isAbsolute(glob)) return;
   const resolved = resolve(glob);
   if (!resolved.startsWith(PLUGIN_ROOT) && !resolved.startsWith(REPO_ROOT)) {
     emitError('CCP-INVALID-001', {
-      message_ko: '`--files` 절대 경로가 플러그인 루트를 벗어났습니다',
-      action_ko: '플러그인 루트 내부 경로 또는 상대 glob 을 사용하세요.',
+      message: 'The `--files` absolute path is outside the plugin root',
+      action: 'Use a path inside the plugin root or a relative glob.',
       details: { glob_input: glob, plugin_root: PLUGIN_ROOT },
     });
   }
 }
 
 // ---------------------------------------------------------------------------
-// Output size guard (S3-2) — words×1.3 추정
+// Output size guard (S3-2) — estimated as words × 1.3
 // ---------------------------------------------------------------------------
 
 function estimateTokens(text) {
@@ -360,8 +360,8 @@ function detectAuthMethod() {
 }
 
 function probeOAuth() {
-  // R17 — `gemini auth status` 미지원. probe 호출로 판정.
-  // timeout: macOS 실측 spawnSync 9.6~11.7s (cold start). 30s 여유.
+  // R17 — `gemini auth status` is unsupported. Decide via a probe call.
+  // timeout: measured spawnSync on macOS is 9.6 to 11.7s (cold start). 30s leaves headroom.
   const r = spawnSync(
     'gemini',
     ['-p', 'ping', '-o', 'json'],
@@ -376,8 +376,8 @@ function probeOAuth() {
   return { ok: false, reason: `exit_${r.status}` };
 }
 
-// Gemini CLI 가 stdout 첫 줄에 비-JSON 경고("MCP issues detected." 등) 를 섞어
-// 출력하는 환경이 있다. 첫 `{` ~ 마지막 `}` 슬라이스로 JSON 본문만 안전하게 추출.
+// In some environments Gemini CLI mixes a non-JSON warning into the first stdout
+// line ("MCP issues detected.", etc.). Safely extract only the JSON body from the first `{` to the last `}`.
 function extractJsonBlob(stdout) {
   const s = typeof stdout === 'string' ? stdout : '';
   const start = s.indexOf('{');
@@ -387,8 +387,8 @@ function extractJsonBlob(stdout) {
 }
 
 function parseGeminiTokens(stdout) {
-  // CLI 0.38.2+ -o json 출력에서 stats.models[*].tokens 합산.
-  // 실패 시 words×1.3 추정으로 fallback.
+  // On CLI 0.38.2+ `-o json` output, sum `stats.models[*].tokens`.
+  // On failure, fall back to a words × 1.3 estimate.
   const blob = extractJsonBlob(stdout);
   try {
     const obj = blob ? JSON.parse(blob) : null;
@@ -430,14 +430,14 @@ function parseGeminiTokens(stdout) {
 }
 
 function extractGeminiBody(stdout) {
-  // -o json 모드: response 필드를 우선, 실패 시 stdout 원본.
+  // In `-o json` mode, prefer the `response` field; on failure use raw stdout.
   const blob = extractJsonBlob(stdout);
   try {
     const obj = blob ? JSON.parse(blob) : null;
     if (typeof obj?.response === 'string') return obj.response;
     if (typeof obj?.text === 'string') return obj.text;
   } catch {
-    // text 모드 그대로
+    // keep plain text mode as-is
   }
   return stdout;
 }
@@ -465,8 +465,8 @@ function cmdSetup(_args) {
   if (!ver) emitError('CCP-SETUP-001');
   if (compareSemver(ver, MIN_GEMINI_VERSION) < 0) {
     emitError('CCP-SETUP-001', {
-      message_ko: `Gemini CLI 버전이 낮습니다 (현재 ${ver}, 필요 ${MIN_GEMINI_VERSION}+)`,
-      action_ko: '`npm install -g @google/gemini-cli@latest` 로 업데이트하세요.',
+      message: `Gemini CLI is too old (current ${ver}, required ${MIN_GEMINI_VERSION}+)`,
+      action: 'Update it with `npm install -g @google/gemini-cli@latest`.',
       details: { gemini_version: ver, required: `>=${MIN_GEMINI_VERSION}` },
     });
   }
@@ -488,14 +488,14 @@ function cmdSetup(_args) {
     });
   }
   emitSuccess({
-    summary: 'Gemini CLI 설치 및 인증 상태 정상',
+    summary: 'Gemini CLI installation and auth are OK',
     result_path: null,
     tokens: { input: 0, output: 0 },
     details: { gemini_version: ver, oauth_status: 'valid', auth_method: authMethod },
   });
 }
 
-// preflight = lightweight setup (no probe call). companion 내부용 사전 체크.
+// preflight = lightweight setup (no probe call). Internal pre-check for the companion.
 function cmdPreflight(_args) {
   if (nodeMajor() < MIN_NODE_MAJOR) {
     emitError('CCP-SETUP-002', {
@@ -506,8 +506,8 @@ function cmdPreflight(_args) {
   if (!ver) emitError('CCP-SETUP-001');
   if (compareSemver(ver, MIN_GEMINI_VERSION) < 0) {
     emitError('CCP-SETUP-001', {
-      message_ko: `Gemini CLI 버전이 낮습니다 (현재 ${ver}, 필요 ${MIN_GEMINI_VERSION}+)`,
-      action_ko: '`npm install -g @google/gemini-cli@latest` 로 업데이트하세요.',
+      message: `Gemini CLI is too old (current ${ver}, required ${MIN_GEMINI_VERSION}+)`,
+      action: 'Update it with `npm install -g @google/gemini-cli@latest`.',
       details: { gemini_version: ver, required: `>=${MIN_GEMINI_VERSION}` },
     });
   }
@@ -528,8 +528,8 @@ function cmdStatus(args) {
   const jobId = args.jobId ?? args._[0];
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'job_id 형식이 올바르지 않습니다 (UUID v4 필요)',
-      action_ko: '`/gemini:rescue --background` 응답의 job_id 를 그대로 사용하세요.',
+      message: 'The `job_id` format is invalid (UUID v4 required)',
+      action: 'Use the `job_id` exactly as returned by `/gemini:rescue --background`.',
     });
   }
   if (!existsSync(jobDir(jobId))) emitError('CCP-JOB-001');
@@ -563,8 +563,8 @@ function cmdResult(args) {
   const jobId = args.jobId ?? args._[0];
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
-      message_ko: 'job_id 형식이 올바르지 않습니다 (UUID v4 필요)',
-      action_ko: '`/gemini:status <job_id>` 응답의 job_id 를 그대로 사용하세요.',
+      message: 'The `job_id` format is invalid (UUID v4 required)',
+      action: 'Use the `job_id` exactly as returned by `/gemini:status <job_id>`.',
     });
   }
   if (!existsSync(jobDir(jobId))) emitError('CCP-JOB-001');
@@ -575,7 +575,7 @@ function cmdResult(args) {
     emitError('CCP-JOB-004', { details: { job_id: jobId } });
   }
   emitSuccess({
-    summary: meta.summary_3lines || '(요약 없음)',
+    summary: meta.summary_3lines || '(No summary)',
     result_path: meta.result_file_path,
     tokens: meta.token_usage
       ? { input: meta.token_usage.input || 0, output: meta.token_usage.output || 0 }
@@ -589,17 +589,17 @@ function cmdResult(args) {
 // ---------------------------------------------------------------------------
 
 function buildGeminiArgs(prompt, { maxTokens, files }) {
-  // Gemini CLI 0.38.x 실 플래그만 사용.
-  // - `--max-output-tokens`/`--all-files` 미존재 → 인자 제외.
-  // - maxTokens: prompt 내 문구로 soft hint, post-call enforceContextBudget 가 hard cap.
-  // - files: MVP 미지원 (백로그 B12 — `--include-directories` 매핑 검토).
+  // Use only real Gemini CLI 0.38.x flags.
+  // - `--max-output-tokens`/`--all-files` do not exist, so omit them.
+  // - `maxTokens`: a soft hint in the prompt text; post-call `enforceContextBudget` is the hard cap.
+  // - `files`: unsupported in MVP (backlog B12 — review mapping to `--include-directories`).
   const cappedPrompt = maxTokens
-    ? `${prompt}\n\n(최대 ${maxTokens} 토큰 이내로 답변)`
+    ? `${prompt}\n\n(Answer within ${maxTokens} tokens if possible)`
     : prompt;
   return ['-p', cappedPrompt, '-o', 'json'];
 }
 
-const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // B17: 사용자 대형 작업 허용 (Phase 5-C)
+const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // B17: allow large user tasks (Phase 5-C)
 
 function runGeminiSync(prompt, opts, timeoutMs) {
   const r = spawnSync('gemini', buildGeminiArgs(prompt, opts), {
@@ -614,24 +614,24 @@ function cmdRescue(args) {
   const task = args.task ?? args._.join(' ').trim();
   if (!task) {
     emitError('CCP-INVALID-001', {
-      message_ko: '/gemini:rescue 에는 task 인자가 필요합니다',
-      action_ko: '예: `/gemini:rescue "이 디렉토리 요약해줘"`',
+      message: '/gemini:rescue requires a task argument',
+      action: 'Example: `/gemini:rescue "Summarize this directory"`',
     });
   }
   assertGlobInsidePluginRoot(args.files);
 
-  // MVP: --files 미지원 (Gemini CLI 0.38.x 매핑 부재). 백로그 B13.
+  // MVP: `--files` is unsupported (no Gemini CLI 0.38.x mapping). Backlog B13.
   if (args.files) {
     emitError('CCP-INVALID-001', {
-      message_ko: '`--files` 는 MVP 에서 지원되지 않습니다',
-      action_ko: 'task 본문에 파일 내용을 직접 포함하거나, `--fallback-claude` 로 Claude 본체를 사용하세요. 추적: 백로그 B13.',
+      message: '`--files` is not supported in the MVP',
+      action: 'Include file contents directly in the task body, or use the main Claude agent with `--fallback-claude`. Tracking: backlog B13.',
     });
   }
 
   if (args.fallbackClaude) {
-    // R13 — companion 호출 생략, mode=fallback_claude envelope 만 반환.
+    // R13 — skip the companion call and return only a `mode=fallback_claude` envelope.
     emitSuccess({
-      summary: 'Claude 본체 fallback 경로 — companion 호출 생략',
+      summary: 'Main Claude fallback path — companion call skipped',
       result_path: null,
       tokens: { input: 0, output: 0 },
       details: { mode: 'fallback_claude', task },
@@ -640,17 +640,17 @@ function cmdRescue(args) {
 
   const maxTokens = Number.isFinite(args.maxTokens) ? args.maxTokens : DEFAULT_MAX_TOKENS;
 
-  // Background 분기 — detached child 띄우고 즉시 envelope 반환
+  // Background branch — launch a detached child and return an envelope immediately
   if (args.background) {
     return rescueBackground({ task, maxTokens, files: args.files });
   }
 
-  // Foreground 분기
+  // Foreground branch
   return rescueForeground({ task, maxTokens, files: args.files });
 }
 
 function rescueForeground({ task, maxTokens, files }) {
-  // OAuth 사전 검증은 일반 setup 보다 가볍게 — env/credential 파일만 확인.
+  // OAuth pre-check is lighter than full setup — only inspect env/credential files.
   if (!detectAuthMethod()) emitError('CCP-OAUTH-001');
 
   const ver = geminiVersion();
@@ -706,15 +706,16 @@ function rescueForeground({ task, maxTokens, files }) {
   const body = extractGeminiBody(stdoutText);
   const tokens = parseGeminiTokens(stdoutText);
 
-  // S3-2 — 결과 본문 자체가 1500 토큰 초과면 envelope 에 통째로 싣지 않고
-  // result.md 에 저장한 뒤 요약만 반환. 단 summary 자체가 한도 초과면 차단.
+  // S3-2 — if the result body itself exceeds 1500 tokens, do not place it
+  // directly in the envelope. Save it to `result.md` and return only a summary.
+  // If the summary itself exceeds the limit, block it.
   const resultRel = `_workspace/_jobs/${jobId}/result.md`;
   writeFileSync(resolve(REPO_ROOT, resultRel), body);
 
   const summary = makeSummary(body);
   enforceContextBudget(summary);
 
-  // session_id 추출 시도 (-o json 모드)
+  // Try to extract `session_id` (`-o json` mode)
   let sessionId = null;
   try {
     const blob = extractJsonBlob(stdoutText);
@@ -745,7 +746,7 @@ function rescueBackground({ task, maxTokens, files }) {
   const dir = jobDir(jobId);
   mkdirSync(dir, { recursive: true });
 
-  // OAuth 만료 시 background 도 즉시 차단 (R6)
+  // If OAuth is expired, block background mode immediately too (R6)
   const authMethod = detectAuthMethod();
   if (!authMethod) {
     emitError('CCP-OAUTH-001', {
@@ -778,7 +779,7 @@ function rescueBackground({ task, maxTokens, files }) {
   };
   writeMeta(jobId, meta);
 
-  // Detached child — task-worker 진입점
+  // Detached child — task-worker entrypoint
   const workerArgs = [fileURLToPath(import.meta.url), 'task-worker', '--job-id', jobId];
   const child = spawn(process.execPath, workerArgs, {
     detached: true,
@@ -802,7 +803,7 @@ function rescueBackground({ task, maxTokens, files }) {
 function cmdTaskWorker(args) {
   const jobId = args.jobId;
   if (!jobId || !UUID_V4_RE.test(jobId)) {
-    // worker 는 stdout 로 envelope 반환하지 않음. meta.json 에만 기록.
+    // The worker does not return an envelope via stdout. Record only in `meta.json`.
     process.exit(2);
   }
   const meta = readMeta(jobId);
@@ -828,7 +829,7 @@ function cmdTaskWorker(args) {
     if (/quota|429|rate limit/i.test(stderrText)) code = 'CCP-GEMINI-002';
     else if (/auth|login|credential|oauth/i.test(stderrText)) code = 'CCP-OAUTH-001';
     meta.error = { code };
-    // stderr 원문은 stderr.log 에만 저장, meta 에는 코드만.
+    // Store raw stderr only in `stderr.log`; keep only the code in meta.
     try {
       writeFileSync(join(jobDir(jobId), 'stderr.log'), stderrText);
     } catch {
@@ -884,8 +885,8 @@ function main() {
       return cmdTaskWorker(args);
     default:
       emitError('CCP-INVALID-001', {
-        message_ko: `알 수 없는 서브커맨드: ${sub ?? '(없음)'}`,
-        action_ko: '사용법: gemini-companion.mjs <rescue|status|result|setup|preflight> ...',
+        message: `Unknown subcommand: ${sub ?? '(none)'}`,
+        action: 'Usage: gemini-companion.mjs <rescue|status|result|setup|preflight> ...',
       });
   }
 }

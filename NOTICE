@@ -32,7 +32,32 @@ upstream commit SHA, original license, modifications, and the CCP commit
 SHA at adaptation time. See ATTRIBUTION.md §6 for the full table.
 
 ================================================================================
+oh-my-claudecode (omc)
+================================================================================
+
+Copyright (c) 2025 Yeachan Heo
+
+Licensed under the MIT License.
+
+Source: https://github.com/Yeachan-Heo/oh-my-claudecode
+Source commit: 1e9f197bcc85602da87ad35b18d908a0575b8583
+Source file: src/features/magic-keywords.ts
+
+Borrowed components (function-level adaptation, isolated under
+plugins/ccp/scripts/lib/omc_adapted/):
+
+  - magic-keywords.mjs   (5 primitives: removeCodeBlocks, escapeRegExp,
+                          hasActionableTrigger, isInformationalKeywordContext,
+                          INFORMATIONAL_INTENT_PATTERNS)
+
+The adapted file carries a 5-field header documenting the source path,
+upstream commit SHA, original license, modifications, and the CCP commit
+SHA at adaptation time. See ATTRIBUTION.md §1.5 for the full mapping and
+§1.6 for the MIT license text preserved as required.
+
+================================================================================
 
 This NOTICE file is provided in accordance with the Apache License 2.0
-section 4(d). It must be preserved in any redistribution of CCP, whether
-in source or binary form.
+section 4(d) (codex-plugin-cc) and the MIT License copyright preservation
+requirement (oh-my-claudecode). It must be preserved in any redistribution
+of CCP, whether in source or binary form.

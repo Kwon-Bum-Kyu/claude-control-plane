@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // CCP — router-suggest hook (B19, Phase 6-A v0.2)
 // Event: UserPromptSubmit
-// Behavior: 사용자 프롬프트를 4축 라우터로 분류하여 위임 추천을 system reminder 로 주입.
-//   결정이 'claude' 이면 noop (메인 처리). 'gemini'·'codex' 이면 추천 메시지만 주입.
-// Never auto-delegates: 자동 위임은 수행하지 않으며, 사용자가 보고 직접 슬래시 호출.
-//   (원칙 4 — _workspace/02_arch_decisions.md "자동 fallback 금지")
-// Failure-silent: 훅이 입력을 차단하지 않는다 — 파싱 실패·예외 시 빈 출력으로 종료.
+// Behavior: classify the user prompt with the 4-axis router and inject a delegation
+//   suggestion as a system reminder.
+//   If the decision is 'claude', noop (main handling). If 'gemini' or 'codex',
+//   inject only the suggestion message.
+// Never auto-delegates: it does not auto-delegate; the user reviews the suggestion
+//   and calls the slash command directly.
+//   (Principle 4 — _workspace/02_arch_decisions.md "no automatic fallback")
+// Failure-silent: the hook does not block input — on parse failure or exception,
+//   exit with empty output.
 
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -20,10 +24,12 @@ const SLASH_HINT = {
   codex: '/ccp:codex-rescue',
 };
 
-// B21-3 (2026-05-03) — 헤드리스 자동화 의심 시 메타 우회 차단 안내.
-// B9 §8.5.4 가 보고한 12회 메타 우회 (Skill→Agent→companion→직접 CLI) 차단 목적.
-// 사용자 슬래시 직접 호출 흔적이 없고 자동화 키워드가 보이면 권장 패턴 1줄 추가.
-const HEADLESS_HINT = /headless|claude\s*-p|스크립트|자동화|automation|cron|CI/i;
+// B21-3 (2026-05-03) — warn against meta-bypass when headless automation is suspected.
+// Intended to block the 12 meta-bypass cases reported in B9 §8.5.4
+// (Skill→Agent→companion→direct CLI).
+// If there is no sign of a direct user slash call and automation keywords appear,
+// append one recommended pattern line.
+const HEADLESS_HINT = /headless|claude\s*-p|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654|automation|cron|CI/i;
 const SLASH_PRESENT = /\/(?:ccp:codex-|gemini:|ccp:gemini-)/;
 
 function isLikelyHeadless(promptText) {
@@ -62,15 +68,15 @@ function buildMessage(decision, headlessSuspected) {
   const reason = decision.reason || 'unknown';
 
   const baseLine =
-    `[CCP-ROUTER-001] 라우터 추천: ${decision.target} (axis ${decision.axis}, ${reason})${tokenInfo}${matched}. ` +
-    `필요 시 \`${slash} "<task>"\` 로 위임하세요. 자동 위임은 수행하지 않습니다.`;
+    `[CCP-ROUTER-001] Router suggestion: ${decision.target} (axis ${decision.axis}, ${reason})${tokenInfo}${matched}. ` +
+    `Delegate with \`${slash} "<task>"\` if needed. No automatic delegation is performed.`;
 
   if (!headlessSuspected) return clamp(baseLine);
 
   const companionScript = decision.target === 'codex' ? 'codex-companion.mjs' : 'gemini-companion.mjs';
   const headlessLine =
-    ` [CCP-META-WARN] 헤드리스 의심: 메타 탐색(\`--help\`, \`Skill\`→\`Agent\` 우회) 대신 ` +
-    `\`node plugins/ccp/scripts/${companionScript} rescue --task <task>\` 직접 호출 권장.`;
+    ` [CCP-META-WARN] Possible headless usage: instead of meta exploration (\`--help\`, bypassing \`Skill\`→\`Agent\`), ` +
+    `directly run \`node plugins/ccp/scripts/${companionScript} rescue --task <task>\`.`;
 
   return clamp(baseLine + headlessLine);
 }

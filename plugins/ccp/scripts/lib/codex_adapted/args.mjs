@@ -1,14 +1,14 @@
 // Adapted from: codex-plugin-cc plugins/codex/scripts/lib/args.mjs
 // Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Original license: Apache-2.0 (see ATTRIBUTION.md §1.3, NOTICE)
-// Modifications: --timeout-ms / --poll-interval-ms 옵션화 (B17 동시 적용), 한국어 에러 메시지, JSDoc 보강
+// Modifications: added --timeout-ms / --poll-interval-ms options (B17 applied simultaneously), localised error messages, expanded JSDoc
 // SHA-of-this-adaptation: <to be filled at B1 merge>
 
 /**
- * 인자 파서 — codex 측 옵션 시그니처를 gemini-companion 과 동일 구조로 정규화한다.
- * 사용 예: parseArgs(['rescue', '--background', '--timeout-ms', '300000', '--', 'prompt'])
+ * Argument parser - normalizes the codex-side option signature to the same structure as gemini-companion.
+ * Example usage: parseArgs(['rescue', '--background', '--timeout-ms', '300000', '--', 'prompt'])
  *
- * @param {string[]} argv  process.argv.slice(2) 형식
+ * @param {string[]} argv  process.argv.slice(2) format
  * @returns {{ command: string, flags: Record<string, string|boolean>, positional: string[] }}
  */
 export function parseArgs(argv) {
@@ -23,7 +23,7 @@ export function parseArgs(argv) {
   for (let i = 0; i < rest.length; i += 1) {
     const tok = rest[i];
     if (tok === '--') {
-      // 이후 모든 토큰은 positional
+      // All following tokens are positional
       positional.push(...rest.slice(i + 1));
       break;
     }
@@ -58,13 +58,13 @@ export function parseArgs(argv) {
   return { command, flags, positional };
 }
 
-/** kebab-case → camelCase 정규화 (예: timeout-ms → timeoutMs) */
+/** kebab-case -> camelCase normalization (e.g. timeout-ms -> timeoutMs) */
 function normalizeFlag(name) {
   return name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
 }
 
 /**
- * 정수 옵션 추출 (default 적용)
+ * Extract an integer option (with default)
  * @param {Record<string, any>} flags
  * @param {string} key
  * @param {number} fallback
@@ -80,14 +80,14 @@ export function pickInt(flags, key, fallback, bounds = {}) {
   return n;
 }
 
-/** 문자열 옵션 추출 */
+/** Extract a string option */
 export function pickString(flags, key, fallback = '') {
   const raw = flags[key];
   if (raw === undefined || raw === true) return fallback;
   return String(raw);
 }
 
-/** Boolean 옵션 추출 (true/false/1/0 허용) */
+/** Extract a boolean option (accepts true/false/1/0) */
 export function pickBool(flags, key, fallback = false) {
   const raw = flags[key];
   if (raw === undefined) return fallback;
@@ -97,13 +97,13 @@ export function pickBool(flags, key, fallback = false) {
 }
 
 /**
- * codex CLI 호출용 인자 빌더
+ * Argument builder for codex CLI invocation
  * @param {object} opts
  * @param {string} opts.prompt
  * @param {string} opts.cwd
  * @param {string} [opts.model]
  * @param {string} [opts.sandbox]   read-only | workspace-write | danger-full-access
- * @param {string} [opts.effort]    low | medium | high (config override 경로)
+ * @param {string} [opts.effort]    low | medium | high (config override path)
  * @param {boolean} [opts.skipGitRepoCheck]
  * @returns {string[]}
  */

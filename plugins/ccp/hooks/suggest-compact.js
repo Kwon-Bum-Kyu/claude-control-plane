@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 // CCP — suggest-compact hook
 // Events: UserPromptSubmit, PreCompact
-// Behavior: 컨텍스트 75% 임계 도달 시 사용자에게 자발적 압축 권고 (info).
-// Never auto-runs /compact (원칙 4 — _workspace/02_arch_decisions.md).
+// Behavior: recommend voluntary compaction to the user when context reaches the 75% threshold (info).
+// Never auto-runs /compact (Principle 4 — _workspace/02_arch_decisions.md).
 //
 // Originally derived from: github.com/affaan-m/everything-claude-code (hooks/suggest-compact.js)
 // Original license: MIT — see /ATTRIBUTION.md §1.1
 // Modifications: dual-event registration (UserPromptSubmit + PreCompact),
-//                Korean message, removal of auto-/compact trigger.
+//                English message, removal of auto-/compact trigger.
 
 import { readFileSync, statSync, existsSync } from 'node:fs';
 
-const TOKEN_BUDGET = 200000; // Claude Code 메인 세션 표준 한도 가정
+const TOKEN_BUDGET = 200000; // Assume the standard limit for the main Claude Code session
 const WARN_RATIO = 0.75;
 const SUMMARY_MAX_CHARS = 500;
 
@@ -42,8 +42,9 @@ function safeReadFile(path, maxBytes = 5_000_000) {
 
 function estimateTokensFromTranscript(text) {
   if (!text) return 0;
-  // 간이 휴리스틱: words×1.3.
-  // transcript.jsonl 은 한 줄당 JSON. 본문만 골라 합산하지 않고 전체 size 기반 근사.
+  // Simple heuristic: words × 1.3.
+  // transcript.jsonl is JSON per line. Approximate from the whole size
+  // instead of extracting and summing only message bodies.
   const words = text.split(/\s+/).filter(Boolean).length;
   return Math.ceil(words * 1.3);
 }
@@ -62,7 +63,7 @@ function main() {
     try {
       payload = JSON.parse(raw);
     } catch {
-      // 파싱 실패는 silent — 훅 오작동으로 사용자 입력을 차단하지 않는다.
+      // Parse failures stay silent — a broken hook must not block user input.
       return emit({});
     }
   }
@@ -70,32 +71,32 @@ function main() {
   const event = payload.hook_event_name || 'UserPromptSubmit';
   const transcriptPath = payload.transcript_path;
 
-  // PreCompact 분기 — 압축 직전 안내
+  // PreCompact branch — notice right before compaction
   if (event === 'PreCompact') {
     return emit({
       hookSpecificOutput: {
         hookEventName: 'PreCompact',
         additionalContext: clamp(
-          '[CCP-COMPACT-001] _workspace/_jobs/ 와 _workspace/_audits/ 는 .gitignore 로 보존됩니다. 압축 후에도 /gemini:status <id> 로 회수 가능.'
+          '[CCP-COMPACT-001] _workspace/_jobs/ and _workspace/_audits/ are preserved by .gitignore. You can still recover them with /gemini:status <id> after compaction.'
         ),
       },
     });
   }
 
-  // UserPromptSubmit 분기
+  // UserPromptSubmit branch
   const transcript = safeReadFile(transcriptPath);
   const estTokens = estimateTokensFromTranscript(transcript);
   const ratio = estTokens / TOKEN_BUDGET;
 
   if (ratio < WARN_RATIO) {
-    // noop — 임계 미만
+    // noop — below threshold
     return emit({});
   }
 
   const message = clamp(
-    `[CCP-COMPACT-001] 컨텍스트 사용량이 ${Math.round(
+    `[CCP-COMPACT-001] Context usage has reached ${Math.round(
       ratio * 100
-    )}% (≥ 75%) 에 도달했습니다. \`/compact\` 로 수동 압축하거나, 대형 작업은 \`/gemini:rescue\` 로 위임하세요.`
+    )}% (≥ 75%). Run \`/compact\` manually, or delegate large work with \`/gemini:rescue\`.`
   );
 
   return emit({

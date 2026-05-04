@@ -1,35 +1,72 @@
-// CCP Router — 3-way 라우팅 결정 로직 (Claude / Gemini / Codex)
-// 명세: plugins/ccp/skills/router/SKILL.md §"4축 결정 알고리즘"
-// 데이터셋: _workspace/_router_test/EVAL_DATASET.md (50 케이스)
-// 평가 진입점: _workspace/_router_test/router-eval.mjs
+// CCP Router — 3-way routing decision logic (Claude / Gemini / Codex)
+// Spec: plugins/ccp/skills/router/SKILL.md §"4-axis decision algorithm"
+// Dataset: _workspace/_router_test/EVAL_DATASET.md (65 cases — N5)
+// Eval entry: _workspace/_router_test/router-eval.mjs
 //
-// B19 (Phase 6-A v0.2): hooks/router-suggest.js 가 본 모듈을 import 하여
-//   UserPromptSubmit 시 사용자에게 추천 정보를 system reminder 로 주입한다.
-//   자동 위임은 수행하지 않는다 (원칙 4 — 자동 fallback 금지).
+// B19 (Phase 6-A v0.2): hooks/router-suggest.js imports this module to
+//   inject recommendation as system reminder on UserPromptSubmit.
+//   Auto-delegation is NOT performed (Principle 4 — no automatic fallback).
+//
+// N3·N4 (v0.1.0 release prep, 2026-05-04):
+//   - English keyword dictionaries promoted as primary, Korean kept as auxiliary
+//   - omc magic-keywords primitives integrated for false positive suppression:
+//     * removeCodeBlocks: skip keywords inside ``` ... ``` and `...` blocks
+//     * hasActionableTrigger: word-boundary matching + informational intent skip
+//   - KW_MAIN_CONTEXT_BIND extended with English variants
 
+import {
+  removeCodeBlocks,
+  hasActionableTrigger,
+  isInformationalKeywordContext,
+} from './omc_adapted/magic-keywords.mjs';
+
+// English-primary dictionaries (Korean kept as auxiliary for 1st persona).
 const KW_GEMINI = [
+  // English (primary) — large-context summarization & directory-wide analysis
+  'summarize', 'summary', 'review codebase', 'review the entire',
+  'whole directory', 'whole codebase', 'whole repo', 'whole project',
+  'entire directory', 'entire codebase', 'entire repository', 'monorepo',
+  'parse large log', 'log analysis', 'all markdown', 'all includes',
+  'fifty files', '50 files', 'all APIs',
+  // Korean (auxiliary)
   '요약', '전체 검토', '이 디렉토리', '전체 코드베이스', '전체 레포', '전체 프로젝트',
   '대용량 로그 파싱', '로그 분석', '디렉토리 전체', '모노레포', '코드베이스',
   '모든 마크다운', '모든 include', '파일 50개', '전체 API',
-  'summary', 'review codebase', 'summarize',
 ];
 
 const KW_CODEX = [
+  // English (primary) — code review, bug investigation, diff analysis
+  'review code', 'code review', 'review this PR', 'review the PR',
+  'audit diff', 'audit this diff', 'review the diff',
+  'find the bug', 'find a bug', 'investigate the bug', 'investigate this bug',
+  'refactoring proposal', 'large refactor proposal', 'code quality',
+  // Korean (auxiliary)
   '코드 리뷰', '리뷰', 'PR 검토', 'diff 검토', '버그 조사', '버그 찾아줘',
   '리팩터링 제안', '코드 품질',
-  'review code', 'code review', 'audit diff', 'review this PR',
-  'find the bug', 'investigate the bug',
 ];
 
 const KW_CLAUDE = [
+  // English (primary) — small edits, single-line changes, type/test additions
+  'edit', 'fix this line', 'rename this variable', 'add a comment',
+  'add a test', 'add type', 'add types', 'autofix', 'TODO comment',
+  'error message', 'three differences',
+  // Korean (auxiliary)
   '추가해줘', '수정', '리팩터', '한 줄 변경', '이 함수만', '체크아웃',
   '테스트 작성', '타입 추가', '주석 보강', '추가', '작성해줘',
   '방금', '위에서', '이전 응답', '실행한 명령',
-  'edit', 'fix this line', 'rename this variable',
-  'autofix', 'TODO 주석', '에러 메시지', '차이는', '차이 3가지',
+  'TODO 주석', '에러 메시지', '차이는', '차이 3가지',
 ];
 
-const KW_MAIN_CONTEXT_BIND = ['방금', '위에서', '이전 응답', '실행한 명령'];
+// Main-context-bind keywords — English (primary) + Korean (auxiliary).
+// These force `claude` regardless of other matches because the input
+// references the main Claude context (delegating would break continuity → R3).
+const KW_MAIN_CONTEXT_BIND = [
+  // English (primary)
+  'just now', 'just edited', 'just wrote', 'just ran',
+  'above', 'previous response', 'previous output', 'last command',
+  // Korean (auxiliary)
+  '방금', '위에서', '이전 응답', '실행한 명령',
+];
 
 const TARGETS = Object.freeze(['claude', 'gemini', 'codex']);
 
@@ -41,7 +78,7 @@ function classify(input, opts = {}) {
   const text = String(input || '');
   const explicitTokens = opts.estimated_tokens;
 
-  // A — 사용자 명시 (최우선)
+  // A — User explicit (highest priority)
   if (/\/ccp:codex-rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
     return { target: 'codex', axis: 'A', reason: 'user_explicit_codex' };
   }
@@ -55,30 +92,62 @@ function classify(input, opts = {}) {
     return { target: 'codex', axis: 'A', reason: 'user_explicit_codex_option' };
   }
 
-  // B — 입력 크기
+  // Strip code blocks before keyword matching (omc N4 — false positive guard).
+  // User-explicit signals above are checked on raw text because slash commands
+  // and CLI flags must not be obscured by code fences.
+  const stripped = removeCodeBlocks(text);
+
+  // B — Input size
   const tokens = explicitTokens ?? estimateTokens(text);
   if (tokens > 30000) {
-    const matchedX = KW_CODEX.filter((k) => text.includes(k));
+    const matchedX = matchKeywords(stripped, KW_CODEX);
     if (matchedX.length > 0) {
       return { target: 'codex', axis: 'B', reason: 'mid_review_codex_oversized', tokens, matched: matchedX };
     }
     return { target: 'gemini', axis: 'B', reason: 'too_large', tokens };
   }
   if (tokens >= 5000 && tokens <= 30000) {
-    const matchedX = KW_CODEX.filter((k) => text.includes(k));
+    const matchedX = matchKeywords(stripped, KW_CODEX);
     if (matchedX.length > 0) {
       return { target: 'codex', axis: 'B', reason: 'mid_review_codex', tokens, matched: matchedX };
     }
   }
 
-  return classifyByKeyword(text, tokens);
+  return classifyByKeyword(stripped, tokens);
+}
+
+// Keyword matching with omc word-boundary + informational-intent guard.
+// For ASCII-only triggers (English) we use hasActionableTrigger which respects
+// `\b` word boundaries and skips informational contexts (e.g. "review가 뭐야?").
+// For non-ASCII triggers (Korean) `\b` is unreliable, so we fall back to
+// substring matching but still apply informational-intent skip via the
+// stripped text passed to the caller.
+function matchKeywords(text, dict) {
+  const matched = [];
+  for (const kw of dict) {
+    if (isAsciiTrigger(kw)) {
+      if (hasActionableTrigger(text, kw)) matched.push(kw);
+    } else {
+      // For non-ASCII (e.g. Korean) triggers, `\b` is unreliable, so we use
+      // substring match but apply the omc informational-intent guard manually.
+      const idx = text.indexOf(kw);
+      if (idx >= 0 && !isInformationalKeywordContext(text, idx, kw.length)) {
+        matched.push(kw);
+      }
+    }
+  }
+  return matched;
+}
+
+function isAsciiTrigger(s) {
+  return /^[\x20-\x7E]+$/.test(s);
 }
 
 function classifyByKeyword(text, tokens) {
-  const matchedG = KW_GEMINI.filter((k) => text.includes(k));
-  const matchedX = KW_CODEX.filter((k) => text.includes(k));
-  const matchedC = KW_CLAUDE.filter((k) => text.includes(k));
-  const matchedBind = KW_MAIN_CONTEXT_BIND.filter((k) => text.includes(k));
+  const matchedG = matchKeywords(text, KW_GEMINI);
+  const matchedX = matchKeywords(text, KW_CODEX);
+  const matchedC = matchKeywords(text, KW_CLAUDE);
+  const matchedBind = matchKeywords(text, KW_MAIN_CONTEXT_BIND);
   const hits = {
     gemini: matchedG.length,
     codex: matchedX.length,
@@ -100,7 +169,7 @@ function classifyByKeyword(text, tokens) {
     return { target: 'claude', axis: 'C', reason: 'keyword_claude', matched: matchedC };
   }
 
-  // 다중 매칭 — 우선순위 codex > gemini > claude
+  // Multiple matches — priority codex > gemini > claude
   if (matchedX.length > 0) {
     return { target: 'codex', axis: 'C', reason: 'keyword_codex_priority', hits };
   }
