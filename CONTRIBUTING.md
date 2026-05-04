@@ -47,7 +47,7 @@ Signed-off-by: Your Name <you@example.com>
 
 - ESM 모듈 (`.mjs`) 또는 `"type": "module"` 사용
 - Node.js 내장 모듈 우선 (외부 npm 의존성은 PR 에서 정당화 필요)
-- envelope 스키마는 `_workspace/01_schema.md` SSOT 준수
+- envelope 스키마는 [`plugins/ccp/schemas/envelope.schema.json`](./plugins/ccp/schemas/envelope.schema.json) SSOT 준수 (JSON Schema)
 - 에러 코드는 `^CCP-[A-Z]+-[0-9]{3}$` 정규식 매칭
 
 ## 이슈 가이드

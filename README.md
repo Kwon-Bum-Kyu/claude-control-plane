@@ -189,7 +189,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 - † Claude `/model` 슬래시: Claude Code 내장 명령
 - gemini ❌ 표시 옵션이 인자로 새어 들어오면 즉시 `CCP-INVALID-001` (companion 인라인 거부, B1-S3-5)
 
-자세한 결정 근거: `_workspace/06_codex_cli_probe.md` §1·§3·§5
+자세한 결정 근거: [`ATTRIBUTION.md`](./ATTRIBUTION.md) §1.3·1.4·6 (Codex 통합 차용 함수 매핑)
 
 ---
 
@@ -217,7 +217,7 @@ CCP 라우터는 **4축 우선순위** 로 Claude / Gemini / Codex 3 경로 중 
    [axis D] fallback → Claude (보수적)
 ```
 
-- **자동화 검증**: 50 케이스 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델 (`_workspace/06_b1_qa_report.md` C6 + B20).
+- **자동화 검증**: 50 케이스 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델.
 - **투명성**: 모든 호출 결과 `details.mode` 필드에 결정 결과 노출 (`gemini` | `codex`).
 - **추천 훅 활성** (B19, v0.2): UserPromptSubmit 시 결정 결과를 `[CCP-ROUTER-001]` system reminder 로 주입. 자동 위임은 미수행 — 사용자가 직접 슬래시 호출.
 
@@ -230,7 +230,7 @@ CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** �
 ✅ 권장:  /ccp:codex-rescue 이 PR diff 검토
 ```
 
-이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다. 본 프로젝트 T5 fixture canonical 측정 (N=2): 메인 846K + 외부 오프로드 179K = 총 1,025K (`_workspace/04_token_report.md` §11).
+이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다. 본 프로젝트 T5 fixture canonical 측정 (N=2): 메인 846K + 외부 오프로드 179K = 총 1,025K.
 
 ### 5.2 헤드리스 자동화 권고 패턴 (B21-3)
 
@@ -348,7 +348,7 @@ node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
 | B22 | SessionEnd 훅으로 background job 메타 정리 | 메타파일 잔존 사용자 보고 시 |
 | B23 | options schema 도입 검토 | 옵션 종류 N+5 이상 추가 시 (현 13개) |
 
-자세한 백로그: [`_workspace/01_backlog.md`](./_workspace/01_backlog.md)
+자세한 백로그: [GitHub Issues](https://github.com/) 또는 [`CHANGELOG.md`](./CHANGELOG.md) 참조
 
 ---
 
