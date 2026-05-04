@@ -253,6 +253,35 @@ node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
 
 오판 의심 시 `/ccp:audit` 으로 router_accuracy 카테고리 점수를 확인하세요.
 
+### 5.3 canonical 자동 라우팅 (B24, opt-in)
+
+기본 동작은 **추천 only** 입니다 (B19 — `[CCP-ROUTER-001]` 메시지 주입, 사용자가 슬래시 직접 호출). 인터랙티브 (canonical) 세션에서 라우팅을 자동화하려면 `plugin.json#config.auto_routing` 을 활성화하세요.
+
+```jsonc
+// plugins/ccp/.claude-plugin/plugin.json
+{
+  "config": {
+    "auto_routing": true   // 기본 false. 사용자 명시 활성화 시만 자동 위임
+  }
+}
+```
+
+활성화 시 동작:
+
+| 진입 경로 | 동작 |
+|---------|------|
+| canonical (인터랙티브) | `agents/router.md` (deterministic-router) 가 자동 호출되어 `decision != claude` 시 `target` 슬래시를 다음 턴 자동 입력. envelope `auto_routed: true`. |
+| headless (`claude -p`, CI runner) | 자동 위임 차단. 추천 메시지만 (B21-3 가드). 다중 신호 OR — `env.CI=true` / `env.CLAUDE_CODE_NONINTERACTIVE=1` / `env.CLAUDE_CODE_ENTRYPOINT≠cli` 검출 시 즉시 차단. |
+| 위임 실패 (OAuth 만료·CLI 미설치) | 자동 fallback 금지 (원칙 4 §4.2 불변). envelope 안내 → 사용자 명시 재입력. |
+
+비활성화 (opt-out) 방법 3가지:
+
+1. `plugin.json#config.auto_routing: false` — 기본값
+2. `--no-auto-route` 플래그 (세션별)
+3. `/ccp:audit --auto-routing off` (영구, B24 Step 4 신설 예정)
+
+R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 + router agent 5중 방어선 + envelope free text 차단 (`reason_code` 12종 enum) + AC-B24-4 회귀 측정 (U4 84.3 tok ≤ 250). 자세한 내용은 `_workspace/02_arch_decisions.md` 원칙 4 §4.1 / 원칙 7 §5.
+
 ---
 
 ## 6. 트러블슈팅

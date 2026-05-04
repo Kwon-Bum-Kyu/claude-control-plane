@@ -28,6 +28,10 @@
           "type": "integer",
           "enum": [0]
         },
+        "auto_routed": {
+          "type": "boolean",
+          "description": "B24 (2026-05-05) — true if invoked via the router agent's auto-delegation (canonical + opt-in `plugin.json#config.auto_routing: true`). false (or absent) for explicit user slash invocation. Principle 4 §4.1 / §4-A consistency check (`_workspace/02_arch_decisions.md`)."
+        },
         "details": { "$ref": "#/$defs/details" }
       }
     },
@@ -58,6 +62,10 @@
           "type": "integer",
           "minimum": 1
         },
+        "auto_routed": {
+          "type": "boolean",
+          "description": "B24 (2026-05-05) — same semantics as successEnvelope.auto_routed. Present in error path so QA can detect failed auto-delegation attempts."
+        },
         "details": { "$ref": "#/$defs/details" }
       }
     },
@@ -80,7 +88,7 @@
       "properties": {
         "mode": {
           "type": "string",
-          "enum": ["gemini", "codex"]
+          "enum": ["gemini", "codex", "router"]
         },
         "job_id": { "type": ["string", "null"] },
         "model": { "type": ["string", "null"] },
@@ -105,6 +113,49 @@
               "codex_thread_id": {
                 "type": ["string", "null"],
                 "description": "UUIDv7 — codex turn.completed.thread_id"
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "mode": { "const": "router" } } },
+          "then": {
+            "properties": {
+              "decision": {
+                "type": "string",
+                "enum": ["claude", "gemini", "codex"],
+                "description": "B24 — router-decide.mjs final decision (forwarded by router agent)."
+              },
+              "target": {
+                "type": ["string", "null"],
+                "description": "Slash hint — `/gemini:rescue` or `/ccp:codex-rescue`. null if decision === 'claude'."
+              },
+              "axis": {
+                "type": "string",
+                "enum": ["A", "B", "C", "D"],
+                "description": "4-axis classification origin. Same enum as router.mjs#classify return."
+              },
+              "reason_code": {
+                "type": "string",
+                "enum": [
+                  "AXIS_A_SLASH",
+                  "AXIS_A_OPTION",
+                  "AXIS_A_FALLBACK_CLAUDE",
+                  "AXIS_B_OVERSIZED",
+                  "AXIS_B_MID_REVIEW",
+                  "AXIS_B_TOO_SMALL",
+                  "AXIS_C_KW_GEMINI",
+                  "AXIS_C_KW_CODEX",
+                  "AXIS_C_KW_CLAUDE",
+                  "AXIS_C_MAIN_CONTEXT_BIND",
+                  "AXIS_D_DEFAULT_CONSERVATIVE",
+                  "OPT_OUT_NO_AUTO_ROUTE"
+                ],
+                "description": "B24 5-defense rule 3 (runtime) — enum only, no free text. Prevents main-context absorption of arbitrary strings (U7-C ~210 tok borderline)."
+              },
+              "headless_confident": {
+                "type": "boolean",
+                "description": "B24 §4.4 — true if multi-signal OR (env.CI / env.CLAUDE_CODE_NONINTERACTIVE / env.CLAUDE_CODE_ENTRYPOINT) confidently detected headless. boolean only — reason emitted to stderr separately."
               }
             }
           }

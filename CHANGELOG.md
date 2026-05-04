@@ -6,6 +6,74 @@ Claude Control Plane 플러그인 개발 하네스의 산출물 변경 이력. �
 
 ---
 
+## 2026-05-05 — B25 RESOLVED — 한국어 라우팅 매직 키워드 (B24 인프라 재사용, 70 케이스 100%)
+
+### Added
+- `plugins/ccp/scripts/lib/router.mjs` `KW_MAGIC_GEMINI` / `KW_MAGIC_CODEX` / `KW_MAGIC_CLAUDE` / `KW_MAGIC_AUTO` 4 사전 신설 — 한국어/영어 듀얼 (`@gemini`/`@젬`/`@제미니`, `@codex`/`@코덱`/`@코덱스`, `@claude`/`@클`/`@클로드`, `@auto`/`@자동`).
+- `findMagicKeyword()` 헬퍼 + axis A 매직 분기 (`removeCodeBlocks` 적용 후 매칭 → 코드 블록 안 false positive 차단).
+- `_workspace/_router_test/router-eval.mjs` F16~F20 5 케이스 추가 (한국어 4 매직 + 코드 블록 false-pos 차단 1) → 65 → 70 케이스 100%.
+
+### Changed
+- `plugins/ccp/scripts/lib/router-decide.mjs` REASON_CODE_MAP 에 `user_explicit_*_magic` 3건 추가 — `AXIS_A_SLASH` enum 매핑 (슬래시와 동급 우선순위, envelope schema 변동 0).
+- `plugins/ccp/agents/router.md` description 보강 — "MUST BE USED when the user prompt contains a magic keyword (@gemini / @젬 / @codex / @코덱 / @claude / @클로드 / @auto / @자동)" 트리거 표현 추가. 자동 호출 신뢰성 트리거 강도 2 → 3 (ecc/code-reviewer 와 동급).
+
+### Verified
+- router-eval: **70/70 (100%)** — F16~F20 5건 신규 모두 PASS.
+- router-suggest-test: 19/19 (B24 회귀 무영향).
+- u4-measure: 84.3 tok, CV 0.00% (B24 측정 그대로 유지).
+- harness-audit: 36/40 (≥33 임계 충족).
+- 매직 키워드 스모크: M1 `@젬`/M2 `@codex`/M3 `@클로드`/M4 `@auto` fall-through/M5 코드 블록 차단 — 5/5 PASS.
+
+### Notes
+- B24 인프라 (router-decide reason_code 매핑 + agent 패턴 + envelope schema) 100% 재사용 — axis A 분기 추가만으로 통합 완료.
+- 공수 실측 0.3일 (계획 0.5d 대비 단축).
+- `@auto` 는 marker — fall-through to B/C/D (강제 결정 없음, 사용자가 자동 분류 의도를 표시).
+- v0.2.0 P0 백로그 잔존 0건.
+
+---
+
+## 2026-05-05 — B24 RESOLVED — 라우터 에이전트화 + canonical 자동 라우팅 (deterministic-router 패턴, 8/8 도달)
+
+### Added
+- `plugins/ccp/agents/router.md` — deterministic-router 서브에이전트. `tools:["Bash"]` + `disallowedTools:["mcp__*","Task"]` + `model:haiku`. ecc 트리거 패턴 (`Use proactively`, `MUST BE USED`) 차용. 5중 방어선 1·2·5번 (선언/문서/dispatch). "Why Haiku" 절 명시 — LLM 판단 0 forwarding wrapper 정당화.
+- `plugins/ccp/scripts/lib/router-decide.mjs` — deterministic CLI 진입점. `router.mjs#classify` (단일 SSOT) 호출 + 다중 신호 OR 헤드리스 검출 (`CI`/`CLAUDE_CODE_NONINTERACTIVE`/`CLAUDE_CODE_ENTRYPOINT`) + opt-in/opt-out 분기. 12종 `reason_code` enum 매핑. 5중 방어선 3번 (런타임 free text 0).
+- `plugins/ccp/.claude-plugin/plugin.json#config.auto_routing` — opt-in 토글 (기본 `false`). R1 사전 차단.
+- `plugins/ccp/schemas/envelope.schema.json` `auto_routed` 필드 + `details.mode: router` 분기 + 12종 `reason_code` enum + `headless_confident` boolean. B24 §4-A 일관성 검증.
+- `plugins/ccp/scripts/lib/envelope-validate.mjs` router 분기 검증 (enum 강제).
+- `_workspace/_router_test/router-suggest-test.mjs` 19 시나리오 확장 (S10~S19) — auto_routed 일관성·다중 신호 OR·R1 캡·reason_code enum·false-pos/neg·opt-out·권한 격리.
+- `_workspace/_router_test/u4-measure.mjs` — AC-B24-4 정량 측정 도구 (N=3 × 3 tasks).
+- `_workspace/08_b24_plan.md` 계획 SSOT (§0~§12, 사용자 결정 4건 RESOLVED, 게이트 4종 G-B24-0~3).
+- `_workspace/08_u7a_subagent_auto_invocation.md` — 자동 호출 메커니즘 = "공식 지원 휴리스틱" 판정.
+- `_workspace/08_u7b_env_capture.md` — TTY 무용, 다중 신호 OR 채택 (3 환경 캡처).
+- `_workspace/08_b24_u4_measurement.md` — U4 정량 측정 84.3 tok (CV 0.00%).
+- `_workspace/08_g_b24_{0,1,2,3}_verdict.md` — 4 게이트 종합 판정 보고서.
+- `_workspace/_probe/u7b/probe.mjs` + `captures/` 3 환경 캡처 데이터.
+
+### Changed
+- `plugins/ccp/hooks/router-suggest.js` W4 책임 분리 — `auto_routing: true` + canonical (env 신호 미검출) 시 hook noop (router agent 차례). 그외 현행 B19 동작 유지. `detectHeadlessConfident()` + `readAutoRoutingConfig()` 추가.
+- `_workspace/02_arch_decisions.md` 원칙 4 R1 SSOT 격상 (§4.1 canonical 한정 자동 라우팅 opt-in / §4.2 실패 경로 자동 fallback 금지 / §4.3 opt-out / §4-A `auto_routed` 일관성 점검) + 원칙 7 5중 방어 확장 (rescue 4중 + router agent 5중 dispatch). 승계 체크리스트 갱신.
+- `_workspace/01_subagent_spec.md:148-160` "router-agent ✗ 불필요" → "✓ Phase 6+ B24" 정정. 정정 결정문 추가 (MVP 시점 정합성 인정 + Phase 6+ 정정 사유 4건).
+- `_workspace/04_principles_check.md` §1.2·§1.4·§2.4·§2.7·§4.2·§4.3 B24 점검 항목 신설 — 8/8 도달 (§4-A 추가).
+- `_workspace/03_namespace_decision.md` §8 신설 (W6) — codex-plugin-cc 미러링 분기 SSOT. CCP = codex-plugin-cc 의 superset 명시.
+- `README.md` §5.3 신설 — canonical 자동 라우팅 (B24, opt-in) 안내. 활성화 절차 + opt-out 3가지 + R1 방어 메커니즘 명시.
+
+### Verified
+- AC-9 (router-suggest-test): **19/19 PASS (100%)** ≥ 합격선 18/19 (95%)
+- AC-B24-4 (u4-measure): **U4 평균 84.3 tok** ≤ 250 tok (목표의 1/3), **CV 0.00%** (deterministic)
+- 5중 방어선 1·2·3·4·5번 전수 검증 (S14·S15·S18 회귀)
+- 회귀 router-eval 65/65 (100%) + harness-audit 36/40 (≥33 임계) — B24 도입으로 변동 없음
+- dummy agent 트리거 강도 2 (ecc 평균 1.67 초과 정성 대체) — 자동 호출 신뢰성 ≥70% 정성 충족
+
+### Decisions
+- 사용자 결정 4건 RESOLVED (Q-B24-1~4): 즉시 진입 / U7-A 휴리스틱 시 PIVOT / opt-in `false` 기본 / AC-9 합격선 ≥95%
+- envelope cap 강화 (reason_code enum + headless_confident boolean) 가 R1 방어의 결정적 메커니즘 — 정성 추정 ~210 tok → 실측 84.3 tok (1/3 수준 절감)
+
+### Notes
+- 본 변경은 v0.2.0 산출물. v0.1.0 분기는 v0.2.0 작업 완료 후 동반 진행 (사용자 결정 2026-05-04). 회귀 v0.1.0 시점 검증 (S4-2~S4-8) 무효화 0.
+- B25 (한국어 매직 키워드, 0.5d) 가 본 인프라 (router-decide enum + agent 패턴) 재사용으로 다음 진입 가능.
+
+---
+
 ## 2026-05-04 — v0.1.0 release-prep Step 4 — GitHub workflows + 가이드 docs (N6·N7 RESOLVED, G3 PASS)
 
 ### Added

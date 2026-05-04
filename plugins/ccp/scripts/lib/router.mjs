@@ -68,6 +68,22 @@ const KW_MAIN_CONTEXT_BIND = [
   '방금', '위에서', '이전 응답', '실행한 명령',
 ];
 
+// B25 (2026-05-05) — Magic keywords (axis A, user-explicit, same priority as
+// slash commands). Korean-first design with English duals. omc magic-keywords
+// pattern: prefix + alias forms. Use removeCodeBlocks-stripped text for matching
+// to avoid false positives inside code fences.
+const KW_MAGIC_GEMINI = ['@gemini', '@젬', '@제미니'];
+const KW_MAGIC_CODEX = ['@codex', '@코덱', '@코덱스'];
+const KW_MAGIC_CLAUDE = ['@claude', '@클', '@클로드'];
+const KW_MAGIC_AUTO = ['@auto', '@자동']; // not a target — triggers default 4-axis classification
+
+function findMagicKeyword(text, dict) {
+  for (const kw of dict) {
+    if (text.includes(kw)) return kw;
+  }
+  return null;
+}
+
 const TARGETS = Object.freeze(['claude', 'gemini', 'codex']);
 
 function estimateTokens(text) {
@@ -96,6 +112,26 @@ function classify(input, opts = {}) {
   // User-explicit signals above are checked on raw text because slash commands
   // and CLI flags must not be obscured by code fences.
   const stripped = removeCodeBlocks(text);
+
+  // A (B25, 2026-05-05) — Magic keyword (axis A, same priority as slash).
+  // Checked AFTER removeCodeBlocks so magic keywords inside code fences are
+  // ignored (false positive guard, identical to keyword-axis behavior).
+  // `@auto` is a marker — it does not force a target, but signals user intent
+  // to use the 4-axis classifier (B/C/D). It does not override anything.
+  const magicGemini = findMagicKeyword(stripped, KW_MAGIC_GEMINI);
+  if (magicGemini) {
+    return { target: 'gemini', axis: 'A', reason: 'user_explicit_gemini_magic', matched: [magicGemini] };
+  }
+  const magicCodex = findMagicKeyword(stripped, KW_MAGIC_CODEX);
+  if (magicCodex) {
+    return { target: 'codex', axis: 'A', reason: 'user_explicit_codex_magic', matched: [magicCodex] };
+  }
+  const magicClaude = findMagicKeyword(stripped, KW_MAGIC_CLAUDE);
+  if (magicClaude) {
+    return { target: 'claude', axis: 'A', reason: 'user_explicit_claude_magic', matched: [magicClaude] };
+  }
+  // `@auto` falls through to B/C/D — explicit signal that user wants
+  // automatic classification but does not pin the decision.
 
   // B — Input size
   const tokens = explicitTokens ?? estimateTokens(text);
@@ -185,4 +221,10 @@ function classifyByKeyword(text, tokens) {
   return { target: 'claude', axis: 'D', reason: 'default_conservative', tokens };
 }
 
-export { classify, estimateTokens, TARGETS, KW_GEMINI, KW_CODEX, KW_CLAUDE, KW_MAIN_CONTEXT_BIND };
+export {
+  classify,
+  estimateTokens,
+  TARGETS,
+  KW_GEMINI, KW_CODEX, KW_CLAUDE, KW_MAIN_CONTEXT_BIND,
+  KW_MAGIC_GEMINI, KW_MAGIC_CODEX, KW_MAGIC_CLAUDE, KW_MAGIC_AUTO,
+};

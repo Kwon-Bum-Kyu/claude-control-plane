@@ -7,11 +7,29 @@
 //   - oneOf success | error
 //   - success: summary ≤ 500 chars, exit_code === 0, tokens {input, output} required
 //   - error: code matches ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
-//   - details.mode enum [gemini, codex] (when present)
+//   - details.mode enum [gemini, codex, router] (when present)
+//   - auto_routed (when present): boolean only — B24 §4-A consistency check
+//   - details.reason_code (when mode=router): enum only — B24 5-defense rule 3
 
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
-const MODE_ENUM = new Set(['gemini', 'codex']);
+const MODE_ENUM = new Set(['gemini', 'codex', 'router']);
+const ROUTER_REASON_CODE_ENUM = new Set([
+  'AXIS_A_SLASH',
+  'AXIS_A_OPTION',
+  'AXIS_A_FALLBACK_CLAUDE',
+  'AXIS_B_OVERSIZED',
+  'AXIS_B_MID_REVIEW',
+  'AXIS_B_TOO_SMALL',
+  'AXIS_C_KW_GEMINI',
+  'AXIS_C_KW_CODEX',
+  'AXIS_C_KW_CLAUDE',
+  'AXIS_C_MAIN_CONTEXT_BIND',
+  'AXIS_D_DEFAULT_CONSERVATIVE',
+  'OPT_OUT_NO_AUTO_ROUTE',
+]);
+const ROUTER_DECISION_ENUM = new Set(['claude', 'gemini', 'codex']);
+const ROUTER_AXIS_ENUM = new Set(['A', 'B', 'C', 'D']);
 const SUMMARY_MAX = 500;
 
 /**
@@ -76,11 +94,29 @@ export function validateEnvelope(env) {
     }
   }
 
+  if (env.auto_routed !== undefined && typeof env.auto_routed !== 'boolean') {
+    errors.push(`auto_routed "${env.auto_routed}" must be boolean (B24 §4-A)`);
+  }
+
   if (env.details !== undefined) {
     if (!env.details || typeof env.details !== 'object') {
       errors.push('details must be object when present');
     } else if (env.details.mode !== undefined && !MODE_ENUM.has(env.details.mode)) {
-      errors.push(`details.mode "${env.details.mode}" not in [gemini, codex]`);
+      errors.push(`details.mode "${env.details.mode}" not in [gemini, codex, router]`);
+    } else if (env.details.mode === 'router') {
+      // B24 5-defense rule 3 (runtime) — enum-only, no free text.
+      if (env.details.decision !== undefined && !ROUTER_DECISION_ENUM.has(env.details.decision)) {
+        errors.push(`details.decision "${env.details.decision}" not in [claude, gemini, codex]`);
+      }
+      if (env.details.axis !== undefined && !ROUTER_AXIS_ENUM.has(env.details.axis)) {
+        errors.push(`details.axis "${env.details.axis}" not in [A, B, C, D]`);
+      }
+      if (env.details.reason_code !== undefined && !ROUTER_REASON_CODE_ENUM.has(env.details.reason_code)) {
+        errors.push(`details.reason_code "${env.details.reason_code}" not in router enum (B24)`);
+      }
+      if (env.details.headless_confident !== undefined && typeof env.details.headless_confident !== 'boolean') {
+        errors.push(`details.headless_confident must be boolean (B24 §4.4)`);
+      }
     }
   }
 

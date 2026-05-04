@@ -7,5 +7,9 @@
   },
   "license": "MIT",
   "keywords": ["claude-code", "plugin", "gemini", "codex", "router", "control-plane"],
-  "hooks": "./hooks/hooks.json"
+  "hooks": "./hooks/hooks.json",
+  "config": {
+    "auto_routing": false,
+    "_doc": "B24 (2026-05-05). When true, canonical interactive sessions automatically delegate to gemini/codex via the router agent (deterministic-router pattern). Headless (claude -p, CI) remains recommendation-only — see _workspace/02_arch_decisions.md principle 4 §4.1 / §4.3 + _workspace/08_b24_plan.md §4.1. Default false to pre-empt R1 (double billing). Opt-in only."
+  }
 }

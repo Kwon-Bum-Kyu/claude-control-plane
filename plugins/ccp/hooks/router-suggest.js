@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-// CCP — router-suggest hook (B19, Phase 6-A v0.2)
+// CCP — router-suggest hook (B19 + B24 W4 split-responsibility)
 // Event: UserPromptSubmit
-// Behavior: classify the user prompt with the 4-axis router and inject a delegation
-//   suggestion as a system reminder.
-//   If the decision is 'claude', noop (main handling). If 'gemini' or 'codex',
-//   inject only the suggestion message.
-// Never auto-delegates: it does not auto-delegate; the user reviews the suggestion
-//   and calls the slash command directly.
-//   (Principle 4 — _workspace/02_arch_decisions.md "no automatic fallback")
-// Failure-silent: the hook does not block input — on parse failure or exception,
-//   exit with empty output.
+//
+// B24 (2026-05-05) — responsibility split between hook and router agent:
+//   - auto_routing OFF (default) → hook injects recommendation (current B19 behavior)
+//   - auto_routing ON + canonical → hook is NOOP (router agent handles dispatch via
+//     description-based auto-invocation — Principle 4 §4.1)
+//   - auto_routing ON + headless detected → hook still injects recommendation
+//     (router agent does NOT auto-delegate, B-2 multi-signal OR — U7-B finding)
+//   - decision === 'claude' → noop in both modes
+//
+// Failure-silent: on parse failure or exception, exit with empty output.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -35,6 +36,33 @@ const SLASH_PRESENT = /\/(?:ccp:codex-|gemini:|ccp:gemini-)/;
 function isLikelyHeadless(promptText) {
   if (SLASH_PRESENT.test(promptText)) return false;
   return HEADLESS_HINT.test(promptText);
+}
+
+// B24 (2026-05-05) \u2014 multi-signal OR for confident headless detection.
+// Mirrors router-decide.mjs#detectHeadlessConfident (single SSOT for
+// canonical/headless decision). `process.stdin.isTTY` intentionally NOT used
+// (U7-B finding \u2014 always null inside hook child process).
+function detectHeadlessConfident(env = process.env) {
+  if (env.CI === 'true' || env.CI === '1') return true;
+  if (env.CLAUDE_CODE_NONINTERACTIVE === '1' || env.CLAUDE_CODE_NONINTERACTIVE === 'true') return true;
+  const ep = env.CLAUDE_CODE_ENTRYPOINT;
+  if (ep && ep !== 'cli') return true;
+  return false;
+}
+
+// B24 \u2014 read plugin.json#config.auto_routing (opt-in, default false).
+function readAutoRoutingConfig() {
+  const root = process.env.CLAUDE_PLUGIN_ROOT
+    ? resolve(process.env.CLAUDE_PLUGIN_ROOT)
+    : resolve(__dirname, '..');
+  const manifest = resolve(root, '.claude-plugin', 'plugin.json');
+  if (!existsSync(manifest)) return false;
+  try {
+    const json = JSON.parse(readFileSync(manifest, 'utf8'));
+    return json?.config?.auto_routing === true;
+  } catch {
+    return false;
+  }
 }
 
 function readStdinSync() {
@@ -113,6 +141,20 @@ async function main() {
   }
 
   if (!decision || decision.target === 'claude') {
+    return emit({});
+  }
+
+  // B24 W4 — split responsibility between hook (recommendation) and
+  // router agent (auto-delegation). When auto_routing is on AND the
+  // environment is canonical (no confident headless signals), hook is NOOP
+  // because the router agent's description-based auto-invocation will pick
+  // up the prompt and run router-decide.mjs itself.
+  //
+  // In all other cases (auto_routing off / headless confident) we keep the
+  // current B19 recommendation behavior — single source of recommendation,
+  // no double-emission.
+  const autoRoutingActive = readAutoRoutingConfig() && !detectHeadlessConfident();
+  if (autoRoutingActive) {
     return emit({});
   }
 
