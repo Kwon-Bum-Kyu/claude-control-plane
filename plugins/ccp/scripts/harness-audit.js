@@ -240,35 +240,35 @@ function scorePluginCompat() {
   };
 }
 
-function scoreAdaptedHeaders() {
-  // Borrowed files under lib/codex_adapted/ require a 5-field header.
-  // Missing headers break license traceability by diverging from ATTRIBUTION / NOTICE.
-  const dir = resolve(PLUGIN_ROOT, 'scripts', 'lib', 'codex_adapted');
-  if (!existsSync(dir)) {
-    return { score: null, note: 'lib/codex_adapted/ missing' };
+function scoreBorrowedCodeDocumented() {
+  // Borrowed-code attribution lives in ATTRIBUTION.md (3-signal: ATTRIBUTION + NOTICE + README References).
+  // This category verifies that every borrowed file path is referenced in ATTRIBUTION.md so the SSOT
+  // stays in sync with the actual file layout. License obligations are met independently of per-file headers.
+  const repoRoot = resolve(PLUGIN_ROOT, '..', '..');
+  const attributionPath = resolve(repoRoot, 'ATTRIBUTION.md');
+  if (!existsSync(attributionPath)) {
+    return { score: 0, note: 'ATTRIBUTION.md missing' };
   }
+  const content = readFileSync(attributionPath, 'utf8');
   const required = [
-    /^\/\/ Adapted from:/m,
-    /^\/\/ Source commit:/m,
-    /^\/\/ Original license:/m,
-    /^\/\/ Modifications:/m,
-    /^\/\/ SHA-of-this-adaptation:/m,
+    'plugins/ccp/scripts/lib/codex-state.mjs',
+    'plugins/ccp/scripts/lib/codex-process.mjs',
+    'plugins/ccp/scripts/lib/codex-args.mjs',
+    'plugins/ccp/scripts/lib/codex-job-control.mjs',
+    'plugins/ccp/scripts/lib/codex-tracked-jobs.mjs',
+    'plugins/ccp/scripts/lib/magic-keywords.mjs',
   ];
-  const files = readdirSync(dir).filter((f) => f.endsWith('.mjs') || f.endsWith('.js'));
-  if (files.length === 0) return { score: null, note: 'lib/codex_adapted/ is empty' };
   let pass = 0;
-  const failed = [];
-  for (const f of files) {
-    const head = readFileSync(join(dir, f), 'utf8').slice(0, 1024);
-    const ok = required.every((re) => re.test(head));
-    if (ok) pass += 1;
-    else failed.push(f);
+  const missing = [];
+  for (const path of required) {
+    if (content.includes(path)) pass += 1;
+    else missing.push(path);
   }
-  const score = Math.round((pass / files.length) * 5);
+  const score = Math.round((pass / required.length) * 5);
   const note =
-    failed.length === 0
-      ? `${pass}/${files.length} files have the 5-field header`
-      : `${pass}/${files.length} pass, missing: ${failed.join(', ')}`;
+    missing.length === 0
+      ? `${pass}/${required.length} borrowed files documented in ATTRIBUTION.md`
+      : `${pass}/${required.length} pass, missing: ${missing.join(', ')}`;
   return { score, note };
 }
 
@@ -340,7 +340,7 @@ function main() {
     double_billing: scoreDoubleBilling(jobs),
     fallback_health: scoreFallbackHealth(jobs),
     plugin_compat: scorePluginCompat(),
-    adapted_headers: scoreAdaptedHeaders(),
+    borrowed_code_documented: scoreBorrowedCodeDocumented(),
     secret_leak: scoreSecretLeak(jobs),
   };
 

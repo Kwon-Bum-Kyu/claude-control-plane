@@ -338,17 +338,13 @@ node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
 
 [MIT License](./LICENSE) — © 2026 CCP Contributors
 
-### 7.2 차용 코드 (Borrowed)
+### 7.2 References (차용 — Borrowed)
 
-- **everything-claude-code (ecc)** by affaan-m — MIT (SHA `c7c7d37f...`, snapshot 2026-04-30)
-  - `plugins/ccp/hooks/suggest-compact.js` (PreCompact 가드레일)
-  - `plugins/ccp/skills/context-budget/SKILL.md` (컨텍스트 임계 안내)
-  - `plugins/ccp/scripts/harness-audit.js` (감사 8카테고리 루브릭)
-- **codex-plugin-cc** by OpenAI — Apache-2.0 (SHA `8e873d6f...`, release/v1.0.4) — **함수 단위 차용**
-  - `plugins/ccp/scripts/lib/codex_adapted/{state,tracked-jobs,process,args,job-control}.mjs`
-  - 5필드 헤더 의무 (Adapted from / Source / License / Modifications / SHA), audit 가 강제 검사
-  - Apache-2.0 NOTICE: [./NOTICE](./NOTICE)
-- 상세 변경 내역: [ATTRIBUTION.md](./ATTRIBUTION.md)
+CCP borrows code and patterns from the following projects. Full per-file mappings, modifications, and source SHAs live in [ATTRIBUTION.md](./ATTRIBUTION.md); license-required notices live in [NOTICE](./NOTICE).
+
+- **[codex-plugin-cc](https://github.com/openai/codex-plugin-cc)** — Apache-2.0 (SHA `8e873d6f...`, release/v1.0.4). Codex CLI wrapper primitives (state · process · job-control · tracked-jobs · args) function-level adaptation under `plugins/ccp/scripts/lib/codex-*.mjs` (5 files).
+- **[oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)** — MIT (SHA `1e9f197b...`). Magic keyword pattern primitives (`removeCodeBlocks`, `hasActionableTrigger`, `isInformationalKeywordContext`, `INFORMATIONAL_INTENT_PATTERNS`) adapted into `plugins/ccp/scripts/lib/magic-keywords.mjs`.
+- **[everything-claude-code](https://github.com/affaan-m/everything-claude-code)** — MIT (SHA `c7c7d37f...`, snapshot 2026-04-30). PreCompact suggest-compact hook, context-budget skill SSOT, and harness-audit 8-category rubric adapted into `plugins/ccp/hooks/suggest-compact.js`, `plugins/ccp/skills/context-budget/SKILL.md`, and `plugins/ccp/scripts/harness-audit.js`.
 
 ### 7.3 런타임 의존성
 

@@ -1,17 +1,11 @@
-// Adapted from: codex-plugin-cc plugins/codex/scripts/lib/job-control.mjs
-// Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
-// Modifications: unified enqueue/dequeue/cancel interface, integration with the 6-key envelope, mapping to CCP-* error codes, localised messages
-// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
-
 import { join } from 'node:path';
 import {
   enqueueBackgroundJob,
   patchMeta,
   readMeta,
   waitForJob,
-} from './state.mjs';
-import { spawnDetachedWorker, killPid, isAlive } from './process.mjs';
+} from './codex-state.mjs';
+import { spawnDetachedWorker, killPid, isAlive } from './codex-process.mjs';
 
 /**
  * Background job dispatch - register meta + spawn a detached worker.

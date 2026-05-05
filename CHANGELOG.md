@@ -6,6 +6,25 @@ Claude Control Plane plugin changelog. The format follows [Keep a Changelog](htt
 
 ---
 
+## 2026-05-05 — Borrowed-code layout flattened
+
+### Changed
+- `plugins/ccp/scripts/lib/codex_adapted/{state,tracked-jobs,process,args,job-control}.mjs` → `plugins/ccp/scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs` (5 files renamed via `git mv`, history preserved).
+- `plugins/ccp/scripts/lib/omc_adapted/magic-keywords.mjs` → `plugins/ccp/scripts/lib/magic-keywords.mjs`.
+- Per-file 5-field adaptation headers (Adapted from / Source commit / Original license / Modifications / SHA-of-this-adaptation) removed from all 6 borrowed files. Attribution is now satisfied by the 3-signal layout: `ATTRIBUTION.md` (SSOT) + `NOTICE` (Apache-2.0 §4(d) + MIT copyright preservation) + new `README` References section.
+- `harness-audit.js` audit category `adapted_headers` → `borrowed_code_documented` (R-2 redesign): now verifies that each of the 6 borrowed file paths is referenced in `ATTRIBUTION.md`. Total max stays at 40, CI threshold (`≥ 33/40`) unchanged.
+- Import paths in `codex-companion.mjs` (5 imports) and `lib/router.mjs` (1 import) updated to flat layout.
+- `README.md` §7.2 reframed as "References" section with project links, license tags, and adapted file paths.
+
+### Verified
+- `tests/router/router-eval.mjs`: 70/70 (100%), no regression.
+- `tests/router/router-suggest-test.mjs`: 19/19, no regression.
+- `tests/router/u4-measure.mjs`: 84.3 tok mean, CV 0.00%, no regression.
+- `harness-audit.js`: 8 categories total 36/40, `borrowed_code_documented` 5/5.
+- License obligations re-checked: Apache-2.0 §4 (a/b/c/d) and MIT copyright preservation both met by the 3-signal layout.
+
+---
+
 ## 2026-05-05 — Korean magic keywords for routing
 
 ### Added

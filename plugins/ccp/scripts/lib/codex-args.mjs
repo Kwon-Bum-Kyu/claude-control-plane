@@ -1,9 +1,3 @@
-// Adapted from: codex-plugin-cc plugins/codex/scripts/lib/args.mjs
-// Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
-// Modifications: added --timeout-ms / --poll-interval-ms options, localised error messages, expanded JSDoc
-// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
-
 /**
  * Argument parser - normalizes the codex-side option signature to the same structure as gemini-companion.
  * Example usage: parseArgs(['rescue', '--background', '--timeout-ms', '300000', '--', 'prompt'])

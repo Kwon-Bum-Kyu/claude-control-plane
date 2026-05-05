@@ -18,18 +18,17 @@ You may obtain a copy of the License at
 Source: https://github.com/openai/codex-plugin-cc
 Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (refs/heads/release/v1.0.4)
 
-Borrowed components (function-level adaptation, isolated under
-plugins/ccp/scripts/lib/codex_adapted/):
+Borrowed components (function-level adaptation):
 
-  - state.mjs           (from plugins/codex/scripts/lib/state.mjs)
-  - tracked-jobs.mjs    (from plugins/codex/scripts/lib/tracked-jobs.mjs)
-  - process.mjs         (from plugins/codex/scripts/lib/process.mjs)
-  - args.mjs            (from plugins/codex/scripts/lib/args.mjs)
-  - job-control.mjs     (from plugins/codex/scripts/lib/job-control.mjs)
+  - plugins/ccp/scripts/lib/codex-state.mjs          (from plugins/codex/scripts/lib/state.mjs)
+  - plugins/ccp/scripts/lib/codex-tracked-jobs.mjs   (from plugins/codex/scripts/lib/tracked-jobs.mjs)
+  - plugins/ccp/scripts/lib/codex-process.mjs        (from plugins/codex/scripts/lib/process.mjs)
+  - plugins/ccp/scripts/lib/codex-args.mjs           (from plugins/codex/scripts/lib/args.mjs)
+  - plugins/ccp/scripts/lib/codex-job-control.mjs    (from plugins/codex/scripts/lib/job-control.mjs)
 
-Each adapted file carries a 5-field header documenting the source path,
-upstream commit SHA, original license, modifications, and the CCP commit
-SHA at adaptation time. See ATTRIBUTION.md §6 for the full table.
+See ATTRIBUTION.md §6 for the full table (source paths, modifications,
+upstream commit SHA). Attribution is satisfied by the 3-signal layout:
+ATTRIBUTION.md (SSOT) + this NOTICE file + the README References section.
 
 ================================================================================
 oh-my-claudecode (omc)
@@ -43,17 +42,16 @@ Source: https://github.com/Yeachan-Heo/oh-my-claudecode
 Source commit: 1e9f197bcc85602da87ad35b18d908a0575b8583
 Source file: src/features/magic-keywords.ts
 
-Borrowed components (function-level adaptation, isolated under
-plugins/ccp/scripts/lib/omc_adapted/):
+Borrowed components (function-level adaptation):
 
-  - magic-keywords.mjs   (5 primitives: removeCodeBlocks, escapeRegExp,
-                          hasActionableTrigger, isInformationalKeywordContext,
-                          INFORMATIONAL_INTENT_PATTERNS)
+  - plugins/ccp/scripts/lib/magic-keywords.mjs   (5 primitives: removeCodeBlocks,
+                                                  escapeRegExp, hasActionableTrigger,
+                                                  isInformationalKeywordContext,
+                                                  INFORMATIONAL_INTENT_PATTERNS)
 
-The adapted file carries a 5-field header documenting the source path,
-upstream commit SHA, original license, modifications, and the CCP commit
-SHA at adaptation time. See ATTRIBUTION.md §1.5 for the full mapping and
-§1.6 for the MIT license text preserved as required.
+See ATTRIBUTION.md §1.5 for the full mapping and §1.6 for the MIT license
+text preserved as required. Attribution is satisfied by the 3-signal layout:
+ATTRIBUTION.md (SSOT) + this NOTICE file + the README References section.
 
 ================================================================================
 

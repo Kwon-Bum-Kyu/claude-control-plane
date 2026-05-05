@@ -190,7 +190,7 @@ The router is the core logic that determines CCP's token-saving effect. The 4-ax
 - Router code (single SSOT): `plugins/ccp/scripts/lib/router.mjs`
 - Router agent (forwarding wrapper): `plugins/ccp/agents/router.md`
 - Router CLI entry (for hook + regression): `plugins/ccp/scripts/lib/router-decide.mjs`
-- omc primitives (MIT): `plugins/ccp/scripts/lib/omc_adapted/magic-keywords.mjs`
+- omc primitives (MIT): `plugins/ccp/scripts/lib/magic-keywords.mjs`
 
 ## References
 

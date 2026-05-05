@@ -12,7 +12,7 @@ import { dirname, join, resolve, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 
-import { parseArgs, pickInt, pickString, pickBool, buildCodexExecArgs } from './lib/codex_adapted/args.mjs';
+import { parseArgs, pickInt, pickString, pickBool, buildCodexExecArgs } from './lib/codex-args.mjs';
 import {
   enqueueBackgroundJob,
   patchMeta,
@@ -20,10 +20,10 @@ import {
   writeMeta as writeMetaFromState,
   ensureJobDir,
   waitForJob,
-} from './lib/codex_adapted/state.mjs';
-import { runCodexSync, spawnDetachedWorker, isAlive, killPid } from './lib/codex_adapted/process.mjs';
-import { dispatchBackgroundJob, cancelJob, snapshotJob } from './lib/codex_adapted/job-control.mjs';
-import { findLatestResumableJob } from './lib/codex_adapted/tracked-jobs.mjs';
+} from './lib/codex-state.mjs';
+import { runCodexSync, spawnDetachedWorker, isAlive, killPid } from './lib/codex-process.mjs';
+import { dispatchBackgroundJob, cancelJob, snapshotJob } from './lib/codex-job-control.mjs';
+import { findLatestResumableJob } from './lib/codex-tracked-jobs.mjs';
 import { assertEnvelope } from './lib/envelope-validate.mjs';
 
 // ---------------------------------------------------------------------------

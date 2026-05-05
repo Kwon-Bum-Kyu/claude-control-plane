@@ -16,7 +16,7 @@ import {
   removeCodeBlocks,
   hasActionableTrigger,
   isInformationalKeywordContext,
-} from './omc_adapted/magic-keywords.mjs';
+} from './magic-keywords.mjs';
 
 // English-primary dictionaries (Korean kept as auxiliary for 1st persona).
 const KW_GEMINI = [

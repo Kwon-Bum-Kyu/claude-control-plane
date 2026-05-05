@@ -86,11 +86,11 @@ router-suggest 훅이 헤드리스 의심 시 `[CCP-META-WARN]` 안내를 자동
 
 ## 차용 코드
 
-CCP 는 상위 프로젝트의 코드를 원본 라이선스 그대로 차용합니다. 차용 파일은 5필드 헤더 + `NOTICE`/`ATTRIBUTION.md` 갱신이 의무이며, harness audit 의 `adapted_headers` 카테고리가 PR 마다 강제 검사합니다.
+CCP 는 상위 프로젝트의 코드를 원본 라이선스 그대로 차용합니다. 차용 attribution 은 `ATTRIBUTION.md` (SSOT) + `NOTICE` (Apache-2.0 §4(d) · MIT copyright preservation) + `README` References 절의 3중 신호로 충족합니다. harness audit 의 `borrowed_code_documented` 카테고리가 PR 마다 ATTRIBUTION.md 의 차용 파일 경로 등재 여부를 강제 검사합니다.
 
 - **everything-claude-code (ecc)** — MIT — `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
-- **codex-plugin-cc** — Apache-2.0 — `scripts/lib/codex_adapted/*.mjs`
-- **oh-my-claudecode (omc)** — MIT — `scripts/lib/omc_adapted/magic-keywords.mjs`
+- **codex-plugin-cc** — Apache-2.0 — `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
+- **oh-my-claudecode (omc)** — MIT — `scripts/lib/magic-keywords.mjs`
 
 전체 attribution: `ATTRIBUTION.md`. 라이선스 고지: `NOTICE`.
 

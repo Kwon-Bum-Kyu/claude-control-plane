@@ -86,11 +86,11 @@ The router-suggest hook auto-injects a `[CCP-META-WARN]` advisory when it detect
 
 ## Borrowed code
 
-CCP borrows code from upstream projects under their original licenses. Five-field adaptation headers and `NOTICE`/`ATTRIBUTION.md` updates are required for every borrowed file. The harness audit's `adapted_headers` category enforces this at every PR.
+CCP borrows code from upstream projects under their original licenses. Borrowed-code attribution is satisfied by a 3-signal layout: `ATTRIBUTION.md` (SSOT) + `NOTICE` (Apache-2.0 §4(d) and MIT copyright preservation) + the `README` References section. The harness audit's `borrowed_code_documented` category enforces, at every PR, that each borrowed file path is referenced in `ATTRIBUTION.md`.
 
 - **everything-claude-code (ecc)** -- MIT -- `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
-- **codex-plugin-cc** -- Apache-2.0 -- `scripts/lib/codex_adapted/*.mjs`
-- **oh-my-claudecode (omc)** -- MIT -- `scripts/lib/omc_adapted/magic-keywords.mjs`
+- **codex-plugin-cc** -- Apache-2.0 -- `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
+- **oh-my-claudecode (omc)** -- MIT -- `scripts/lib/magic-keywords.mjs`
 
 Full attribution: `ATTRIBUTION.md`. License notices: `NOTICE`.
 

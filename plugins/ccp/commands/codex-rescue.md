@@ -31,7 +31,7 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 1. If `--fallback-claude` is present, return a fallback envelope immediately and skip companion invocation.
 2. Preflight: run `codex login status` (30s timeout). Emit `CCP-OAUTH-101` if not authenticated.
 3. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed). Parse 4 JSONL events into summary, tokens, and thread_id.
-4. Background: spawn a detached worker through `lib/codex_adapted/job-control.dispatchBackgroundJob` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
+4. Background: spawn a detached worker through `lib/codex-job-control.dispatchBackgroundJob` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
 
 ## Invocation Pattern
 

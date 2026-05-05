@@ -56,7 +56,7 @@ SOFTWARE.
 - **Source commit:** `1e9f197bcc85602da87ad35b18d908a0575b8583`
 - **Source file:** `src/features/magic-keywords.ts`
 - **차용 결정:** 라우터 키워드 매칭 false positive 차단을 위한 패턴 프리미티브 5개만 차용. omc 의 enhancement action (ultrawork·search·analyze·ultrathink) 은 차용 범위 외.
-- **차용 위치 (격리):** `plugins/ccp/scripts/lib/omc_adapted/magic-keywords.mjs` (단일 파일)
+- **차용 위치:** `plugins/ccp/scripts/lib/magic-keywords.mjs` (단일 파일)
 - **차용 함수 5개 + 상수 2개:**
 
 | 차용 식별자 | 종류 | 원본 위치 | 변경 사항 |
@@ -110,7 +110,7 @@ SOFTWARE.
 - **저작권:** © OpenAI
 - **라이선스:** Apache-2.0 (NOTICE 의무 발생 — `NOTICE` 파일 동봉)
 - **Source commit:** `8e873d6f40511aa7d8081623d0b66804b7301de6` (refs/heads/release/v1.0.4, snapshot 2026-04-30)
-- **차용 방식:** 함수 단위 차용 + `lib/codex_adapted/` 격리 + 헤더 5필드 의무
+- **차용 방식:** 함수 단위 차용 (5 파일을 `plugins/ccp/scripts/lib/codex-*.mjs` 로 평탄화)
 - **차용 파일 및 변경 내역:** §6 표 참조
 
 ### 1.4 Apache-2.0 라이선스 원문 (codex-plugin-cc 적용)
@@ -162,38 +162,23 @@ limitations under the License.
 
 ## 5. 스냅샷 추적성
 
-차용 코드는 본 문서 §1 의 SHA 와 각 차용 파일 헤더의 5 필드 (Adapted from / Source commit / Original license / Modifications / SHA-of-this-adaptation) 로 추적된다. 헤더 형식 예시:
-
-```
-// Originally from: github.com/affaan-m/everything-claude-code
-// Source commit: <SHA>  (snapshot YYYY-MM-DD)
-// Original license: MIT (see ATTRIBUTION.md)
-```
+차용 코드는 본 문서 §1 의 SHA, `NOTICE` 파일, `README` References 절의 3중 신호로 추적된다. 파일별 5필드 헤더는 v0.2.0 에서 제거되었으며 attribution 의무는 본 SSOT 가 단독 충족한다.
 
 ---
 
 ## 6. codex-plugin-cc 차용 파일 표 (함수 단위)
 
-모든 차용 파일은 `plugins/ccp/scripts/lib/codex_adapted/` 에 격리 + 5필드 헤더 의무.
+모든 차용 파일은 `plugins/ccp/scripts/lib/codex-*.mjs` 평탄화 레이아웃에 위치한다. 라이선스 의무는 본 표 + `NOTICE` + `README` References 절의 3중 신호로 충족.
 
 | CCP 경로 | codex-plugin-cc 원본 | 라이선스 | Source SHA | 수정 범위 |
 |---|---|---|---|---|
-| `plugins/ccp/scripts/lib/codex_adapted/state.mjs` | `plugins/codex/scripts/lib/state.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | 영문 에러 메시지, `_workspace/_jobs/` 경로 통일, `mode:"codex"` 메타 필드 |
-| `plugins/ccp/scripts/lib/codex_adapted/tracked-jobs.mjs` | `plugins/codex/scripts/lib/tracked-jobs.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | `CLAUDE_SESSION_ID` env var 필터, `codex resume --last` fallback 추가 |
-| `plugins/ccp/scripts/lib/codex_adapted/process.mjs` | `plugins/codex/scripts/lib/process.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | file fd stdio 강제 (pipe 시 SIGPIPE 회피), `stdin: 'ignore'` 강제 |
-| `plugins/ccp/scripts/lib/codex_adapted/args.mjs` | `plugins/codex/scripts/lib/args.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | `--timeout-ms` / `--poll-interval-ms` 옵션화 |
-| `plugins/ccp/scripts/lib/codex_adapted/job-control.mjs` | `plugins/codex/scripts/lib/job-control.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | enqueue/dequeue/cancel 통합 인터페이스, envelope 6키 통합 |
+| `plugins/ccp/scripts/lib/codex-state.mjs` | `plugins/codex/scripts/lib/state.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | 영문 에러 메시지, `_workspace/_jobs/` 경로 통일, `mode:"codex"` 메타 필드 |
+| `plugins/ccp/scripts/lib/codex-tracked-jobs.mjs` | `plugins/codex/scripts/lib/tracked-jobs.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | `CLAUDE_SESSION_ID` env var 필터, `codex resume --last` fallback 추가 |
+| `plugins/ccp/scripts/lib/codex-process.mjs` | `plugins/codex/scripts/lib/process.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | file fd stdio 강제 (pipe 시 SIGPIPE 회피), `stdin: 'ignore'` 강제 |
+| `plugins/ccp/scripts/lib/codex-args.mjs` | `plugins/codex/scripts/lib/args.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | `--timeout-ms` / `--poll-interval-ms` 옵션화 |
+| `plugins/ccp/scripts/lib/codex-job-control.mjs` | `plugins/codex/scripts/lib/job-control.mjs` | Apache-2.0 | `8e873d6f40511aa7d8081623d0b66804b7301de6` | enqueue/dequeue/cancel 통합 인터페이스, envelope 6키 통합 |
 
-**헤더 의무 (5필드, 모든 파일 상단):**
-```js
-// Adapted from: codex-plugin-cc plugins/codex/scripts/lib/<file>.mjs
-// Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
-// Modifications: <파일별 §6 표 "수정 범위" 셀 그대로 복사>
-// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
-```
-
-**audit 강제:** `plugins/ccp/scripts/harness-audit.js` 의 `scoreAdaptedHeaders()` 가 5 필드 누락을 검사 — 누락 시 `plugin_compat` 카테고리 감점.
+**audit 강제:** `plugins/ccp/scripts/harness-audit.js` 의 `scoreBorrowedCodeDocumented()` 가 본 표의 6 차용 파일 경로 (codex 5 + omc 1) 가 ATTRIBUTION.md 에 모두 등재되어 있는지 검사 — 누락 시 `borrowed_code_documented` 카테고리 감점.
 
 ---
 
@@ -205,3 +190,4 @@ limitations under the License.
 | 2026-04-30 | ecc Source SHA 캡처 (`c7c7d37f...`), codex-plugin-cc 를 §1.3 함수 단위 차용으로 승격 (Apache-2.0), §6 차용 파일 표 신설 (5 파일, SHA `8e873d6f...`) |
 | 2026-05-04 | omc 매직 키워드 패턴 차용 추가 (§1.5, MIT, SHA `1e9f197b...`) |
 | 2026-05-05 | codex_adapted SHA-of-this-adaptation 필드 채움 (`11f0aaf6...`), omc adaptation SHA 채움 (`c0cca1e0...`) |
+| 2026-05-05 | 폴더 평탄화 (`lib/codex_adapted/` → `lib/codex-*.mjs`, `lib/omc_adapted/magic-keywords.mjs` → `lib/magic-keywords.mjs`). 파일별 5필드 헤더 제거. attribution 은 ATTRIBUTION.md + NOTICE + README References 3중 신호로 충족. audit 카테고리 `adapted_headers` → `borrowed_code_documented` 재설계 |

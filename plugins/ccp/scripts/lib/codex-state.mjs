@@ -1,9 +1,3 @@
-// Adapted from: codex-plugin-cc plugins/codex/scripts/lib/state.mjs
-// Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
-// Modifications: localised error messages, unified _workspace/_jobs/ path, mode:"codex" meta field, folder layout aligned with gemini-companion
-// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
-
 import {
   existsSync,
   mkdirSync,
