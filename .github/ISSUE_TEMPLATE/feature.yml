@@ -1,0 +1,68 @@
+name: Feature request
+description: Propose a new capability or enhancement for CCP
+title: "[feat] "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: search existing issues — your idea may already be tracked.
+        The MVP is intentionally narrow; non-trivial additions need scope justification.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user-visible pain motivates this request? Quote the failing workflow if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Concrete shape of the feature. Slash command name, flag, hook, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you weighed and why they fall short.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Affected surface
+      multiple: true
+      options:
+        - Router (4-axis decision)
+        - Slash command (`/gemini:*` or `/codex:*`)
+        - Hook (UserPromptSubmit / PreCompact / SessionEnd)
+        - Companion script (Gemini or Codex)
+        - Audit (`/ccp:audit`)
+        - Subagent (gemini-rescue / codex-rescue)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: How will we know this is done? Provide measurable conditions where possible.
+      placeholder: |
+        - router-eval gains 5 cases that all PASS
+        - canonical token saving regression remains within 5% of baseline
+
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Architecture principles
+      description: CCP enforces seven core principles. Which one(s) does this proposal touch?
+      options:
+        - label: Principle 4 — no automatic fallback on delegation failure
+        - label: Principle 7 — subagent isolation (no main-context leakage)
+        - label: Other principles (list in description)

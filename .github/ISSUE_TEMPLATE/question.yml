@@ -1,0 +1,37 @@
+name: Question / Support
+description: Ask about CCP usage, router decisions, or troubleshooting
+title: "[q] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For installation or OAuth issues, please run `/gemini:setup` and `/codex:setup` first
+        and include their output below. Most install-time failures surface there.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to accomplish? What have you tried?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant context
+      description: Slash command output, envelope JSON, audit report excerpt — anything that helps.
+      render: text
+
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      placeholder: v22.12.0
+
+  - type: input
+    id: claude_code
+    attributes:
+      label: Claude Code version
+      placeholder: 1.x.x

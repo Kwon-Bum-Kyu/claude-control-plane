@@ -1,0 +1,58 @@
+# Claude Control Plane (CCP) — public repository .gitignore
+
+# ─────────────────────────────────────────────────────────────
+# Workspace artifacts — excluded from public distribution
+# (planning, review, and development working files)
+# ─────────────────────────────────────────────────────────────
+_workspace/
+_workspace_archive_*/
+
+# ─────────────────────────────────────────────────────────────
+# Runtime artifacts — may contain user prompts / response bodies
+# (privacy-sensitive). Already covered by _workspace/ above; listed
+# explicitly so the privacy boundary is unambiguous.
+# ─────────────────────────────────────────────────────────────
+_workspace/_jobs/
+_workspace/_audits/
+_workspace/_probe/
+
+# ─────────────────────────────────────────────────────────────
+# Secrets / environment
+# ─────────────────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+secrets.json
+
+# ─────────────────────────────────────────────────────────────
+# Node / npm
+# ─────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+
+# ─────────────────────────────────────────────────────────────
+# User-local Claude settings (project-level settings are committed,
+# only local overrides are excluded)
+# ─────────────────────────────────────────────────────────────
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+
+# ─────────────────────────────────────────────────────────────
+# OS / IDE
+# ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+*.swp
+*.swo
+*~
+
+# ─────────────────────────────────────────────────────────────
+# Build / test artifacts
+# ─────────────────────────────────────────────────────────────
+dist/
+build/
+coverage/
+.nyc_output/
+*.log
