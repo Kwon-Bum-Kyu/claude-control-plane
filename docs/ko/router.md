@@ -2,7 +2,7 @@
 
 CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) · Gemini (`/gemini:rescue`) · Codex (`/ccp:codex-rescue`) 중 어느 경로로 보낼지 결정합니다. 4축 우선순위로 동작하며, 상위 축에서 결정이 나면 하위 축은 평가하지 않습니다.
 
-라우터는 `plugins/ccp/scripts/lib/router.mjs` 에 구현되어 있고, `router-suggest` 훅과 오프라인 회귀 데이터셋 (`_workspace/_router_test/router-eval.mjs`) 이 동일 모듈을 공유합니다. 따라서 본 문서의 동작과 런타임 동작이 일치합니다.
+라우터 결정 로직은 단일 모듈에 구현되어 있고 추천 훅·회귀 데이터셋·라우터 에이전트가 동일 모듈을 공유합니다. 본 문서의 동작과 런타임 동작이 일치합니다.
 
 ## 4축
 
@@ -57,7 +57,7 @@ CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) �
 
 ## 정확도
 
-`_workspace/_router_test/EVAL_DATASET.md` 에 65 케이스 오프라인 데이터셋이 있습니다. 현 정확도: **65/65 = 100%**, 모든 모델 P/R ≥ 0.93. CI 가 모든 PR 에서 데이터셋을 실행합니다.
+라우터는 65 케이스 오프라인 회귀 데이터셋을 동봉합니다. 현 정확도: **65/65 = 100%**, 모든 모델 P/R ≥ 0.93. CI 가 모든 PR 에서 데이터셋을 실행합니다.
 
 ## 결정에 영향 주기
 
@@ -70,7 +70,7 @@ CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) �
 
 ## router-suggest 훅 (v0.2)
 
-`plugins/ccp/hooks/router-suggest.js` 는 `UserPromptSubmit` 시 동작합니다. 동일한 결정을 계산해, 결과가 `gemini` 또는 `codex` 인 경우 `[CCP-ROUTER-001]` system reminder 로 적합한 슬래시 커맨드를 추천합니다. **자동 위임은 하지 않습니다.** 사용자가 직접 슬래시를 타이핑합니다. 원칙 4 (위임 실패 시 자동 fallback 금지) 와 정합합니다.
+router-suggest 훅은 `UserPromptSubmit` 시 동작합니다. 동일한 결정을 계산해, 결과가 `gemini` 또는 `codex` 인 경우 `[CCP-ROUTER-001]` system reminder 로 적합한 슬래시 커맨드를 추천합니다. **자동 위임은 하지 않습니다.** 사용자가 직접 슬래시를 타이핑합니다. 원칙 4 (위임 실패 시 자동 fallback 금지) 와 정합합니다.
 
 프롬프트가 헤드리스로 보이면 (`claude -p`, `automation`, `cron`, `CI` 등) 훅은 추가로 `[CCP-META-WARN]` 안내를 주입합니다 — 슬래시 사전 스크립트화 또는 companion 직접 호출을 권장합니다. 근거는 [아키텍처 — 토큰 절감 패턴](./architecture.md#토큰-절감-패턴) 참조.
 

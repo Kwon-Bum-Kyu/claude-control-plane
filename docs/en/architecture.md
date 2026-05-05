@@ -72,12 +72,9 @@ In this pattern the envelope cap (<= 500 chars) plus `result_path` persistence p
 In **headless** triggers (`claude -p ...`, scripted automation), models tend to probe delegation entry points -- calling `rescue --help`, traversing Skill -> Agent -> companion, retrying with prompt variations -- and tokens can grow 2.1x instead of shrinking. For headless use, pre-script the slash command:
 
 ```bash
-# Recommended 1: pre-scripted slash
+# Recommended: pre-scripted slash
 claude -p "/gemini:rescue summarize this directory"
-
-# Recommended 2: call the companion directly (skip the meta entry points)
-node plugins/ccp/scripts/gemini-companion.mjs rescue --task "summarize this directory"
-node plugins/ccp/scripts/codex-companion.mjs  rescue --task "review the PR diff"
+claude -p "/ccp:codex-rescue review the PR diff"
 
 # Forbidden: rescue --help loops, Skill -> Agent traversal, repeated prompt variations
 ```
@@ -86,13 +83,13 @@ The router-suggest hook auto-injects a `[CCP-META-WARN]` advisory when it detect
 
 ## Borrowed code
 
-CCP borrows code from upstream projects under their original licenses. Borrowed-code attribution is satisfied by a 3-signal layout: `ATTRIBUTION.md` (SSOT) + `NOTICE` (Apache-2.0 §4(d) and MIT copyright preservation) + the `README` References section. The harness audit's `borrowed_code_documented` category enforces, at every PR, that each borrowed file path is referenced in `ATTRIBUTION.md`.
+CCP borrows code from upstream projects under their original licenses. Full license texts are preserved in the `LICENSES/` directory. The harness audit's `borrowed_code_documented` category enforces, at every PR, that each upstream license text is present in `LICENSES/`.
 
 - **everything-claude-code (ecc)** -- MIT -- `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
 - **codex-plugin-cc** -- Apache-2.0 -- `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
 - **oh-my-claudecode (omc)** -- MIT -- `scripts/lib/magic-keywords.mjs`
 
-Full attribution: `ATTRIBUTION.md`. License notices: `NOTICE`.
+License texts: `LICENSES/`.
 
 ## Related reading
 

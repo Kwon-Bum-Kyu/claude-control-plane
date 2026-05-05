@@ -6,7 +6,7 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 
 | 코드 | 빈도 | 다음 행동 |
 |---|:---:|---|
-| `CCP-OAUTH-001` | ★★★ | `gemini auth login` 후 `/gemini:setup` 재실행 |
+| `CCP-OAUTH-001` | ★★★ | `gemini` 한 번 실행해 OAuth 트리거 (또는 `GEMINI_API_KEY` 설정) 후 `/gemini:setup` 재실행 |
 | `CCP-SETUP-001` | ★★★ | `npm install -g @google/gemini-cli@latest` |
 | `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
 | `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/gemini:rescue --fallback-claude` |
@@ -50,8 +50,8 @@ Google ~7일, ChatGPT 보통 30일+. 만료 시 `CCP-OAUTH-001` / `CCP-OAUTH-101
 nvm 사용 권장, 또는 `sudo` 실행. nvm 우선.
 
 **브라우저 미접근 환경?**
-- Gemini: `GEMINI_API_KEY` 환경변수, 또는 `gemini auth login --no-browser`
-- Codex: `codex login --device-auth` (장치 코드 흐름)
+- Gemini: `GEMINI_API_KEY` 환경변수 설정 (https://aistudio.google.com/apikey)
+- Codex: `codex login --device-auth` (장치 코드 흐름) 또는 `printenv OPENAI_API_KEY | codex login --with-api-key`
 
 **`--effort` 가 Gemini 측에서 거부된다?**
 의도된 동작입니다. `--effort` 는 Codex 전용입니다. `/ccp:codex-rescue --effort high -- "<task>"` 형태로 사용하세요. [호환성 매트릭스](./slash-commands.md#3-way-호환성) 참고.

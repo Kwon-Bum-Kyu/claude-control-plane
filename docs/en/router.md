@@ -2,7 +2,7 @@
 
 The CCP router decides whether a user prompt should be handled by Claude (the main control plane), Gemini (`/gemini:rescue`), or Codex (`/ccp:codex-rescue`). It uses a four-axis priority order: each axis can short-circuit the decision before lower-priority axes are consulted.
 
-The router is implemented in `plugins/ccp/scripts/lib/router.mjs` and is shared between the `router-suggest` hook and the offline regression dataset (`_workspace/_router_test/router-eval.mjs`), so the behavior described here matches the runtime.
+The router decision logic lives in a single shared module used by the recommendation hook, the offline regression dataset, and the router agent — so the behavior described here matches the runtime.
 
 ## The four axes
 
@@ -57,7 +57,7 @@ If none of the above matched, the router returns Claude. The reasoning: Claude i
 
 ## Calibration
 
-The router ships with a 65-case offline dataset in `_workspace/_router_test/EVAL_DATASET.md`. Current accuracy: **65/65 = 100%**, with precision/recall >= 0.93 for every model. CI runs the dataset on every PR.
+The router ships with a 65-case offline regression dataset. Current accuracy: **65/65 = 100%**, with precision/recall >= 0.93 for every model. CI runs the dataset on every PR.
 
 ## How to influence the decision
 
@@ -70,9 +70,9 @@ The router ships with a 65-case offline dataset in `_workspace/_router_test/EVAL
 
 ## The router-suggest hook (v0.2)
 
-`plugins/ccp/hooks/router-suggest.js` runs on `UserPromptSubmit`. It computes the same decision and, if the result is `gemini` or `codex`, injects a `[CCP-ROUTER-001]` system reminder suggesting the appropriate slash command. **It never auto-delegates.** The user always types the slash command themselves. This honors Principle 4 (no automatic fallback on delegation failure) while still nudging users toward the right tool.
+The router-suggest hook runs on `UserPromptSubmit`. It computes the same decision and, if the result is `gemini` or `codex`, injects a `[CCP-ROUTER-001]` system reminder suggesting the appropriate slash command. **It never auto-delegates.** The user always types the slash command themselves. This honors Principle 4 (no automatic fallback on delegation failure) while still nudging users toward the right tool.
 
-When the prompt looks headless (`claude -p`, `automation`, `cron`, `CI`, ...) the hook additionally injects a `[CCP-META-WARN]` notice that recommends pre-scripting the slash command or calling the companion script directly. See [token-saving patterns](./architecture.md#token-saving-patterns) for the rationale.
+When the prompt looks headless (`claude -p`, `automation`, `cron`, `CI`, ...) the hook additionally injects a `[CCP-META-WARN]` notice that recommends pre-scripting the slash command. See [token-saving patterns](./architecture.md#token-saving-patterns) for the rationale.
 
 ## Anti-patterns
 

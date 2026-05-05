@@ -25,7 +25,7 @@ export function readMeta(jobsDir, jobId) {
 }
 
 /**
- * Write a job metadata file (atomic-style - keep the codex-plugin-cc temp-file -> rename pattern).
+ * Write a job metadata file (atomic-style - temp-file -> rename pattern).
  * @param {string} jobsDir
  * @param {string} jobId
  * @param {object} meta
@@ -48,7 +48,6 @@ export function ensureJobDir(jobsDir, jobId) {
 
 /**
  * Enter the background-job queue - create a new jobId, then initialize meta.json in queued state.
- * Function-level adaptation of codex-plugin-cc's enqueueBackgroundTask.
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
@@ -87,7 +86,7 @@ export function enqueueBackgroundJob({ jobsDir, mode, prompt, params = {}, claud
 
 /**
  * Transition meta.state (queued -> running -> completed | failed | cancelled).
- * Uses a simple read-modify-write pattern to avoid concurrency conflicts (same as codex-plugin-cc).
+ * Uses a simple read-modify-write pattern to avoid concurrency conflicts.
  *
  * @param {string} jobsDir
  * @param {string} jobId
@@ -105,7 +104,6 @@ export function patchMeta(jobsDir, jobId, patch) {
 
 /**
  * Poll until meta.state reaches a terminal state or times out.
- * Function-level adaptation of codex-plugin-cc's waitForSingleJobSnapshot.
  *
  * @param {object} opts
  * @param {string} opts.jobsDir

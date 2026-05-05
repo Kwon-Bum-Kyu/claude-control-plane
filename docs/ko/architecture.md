@@ -72,12 +72,9 @@ CCP 의 토큰 절감 효과는 **canonical** 트리거에서 가장 강하게 �
 **헤드리스** 트리거 (`claude -p ...`, 스크립트 자동화) 에서는 모델이 위임 진입점을 탐색합니다 — `rescue --help` 호출, Skill → Agent → companion traversal, 변형 프롬프트 재시도 — 토큰이 오히려 2.1배 증가하는 사례가 있습니다. 헤드리스에서는 슬래시를 사전 스크립트화하세요.
 
 ```bash
-# 권장 1: 슬래시 사전 스크립트화
+# 권장: 슬래시 사전 스크립트화
 claude -p "/gemini:rescue 이 디렉터리 요약"
-
-# 권장 2: companion 직접 호출 (메타 진입점 우회)
-node plugins/ccp/scripts/gemini-companion.mjs rescue --task "이 디렉터리 요약"
-node plugins/ccp/scripts/codex-companion.mjs  rescue --task "PR diff 검토"
+claude -p "/ccp:codex-rescue 이 PR diff 검토"
 
 # 금지: rescue --help 루프, Skill → Agent traversal, 동일 task 변형 재시도
 ```
@@ -86,13 +83,13 @@ router-suggest 훅이 헤드리스 의심 시 `[CCP-META-WARN]` 안내를 자동
 
 ## 차용 코드
 
-CCP 는 상위 프로젝트의 코드를 원본 라이선스 그대로 차용합니다. 차용 attribution 은 `ATTRIBUTION.md` (SSOT) + `NOTICE` (Apache-2.0 §4(d) · MIT copyright preservation) + `README` References 절의 3중 신호로 충족합니다. harness audit 의 `borrowed_code_documented` 카테고리가 PR 마다 ATTRIBUTION.md 의 차용 파일 경로 등재 여부를 강제 검사합니다.
+CCP 는 상위 프로젝트의 코드를 원본 라이선스 그대로 차용합니다. 라이선스 원문은 `LICENSES/` 디렉터리에 보존됩니다. harness audit 의 `borrowed_code_documented` 카테고리가 PR 마다 `LICENSES/` 의 라이선스 원문 존재 여부를 강제 검사합니다.
 
 - **everything-claude-code (ecc)** — MIT — `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
 - **codex-plugin-cc** — Apache-2.0 — `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
 - **oh-my-claudecode (omc)** — MIT — `scripts/lib/magic-keywords.mjs`
 
-전체 attribution: `ATTRIBUTION.md`. 라이선스 고지: `NOTICE`.
+라이선스 원문: `LICENSES/`.
 
 ## 관련 문서
 

@@ -1,12 +1,7 @@
 #!/usr/bin/env node
-// CCP — harness-audit script (port of ecc harness-audit.js)
+// CCP — harness-audit script
 // Subcommand entry: /ccp:audit [--since YYYY-MM-DD] [--format md|json]
 // Output: JSON envelope (foreground success) + persisted report at _workspace/_audits/<ts>.{md,json}
-//
-// Originally derived from: github.com/affaan-m/everything-claude-code (scripts/harness-audit.js)
-// Original license: MIT — see ATTRIBUTION.md
-// Modifications: 7-category rubric retuned for CCP workloads (envelope/router/secret_leak),
-//                _workspace/_audits/ output path, foreground-success envelope wrapper.
 
 import {
   existsSync,
@@ -241,33 +236,29 @@ function scorePluginCompat() {
 }
 
 function scoreBorrowedCodeDocumented() {
-  // Borrowed-code attribution lives in ATTRIBUTION.md (3-signal: ATTRIBUTION + NOTICE + README References).
-  // This category verifies that every borrowed file path is referenced in ATTRIBUTION.md so the SSOT
-  // stays in sync with the actual file layout. License obligations are met independently of per-file headers.
+  // License texts live in LICENSES/. This category verifies that the directory is
+  // present and contains at least one license file per upstream project that CCP
+  // borrows from. License obligations are met by LICENSES/ alone.
   const repoRoot = resolve(PLUGIN_ROOT, '..', '..');
-  const attributionPath = resolve(repoRoot, 'ATTRIBUTION.md');
-  if (!existsSync(attributionPath)) {
-    return { score: 0, note: 'ATTRIBUTION.md missing' };
+  const licensesDir = resolve(repoRoot, 'LICENSES');
+  if (!existsSync(licensesDir)) {
+    return { score: 0, note: 'LICENSES/ missing' };
   }
-  const content = readFileSync(attributionPath, 'utf8');
   const required = [
-    'plugins/ccp/scripts/lib/codex-state.mjs',
-    'plugins/ccp/scripts/lib/codex-process.mjs',
-    'plugins/ccp/scripts/lib/codex-args.mjs',
-    'plugins/ccp/scripts/lib/codex-job-control.mjs',
-    'plugins/ccp/scripts/lib/codex-tracked-jobs.mjs',
-    'plugins/ccp/scripts/lib/magic-keywords.mjs',
+    'codex-plugin-cc-Apache-2.0.txt',
+    'oh-my-claudecode-MIT.txt',
+    'everything-claude-code-MIT.txt',
   ];
   let pass = 0;
   const missing = [];
-  for (const path of required) {
-    if (content.includes(path)) pass += 1;
-    else missing.push(path);
+  for (const file of required) {
+    if (existsSync(resolve(licensesDir, file))) pass += 1;
+    else missing.push(file);
   }
   const score = Math.round((pass / required.length) * 5);
   const note =
     missing.length === 0
-      ? `${pass}/${required.length} borrowed files documented in ATTRIBUTION.md`
+      ? `${pass}/${required.length} upstream license texts present in LICENSES/`
       : `${pass}/${required.length} pass, missing: ${missing.join(', ')}`;
   return { score, note };
 }

@@ -99,4 +99,3 @@ Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the
 
 - `plugins/ccp/schemas/envelope.schema.json`
 - `plugins/ccp/scripts/codex-companion.mjs` ERROR_CATALOG
-- `ATTRIBUTION.md` §1.3 (codex-plugin-cc Apache-2.0 source mapping)

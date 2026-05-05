@@ -6,7 +6,7 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 
 | Code | Frequency | What to do |
 |---|:---:|---|
-| `CCP-OAUTH-001` | very high | Run `gemini auth login`, then re-run `/gemini:setup` |
+| `CCP-OAUTH-001` | very high | Run `gemini` once to trigger OAuth (or set `GEMINI_API_KEY`), then re-run `/gemini:setup` |
 | `CCP-SETUP-001` | very high | `npm install -g @google/gemini-cli@latest` |
 | `CCP-SETUP-002` | high | Install Node.js 20+ (nvm recommended) |
 | `CCP-GEMINI-001` | high | Retry shortly, or use `/gemini:rescue --fallback-claude` |
@@ -50,8 +50,8 @@ Google ~7 days, ChatGPT typically 30+ days. Expiration surfaces as `CCP-OAUTH-00
 Use nvm to manage Node, or prefix with `sudo`. nvm is recommended.
 
 **No browser available for login.**
-- Gemini: set `GEMINI_API_KEY`, or use `gemini auth login --no-browser`.
-- Codex: `codex login --device-auth` (device-code flow).
+- Gemini: set `GEMINI_API_KEY` (https://aistudio.google.com/apikey).
+- Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
 
 **`--effort` is rejected by the Gemini side.**
 That is intentional. `--effort` is Codex-only. Use `/ccp:codex-rescue --effort high -- "<task>"`. See the [compatibility matrix](./slash-commands.md#three-way-compatibility).

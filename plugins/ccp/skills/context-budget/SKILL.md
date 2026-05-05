@@ -7,15 +7,6 @@ description: "Estimates the main Claude context token budget and warns when usag
 
 Estimates the main Claude context token budget and recommends voluntary compaction (`/compact`) or Gemini delegation (`/gemini:rescue`) when thresholds are crossed.
 
-## Attribution
-
-This skill is a port of **the `strategic-compact` pattern from ecc (External Claude Code)**.
-
-- Source: ecc strategic-compact
-- License: MIT (permissive — preserved in `ATTRIBUTION.md` §1.1)
-- Modifications: applied CCP naming convention (`CCP-COMPACT-001`), translated messages, removed automatic `/compact` trigger (Principle 4 — user intent first)
-- Full attribution: `ATTRIBUTION.md` §1.1
-
 ## Trigger conditions
 
 Apply this skill when:

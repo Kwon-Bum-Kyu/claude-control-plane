@@ -17,41 +17,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Extract CHANGELOG section for tag
-        id: changelog
-        run: |
-          set -euo pipefail
-          tag="${GITHUB_REF_NAME}"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          if [ ! -f CHANGELOG.md ]; then
-            echo "no_changelog=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          # Extract section between `## $tag` and the next `## ` header
-          awk -v tag="$tag" '
-            $0 ~ "^## " tag "( |$)" { found=1; next }
-            found && /^## / { exit }
-            found { print }
-          ' CHANGELOG.md > /tmp/release-notes.md
-          if [ ! -s /tmp/release-notes.md ]; then
-            echo "no_section=true" >> "$GITHUB_OUTPUT"
-            echo "Tag $tag has no matching CHANGELOG section." > /tmp/release-notes.md
-          fi
-
-      - name: Build release notes body
-        run: |
-          set -euo pipefail
-          {
-            cat /tmp/release-notes.md
-            echo ""
-            echo "---"
-            echo ""
-            echo "## Borrowed code attribution"
-            echo ""
-            echo "CCP borrows code from upstream projects under their original licenses. See \`NOTICE\` and \`ATTRIBUTION.md\` (attached) for details."
-          } > /tmp/release-body.md
-          cat /tmp/release-body.md
-
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -65,9 +30,6 @@ jobs:
           fi
           gh release create "$tag" \
             --title "$tag" \
-            --notes-file /tmp/release-body.md \
+            --generate-notes \
             $prerelease_flag \
-            LICENSE \
-            NOTICE \
-            ATTRIBUTION.md \
-            CHANGELOG.md
+            LICENSE

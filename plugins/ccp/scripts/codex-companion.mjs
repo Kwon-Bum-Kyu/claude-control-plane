@@ -1,10 +1,8 @@
 #!/usr/bin/env node
 // CCP — Codex CLI companion script
-// Mirrors gemini-companion.mjs structure with codex-specific adaptations.
 // Subcommands: setup | rescue | status | result | cancel | task-worker
 // Envelope contract: see plugins/ccp/schemas/envelope.schema.json
 // Error codes:        see ERROR_CATALOG below (mirrored in README §6).
-// Adapted decisions:  see ATTRIBUTION.md §1.3 (codex-plugin-cc Apache-2.0 source mapping).
 
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';

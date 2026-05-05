@@ -1,411 +1,391 @@
 # Claude Control Plane (CCP)
 
-> Claude 를 메인 컨트롤 플레인으로 두고 Gemini CLI 를 서브에이전트로 오케스트레이션하는 **비공식 커뮤니티** Claude Code 플러그인.
+> A Claude Code plugin that keeps Claude as the main control plane and orchestrates Gemini CLI and Codex CLI as subagents.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A520.0-339933)](https://nodejs.org)
 [![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-%E2%89%A50.38.0-4285F4)](https://github.com/google-gemini/gemini-cli)
+[![Codex CLI](https://img.shields.io/badge/Codex%20CLI-%E2%89%A50.122.0-000000)](https://github.com/openai/codex)
 
-> ⚠️ **비공식 프로젝트**: CCP 는 Anthropic·Google 과 무관한 독립 커뮤니티 프로젝트입니다. "Claude", "Gemini", "Claude Code" 는 각 소유자의 상표이며, 본 프로젝트는 상호운용성 목적의 명목적 사용에 한합니다.
-
-📚 **Documentation**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md)
-
----
-
-## 1. 소개
-
-### CCP 가 해결하는 문제
-
-대형 컨텍스트(코드베이스, 로그, 문서) 를 Claude 본체로 처리하면 메인 세션 토큰이 급증해 쿼터를 빠르게 소진합니다. CCP 는 이런 작업을 **Gemini CLI 에 위임**하고, 결과는 3줄 요약 + 디스크 경로로만 메인에 반환하여 **Claude 토큰 누계를 격리**합니다.
-
-### 무엇을 하는가
-
-- **자동 라우팅**: 입력 크기·키워드·사용자 의도·fallback 4축으로 Claude 본체 vs Gemini 위임을 자동 결정.
-- **격리 envelope**: Gemini 응답 원문은 디스크에만 저장, 메인 세션엔 요약(≤500자) + `result_path` 만 전달.
-- **가드레일**: 컨텍스트 75% 임계에서 사용자에게 자발적 `/compact` 권고 (자동 실행 금지).
-- **감사**: `/ccp:audit` 으로 envelope 위반·라우터 오판·비밀 정보 누출을 정기 점검.
-
-### 무엇을 하지 않는가 (MVP 범위 밖)
-
-- Ralph 루프 자동화
-- ML 기반 분류기 (현재는 규칙 기반)
-- Gemini Vision / Multi-modal 입력
-
-### 대상 사용자
-
-한국어 중심 개인 Pro 사용자 ~ 소규모 팀 리더. Claude 쿼터를 자주 소진하며 대형 로그·코드베이스를 다루는 워크로드.
+📚 **Docs**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md) · [README in Korean](./README.ko.md)
 
 ---
 
-## 2. 설치 (5분)
+## 1. Introduction
 
-### 사전 조건
+### The problem CCP solves
 
-- Claude Code v1.0+ 설치
+Processing a large context (codebase, logs, documents) through Claude alone burns the main session's token budget quickly and exhausts your quota. CCP **delegates** that work to Gemini CLI or Codex CLI and returns only a 3-line summary plus a result-file path to the main session, **isolating Claude's token accumulation**.
+
+### What it does
+
+- **Automatic routing**: Decides between Claude (main) and delegation based on a 4-axis priority — user-explicit, input size, keywords, and a conservative fallback.
+- **Isolated envelope**: Full Gemini/Codex output is written to disk; only a `summary` (≤ 500 chars) + `result_path` enters the main session.
+- **Guardrails**: At 75% context utilisation, the user is *advised* (not forced) to run `/compact`. No automatic execution.
+- **Audit**: `/ccp:audit` periodically checks envelope violations, router misclassification, and secret-leak signals.
+
+### What it does not do (out of MVP scope)
+
+- Ralph-loop automation
+- ML-based classifier (current router is rule-based)
+- Gemini Vision / multimodal input
+
+### Target user
+
+Solo developers and small-team leaders who frequently exhaust their Claude quota on large logs and codebases.
+
+---
+
+## 2. Install (5 min)
+
+### Prerequisites
+
+- Claude Code v2.1+
 - Node.js ≥ 20.0
-- **Gemini 사용**: Gemini CLI ≥ 0.38.0 + Google 계정 (자동 안내됨)
-- **Codex 사용**: Codex CLI ≥ 0.122.0 + ChatGPT 계정 (자동 안내됨)
+- **For Gemini delegation**: Gemini CLI ≥ 0.38.0 + a Google account (auto-prompted)
+- **For Codex delegation**: Codex CLI ≥ 0.122.0 + a ChatGPT account (auto-prompted)
 
-### 설치 명령
+You only need the CLI for the side(s) you actually want to use.
+
+### Install commands
 
 ```
 /plugin marketplace add claude-control-plane
 /plugin install ccp
-/gemini:setup        # gemini CLI·OAuth 진단
-/ccp:codex-setup     # codex CLI·OAuth 진단
+/gemini:setup        # Diagnose Gemini CLI · OAuth status
+/ccp:codex-setup     # Diagnose Codex CLI · OAuth status
 ```
 
-`/gemini:setup` 과 `/ccp:codex-setup` 이 Node.js·각 CLI·OAuth 상태를 자동 진단합니다. 미설치 시 안내 명령:
+`/gemini:setup` and `/ccp:codex-setup` automatically diagnose Node.js, the upstream CLI, and OAuth status. If anything is missing, they print the exact recovery command. Typical setup commands:
 
 ```bash
 # Gemini
 npm install -g @google/gemini-cli@latest
-gemini auth login
+gemini                              # first interactive run → browser opens for Google OAuth
+# (alternative) export GEMINI_API_KEY="..."   # AI Studio key: https://aistudio.google.com/apikey
 
 # Codex
-brew install codex                  # macOS
-# 또는 npm install -g @openai/codex
-codex login                         # 브라우저로 ChatGPT 인증
+npm install -g @openai/codex
+# or: brew install codex            # macOS
+codex login                         # browser-based ChatGPT auth
+# (no browser?) codex login --device-auth     # device-code flow
+# (API key?)    printenv OPENAI_API_KEY | codex login --with-api-key
 ```
 
-### 성공 확인
+### Smoke test
 
 ```
-/gemini:rescue "이 레포지토리의 README.md 를 3줄로 요약해"
+/gemini:rescue "Summarize this repository's README in 3 lines"
 ```
 
-3줄 요약 + 토큰 절감 추정 + `result_path` 가 출력되면 정상.
+If you see a 3-line summary + an estimated token saving + a `result_path` under `_workspace/_jobs/`, the plugin is healthy.
 
-### 실패 시
+### If something fails
 
-[6. 트러블슈팅](#6-트러블슈팅) 섹션의 에러 코드 표를 참조하세요.
+See the error-code table in [§6 Troubleshooting](#6-troubleshooting).
 
 ---
 
-## 3. 빠른 시작
+## 3. Quick start (4 canonical samples)
 
-### 샘플 1 — README 요약 (작은 입력, 라우터 학습)
-
-```
-/gemini:rescue "이 레포지토리의 README.md 를 3줄로 요약해"
-```
-
-라우터가 입력 크기·키워드를 분석해 Claude 또는 Gemini 로 자동 분기합니다.
-
-### 샘플 2 — 큰 로그 파일 위임 (대용량, background)
+### Sample 1 — Small input (router warm-up)
 
 ```
-/gemini:rescue --background "/var/log/app/error.log 에서 최근 24시간 500 에러 Top 10 추출"
+/gemini:rescue "Summarize this repository's README in 3 lines"
 ```
 
-→ `job_id` 즉시 반환 → `/gemini:status <job_id>` 로 진행 확인 → `/gemini:result <job_id>` 로 요약 회수.
+The router inspects input size and keywords to decide between Claude and Gemini. Very small inputs typically stay on Claude.
 
-### 샘플 3 — 코드 리뷰 위임
+### Sample 2 — Large log file (background job)
 
 ```
-/ccp:codex-rescue --cwd $(pwd) -- "이 PR 의 git diff 를 검토하고 잠재적 버그 5건 식별"
+/gemini:rescue --background "Extract the top 10 5xx errors from /var/log/app/error.log over the last 24 hours"
 ```
 
-→ Codex 가 코드 리뷰에 강한 워크로드를 처리. 메인 컨텍스트로는 요약(≤500자) + `result_path` 만 회수.
+The companion immediately returns a `job_id`. Track and retrieve:
 
-### 샘플 4 — 절감량 감사
+```
+/gemini:status <job_id>
+/gemini:result <job_id>
+```
+
+The full Gemini output stays on disk; only a bounded summary is returned to Claude.
+
+### Sample 3 — Code review (Codex)
+
+```
+/ccp:codex-rescue --cwd $(pwd) -- "Review this PR's git diff and identify 5 potential bugs"
+```
+
+Codex handles the heavy reviewing reasoning. The main Claude session sees only a ≤ 500-char summary + `result_path`.
+
+### Sample 4 — Token-saving audit
 
 ```
 /ccp:audit --since 7d
 ```
 
-8카테고리 점수 (context/cost/router/double_billing/fallback/plugin_compat/adapted_headers/secret_leak) 를 마크다운 리포트로 출력.
+Outputs an 8-category score (`context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `borrowed_code_documented`, `secret_leak`) as Markdown or JSON.
 
 ---
 
-## 4. 슬래시 커맨드 레퍼런스
+## 4. Slash command reference
 
-### 4.1 Gemini (대용량 요약·분석)
+### 4.1 Gemini (large summarization · analysis)
 
-| 커맨드 | 요약 |
-|--------|------|
-| `/gemini:rescue <prompt>` | 무거운 작업을 Gemini 에 위임 |
-| `/gemini:status <job_id>` | background job 상태 조회 |
-| `/gemini:result <job_id>` | 완료된 job 의 요약+경로 회수 |
-| `/gemini:setup [--renew]` | Gemini CLI·OAuth 환경 진단 |
+| Command | Summary |
+|---|---|
+| `/gemini:rescue <prompt>` | Delegate heavy work to Gemini |
+| `/gemini:status <job_id>` | Check background job status |
+| `/gemini:result <job_id>` | Retrieve a completed job's summary + path |
+| `/gemini:setup [--renew]` | Diagnose Gemini CLI · OAuth |
 
-### 4.2 Codex (코드 리뷰·diff·버그 조사)
+### 4.2 Codex (code review · diff · bug investigation)
 
-| 커맨드 | 요약 |
-|--------|------|
-| `/ccp:codex-rescue <prompt>` | 코드 리뷰·diff 분석을 Codex 에 위임 |
-| `/ccp:codex-status <job_id>` | background job 상태 조회 |
-| `/ccp:codex-result <job_id>` | 완료된 job 의 요약+경로 회수 |
-| `/ccp:codex-setup` | Codex CLI·OAuth 환경 진단 |
+| Command | Summary |
+|---|---|
+| `/ccp:codex-rescue <prompt>` | Delegate code review or diff analysis to Codex |
+| `/ccp:codex-status <job_id>` | Check background job status |
+| `/ccp:codex-result <job_id>` | Retrieve a completed job's summary + path |
+| `/ccp:codex-setup` | Diagnose Codex CLI · OAuth |
 
-### 4.3 공통
+### 4.3 Common
 
-| 커맨드 | 요약 |
-|--------|------|
-| `/ccp:audit [--since N --format md\|json]` | 토큰·envelope·라우팅 감사 |
+| Command | Summary |
+|---|---|
+| `/ccp:audit [--since N --format md\|json]` | Audit token / envelope / routing health |
 
-상세 옵션은 `plugins/ccp/commands/*.md` 를 참조하세요.
+For detailed options see `plugins/ccp/commands/*.md`.
 
-### 4.4 주요 옵션
+### 4.4 Key options
 
-| 옵션 | gemini | codex | 설명 |
-|------|:---:|:---:|------|
-| `--background` | ✅ | ✅ | 백그라운드 실행, `job_id` 즉시 반환 |
-| `--fallback-claude` | ✅ | ✅ | 라우터 결정 무시, Claude 본체로 처리 |
-| `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | foreground timeout |
-| `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | background polling 주기 |
-| `--max-tokens N` | ✅ (default 4000) | ❌ | gemini 응답 토큰 상한 (prompt suffix 변환) |
-| `--files <glob>` | ⚠️ MVP 미구현 | ❌ | gemini 첨부 파일 |
-| `--model NAME` | ❌ | ✅ | codex 모델 별칭 |
-| `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | reasoning effort |
-| `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only/workspace-write/danger-full-access) | codex 샌드박스 |
-| `--cwd DIR` | ❌ | ✅ | codex 작업 루트 |
-| `--renew` | ✅ | (해당 없음 — `codex login` 직접 사용) | OAuth 재인증 안내 |
+| Option | gemini | codex | Description |
+|---|:---:|:---:|---|
+| `--background` | ✅ | ✅ | Background execution; returns `job_id` immediately |
+| `--fallback-claude` | ✅ | ✅ | Ignore the routing decision; route to the main Claude |
+| `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | Foreground timeout |
+| `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | Background polling interval |
+| `--max-tokens N` | ✅ (default 4000) | ❌ | Gemini response token cap (translated into a prompt suffix) |
+| `--files <glob>` | ⚠️ MVP unimplemented | ❌ | Gemini attached files |
+| `--model NAME` | ❌ | ✅ | Codex model alias |
+| `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | Reasoning effort |
+| `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only / workspace-write / danger-full-access) | Codex sandbox |
+| `--cwd DIR` | ❌ | ✅ | Codex working directory |
+| `--renew` | ✅ | (n/a — use `codex login` directly) | OAuth re-auth flow |
 
----
+### 4.5 Model compatibility matrix (3-way)
 
-## 4.5 모델 호환성 매트릭스 (3-way)
+How `/ccp:codex-rescue` (codex), `/gemini:rescue` (gemini), and the main Claude (claude) compare across options and features:
 
-`/ccp:codex-rescue` (codex), `/gemini:rescue` (gemini), Claude 본체(claude) 3 경로가 지원하는 옵션·기능 비교:
-
-| 옵션 / 기능 | claude | gemini | codex | 비고 |
+| Option / feature | claude | gemini | codex | Notes |
 |---|:---:|:---:|:---:|---|
-| `--background` (비동기) | ❌ | ✅ | ✅ | claude 는 메인 컨텍스트 본인이므로 N/A |
-| `--wait` (background polling) | N/A | ✅ | ✅ | 양 companion 동일 |
-| `--timeout-ms N` | N/A | ✅ (default 600000) | ✅ (default 600000) | foreground timeout |
-| `--poll-interval-ms N` | N/A | ✅ (2000) | ✅ (2000) | polling 주기 |
-| `--model NAME` | †`/model` 슬래시 | ✅ | ✅ | claude 는 Claude Code `/model` 슬래시로 변경 |
-| `--effort low\|medium\|high` | ‡extended thinking | ❌ `CCP-INVALID-001` | ✅ `-c model_reasoning_effort=<level>` | claude 는 Option+T (extended thinking 토글) |
-| `--sandbox <mode>` | N/A (실행 안 함) | ❌ | ✅ read-only/workspace-write/danger-full-access | codex 만 |
-| `--write` | N/A | ❌ | ✅ (= `--sandbox workspace-write`) | codex 의 가독성 alias |
-| `--cwd DIR` | N/A (대화 turn) | ❌ | ✅ (`-C`) | codex 만 |
-| `--max-tokens N` | N/A | ✅ (prompt suffix 변환) | ❌ | gemini 만 |
-| `--files <glob>` | (대화 첨부) | ⚠️ MVP 미구현 | ❌ | gemini 백로그 |
-| `--resume-last` | N/A | ⚠️ MVP 미구현 (메타파일 흉내) | ✅ (`codex resume --last`) | codex 가 CLI 자체 지원 |
-| OAuth 검증 | N/A | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | 양 companion 30s timeout |
+| `--background` (async) | ❌ | ✅ | ✅ | claude is the main context, so n/a |
+| `--wait` (background polling) | n/a | ✅ | ✅ | Both companions identical |
+| `--timeout-ms N` | n/a | ✅ (default 600000) | ✅ (default 600000) | Foreground timeout |
+| `--poll-interval-ms N` | n/a | ✅ (2000) | ✅ (2000) | Polling interval |
+| `--model NAME` | †`/model` slash | ✅ | ✅ | claude uses Claude Code's `/model` slash |
+| `--effort low\|medium\|high` | ‡extended thinking | ❌ `CCP-INVALID-001` | ✅ `-c model_reasoning_effort=<level>` | claude uses Option+T (extended-thinking toggle) |
+| `--sandbox <mode>` | n/a (no execution) | ❌ | ✅ read-only / workspace-write / danger-full-access | codex only |
+| `--write` | n/a | ❌ | ✅ (= `--sandbox workspace-write`) | codex readability alias |
+| `--cwd DIR` | n/a (conversation turn) | ❌ | ✅ (`-C`) | codex only |
+| `--max-tokens N` | n/a | ✅ (prompt-suffix translation) | ❌ | gemini only |
+| `--files <glob>` | (conversation attachment) | ⚠️ MVP unimplemented | ❌ | gemini backlog |
+| `--resume-last` | n/a | ⚠️ MVP unimplemented (meta-file imitation) | ✅ (`codex resume --last`) | codex CLI native support |
+| OAuth probe | n/a | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | Both companions: 30 s timeout |
 
-**범례:** ✅ 지원 / ❌ `CCP-INVALID-001` 또는 `CCP-UNSUPPORTED-001` 거부 / ⚠️ 부분 매핑 / N/A 해당 없음
-**각주:**
-- ‡ Claude extended thinking: `Option+T` 토글 또는 `~/.claude/settings.json` 의 `alwaysThinkingEnabled`
-- † Claude `/model` 슬래시: Claude Code 내장 명령
-- gemini ❌ 표시 옵션이 인자로 새어 들어오면 즉시 `CCP-INVALID-001` (companion 인라인 거부)
-
-자세한 결정 근거: [`ATTRIBUTION.md`](./ATTRIBUTION.md) (Codex 통합 차용 함수 매핑)
+**Legend:** ✅ supported / ❌ rejected with `CCP-INVALID-001` or `CCP-UNSUPPORTED-001` / ⚠️ partial mapping / n/a not applicable
+**Footnotes:**
+- ‡ Claude extended thinking: `Option+T` toggle, or `alwaysThinkingEnabled` in `~/.claude/settings.json`
+- † Claude `/model` slash: a Claude Code built-in command
+- A gemini ❌ option leaking into args is rejected inline as `CCP-INVALID-001` (companion guard)
 
 ---
 
-## 5. 라우터 동작 (3-way)
+## 5. Router behavior (3-way)
 
-CCP 라우터는 **4축 우선순위** 로 Claude / Gemini / Codex 3 경로 중 하나를 결정합니다.
-
-```
-사용자 명시 (axis A) → 입력 크기 (axis B) → 키워드 (axis C) → fallback (axis D)
-   /gemini, /codex,        >30K → Gemini   요약→gemini / 리뷰→codex    Claude (보수)
-   --effort, --sandbox     5K~30K + review→Codex
-```
+The CCP router uses a **4-axis priority** to choose one of three routes — Claude / Gemini / Codex.
 
 ```
-[사용자 프롬프트]
+user-explicit (axis A) → input size (axis B) → keywords (axis C) → fallback (axis D)
+   /gemini, /codex,        > 30K → Gemini    summary → gemini / review → codex    Claude (conservative)
+   --effort, --sandbox     5K-30K + review → Codex
+```
+
+```
+[user prompt]
        ↓
-   [axis A] /gemini:rescue / /ccp:codex-rescue / --fallback-claude / --effort / --sandbox
-       ↓ (없으면)
-   [axis B] estimated_tokens > 30,000 → Gemini  (review 키워드 동시 매칭 시 Codex)
-            5,000 ≤ tokens ≤ 30,000 + review 키워드 → Codex
-       ↓ (이내)
-   [axis C] 메인 컨텍스트 의존 키워드 (방금/위에서/...) → Claude 강제
-            그 외 키워드 사전: codex(코드 리뷰/diff) > gemini(요약/대용량) > claude
-       ↓ (매칭 없으면)
-   [axis D] fallback → Claude (보수적)
+   [axis A]  /gemini:rescue · /ccp:codex-rescue · --fallback-claude · --effort · --sandbox
+       ↓ (if absent)
+   [axis B]  estimated_tokens > 30,000 → Gemini  (if a review keyword is also present → Codex)
+              5,000 ≤ tokens ≤ 30,000 + review keyword → Codex
+       ↓ (otherwise)
+   [axis C]  main-context-bind keywords (just now / above / ...) → forces Claude
+              other keywords by priority: codex (review/diff) > gemini (summary/large) > claude
+       ↓ (no match)
+   [axis D]  fallback → Claude (conservative)
 ```
 
-- **자동화 검증**: 70 케이스 회귀 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델.
-- **투명성**: 모든 호출 결과 `details.mode` 필드에 결정 결과 노출 (`gemini` | `codex`).
-- **추천 훅 활성** (v0.2): UserPromptSubmit 시 결정 결과를 `[CCP-ROUTER-001]` system reminder 로 주입. 헤드리스 자동 위임은 미수행 — 사용자가 직접 슬래시 호출.
+- **Automated calibration**: 70-case offline regression dataset → **100% accuracy**, P/R ≥ 0.93 for every model.
+- **Transparency**: every call surfaces the decision in `details.mode` (`gemini` | `codex`).
+- **Recommendation hook (v0.2)**: on `UserPromptSubmit`, the decision is injected as a `[CCP-ROUTER-001]` system reminder. Headless auto-delegation is **not** performed — the user invokes the slash command themselves.
 
-### 5.1 토큰 절감 패턴 (canonical 권장)
+### 5.1 Token-saving pattern (canonical, recommended)
 
-CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** 패턴에서 가장 강하게 작동합니다.
+CCP's token-saving effect is strongest in the **interactive, slash-direct trigger** pattern:
 
 ```
-✅ 권장:  /gemini:rescue 이 디렉토리 전체 요약
-✅ 권장:  /ccp:codex-rescue 이 PR diff 검토
+✅ Recommended:  /gemini:rescue summarize the entire directory
+✅ Recommended:  /ccp:codex-rescue review this PR diff
 ```
 
-이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다.
+In this pattern, the envelope cap (≤ 500 chars) plus `result_path` persistence prevents the main Claude context from accumulating delegated output.
 
-### 5.2 헤드리스 자동화 권고 패턴
+### 5.2 Headless automation guidance
 
-`claude -p` 헤드리스 호출에서는 모델이 위임 진입점을 탐색하다가 메타 우회(예: `Skill→Agent→companion --help`)를 누적해 토큰이 오히려 증가하는 사례가 외부 벤치마크에서 보고되었습니다. 헤드리스 자동화에서 위임 효과를 보려면 다음 패턴을 사용하세요.
+Under `claude -p` headless invocations, models tend to probe delegation entry points and accumulate meta-bypass attempts (e.g. `Skill → Agent → companion --help`), which can grow tokens instead of shrinking them — observed in external benchmarks. To benefit from delegation in headless automation, use the following pattern.
 
 ```bash
-# ✅ 권장 1: 슬래시 사전 스크립트화
-claude -p "/gemini:rescue 이 디렉토리 전체 요약" -- ...
+# ✅ Recommended: pre-script the slash
+claude -p "/gemini:rescue summarize the entire directory" -- ...
+claude -p "/ccp:codex-rescue review this PR diff" -- ...
 
-# ✅ 권장 2: companion 직접 호출 (메타 진입점 우회 차단)
-node plugins/ccp/scripts/gemini-companion.mjs rescue --task "이 디렉토리 요약"
-node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
-
-# ❌ 금지: rescue --help / Skill→Agent 우회 / 동일 task 변형 재시도
+# ❌ Forbidden: rescue --help / Skill→Agent traversal / repeated prompt variations
 ```
 
-`hooks/router-suggest.js` 가 `headless|claude -p|스크립트|자동화|automation|cron|CI` 키워드를 감지하면 `[CCP-META-WARN]` 안내를 자동 추가합니다 (메타 우회 가드).
+The `router-suggest` hook detects keywords such as `headless`, `claude -p`, `script`, `automation`, `cron`, `CI` and auto-injects a `[CCP-META-WARN]` advisory (meta-bypass guard).
 
-오판 의심 시 `/ccp:audit` 으로 router_accuracy 카테고리 점수를 확인하세요.
+When in doubt, run `/ccp:audit` and check the `router_accuracy` category.
 
-### 5.3 canonical 자동 라우팅 (opt-in)
+### 5.3 Canonical auto-routing (opt-in)
 
-기본 동작은 **추천 only** 입니다 (`[CCP-ROUTER-001]` 메시지 주입, 사용자가 슬래시 직접 호출). 인터랙티브 (canonical) 세션에서 라우팅을 자동화하려면 `plugin.json#config.auto_routing` 을 활성화하세요.
+Default behavior is **recommendation only** (`[CCP-ROUTER-001]` reminder; the user invokes the slash). To automate routing in interactive (canonical) sessions, enable `plugin.json#config.auto_routing`:
 
 ```jsonc
 // plugins/ccp/.claude-plugin/plugin.json
 {
   "config": {
-    "auto_routing": true   // 기본 false. 사용자 명시 활성화 시만 자동 위임
+    "auto_routing": true   // Default false. Auto-delegation only when explicitly enabled.
   }
 }
 ```
 
-활성화 시 동작:
+When enabled:
 
-| 진입 경로 | 동작 |
-|---------|------|
-| canonical (인터랙티브) | `agents/router.md` (deterministic-router) 가 자동 호출되어 `decision != claude` 시 `target` 슬래시를 다음 턴 자동 입력. envelope `auto_routed: true`. |
-| headless (`claude -p`, CI runner) | 자동 위임 차단. 추천 메시지만. 다중 신호 OR — `env.CI=true` / `env.CLAUDE_CODE_NONINTERACTIVE=1` / `env.CLAUDE_CODE_ENTRYPOINT≠cli` 검출 시 즉시 차단. |
-| 위임 실패 (OAuth 만료·CLI 미설치) | 자동 fallback 금지 (no automatic fallback). envelope 안내 → 사용자 명시 재입력. |
+| Entry path | Behavior |
+|---|---|
+| canonical (interactive) | The router agent (`agents/router.md`, deterministic-router) is auto-invoked. If `decision != claude`, the `target` slash command is auto-typed on the next turn. The envelope sets `auto_routed: true`. |
+| headless (`claude -p`, CI runner) | Auto-delegation is blocked; only the recommendation is shown. Multi-signal OR — `env.CI=true` / `env.CLAUDE_CODE_NONINTERACTIVE=1` / `env.CLAUDE_CODE_ENTRYPOINT≠cli` triggers the block. |
+| Delegation failure (OAuth expired, CLI missing) | No automatic fallback. The envelope guides the user to re-invoke explicitly. |
 
-비활성화 (opt-out) 방법 2가지:
+Two ways to opt out:
 
-1. `plugin.json#config.auto_routing: false` — 기본값
-2. `--no-auto-route` 플래그 (세션별)
+1. `plugin.json#config.auto_routing: false` — default
+2. `--no-auto-route` flag (per session)
 
-이중 청구 방어 메커니즘 — `auto_routed: true` envelope 표시 + router agent 의 forwarding-only 패턴 + envelope free text 차단 (`reason_code` 12종 enum) + 회귀 측정 (forwarding overhead ~84 tok mean, CV 0%).
+Double-billing defenses — `auto_routed: true` in the envelope + the router agent's forwarding-only pattern + envelope free-text rejection (12-value `reason_code` enum) + measured forwarding overhead (~84 tok mean, CV 0%).
 
 ---
 
-## 6. 트러블슈팅
+## 6. Troubleshooting
 
-### 6.1 Gemini 측 에러 코드
+### 6.1 Gemini-side error codes
 
-| 코드 | 빈도 | 다음 행동 |
-|------|:----:|----------|
-| `CCP-OAUTH-001` | ★★★ | `gemini auth login` 후 `/gemini:setup` 재실행 |
+| Code | Frequency | Next action |
+|---|:---:|---|
+| `CCP-OAUTH-001` | ★★★ | Run `gemini` once to trigger OAuth (or set `GEMINI_API_KEY`), then re-run `/gemini:setup` |
 | `CCP-SETUP-001` | ★★★ | `npm install -g @google/gemini-cli@latest` |
-| `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
-| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/gemini:rescue --fallback-claude` |
-| `CCP-CTX-001` | ★ | summary 길이 초과 — 입력 축소 |
-| `CCP-ROUTER-001` | ★ | `/ccp:audit` 으로 라우터 결정 검토 |
-| `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
-| `CCP-JOB-001~004` | ★ | `/gemini:status` 로 job 상태 재확인 |
+| `CCP-SETUP-002` | ★★ | Install Node.js 20+ (nvm recommended) |
+| `CCP-GEMINI-001` | ★★ | Retry, or `/gemini:rescue --fallback-claude` |
+| `CCP-CTX-001` | ★ | Summary length exceeded — shrink the input |
+| `CCP-ROUTER-001` | ★ | Run `/ccp:audit` to inspect routing decisions |
+| `CCP-COMPACT-001` | ★ | Run `/compact` manually |
+| `CCP-JOB-001~004` | ★ | Re-check job state via `/gemini:status` |
 
-### 6.2 Codex 측 에러 코드
+### 6.2 Codex-side error codes
 
-| 코드 | 빈도 | 다음 행동 |
-|------|:----:|----------|
-| `CCP-OAUTH-101` | ★★★ | `codex login` 으로 ChatGPT 인증 후 `/ccp:codex-setup` 재실행 |
-| `CCP-SETUP-101` | ★★★ | `brew install codex` 또는 `npm install -g @openai/codex` |
-| `CCP-SETUP-102` | ★★ | `brew upgrade codex` 또는 npm 재설치 (≥ 0.122.0 필요) |
-| `CCP-CODEX-001` | ★★ | stderr 로그 확인 후 재시도 또는 `/ccp:codex-rescue --fallback-claude` |
-| `CCP-CODEX-002` | ★ | JSONL 파싱 실패 — `--verbose` 또는 stderr 확인 후 재시도 |
-| `CCP-JOB-001~004` | ★ | `/ccp:codex-status` 로 job 상태 재확인 |
-| `CCP-JOB-409` | ★ | 현재 상태에서는 취소 불가 — 상태 확인 후 재시도 |
-| `CCP-INVALID-001` | ★ | gemini 측에서 codex 전용 옵션(`--effort`/`--sandbox`/`--write`) 사용 시 — 슬래시 변경 |
+| Code | Frequency | Next action |
+|---|:---:|---|
+| `CCP-OAUTH-101` | ★★★ | Run `codex login` to auth ChatGPT, then re-run `/ccp:codex-setup` |
+| `CCP-SETUP-101` | ★★★ | `brew install codex` or `npm install -g @openai/codex` |
+| `CCP-SETUP-102` | ★★ | `brew upgrade codex` or npm reinstall (≥ 0.122.0 required) |
+| `CCP-CODEX-001` | ★★ | Inspect stderr, then retry, or `/ccp:codex-rescue --fallback-claude` |
+| `CCP-CODEX-002` | ★ | JSONL parse failure — retry with `--verbose` and inspect stderr |
+| `CCP-JOB-001~004` | ★ | Re-check job state via `/ccp:codex-status` |
+| `CCP-JOB-409` | ★ | Cannot cancel from current state — re-check and retry |
+| `CCP-INVALID-001` | ★ | Codex-only options (`--effort`/`--sandbox`/`--write`) used on the gemini side — switch slash command |
 
-### 6.3 공통
+### 6.3 Common
 
-| 코드 | 빈도 | 다음 행동 |
-|------|:----:|----------|
-| `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` 권장 (foreground default 600s) |
-| `CCP-AUDIT-001~002` | ★ | `--since` 범위 조정 또는 로그 확인 |
+| Code | Frequency | Next action |
+|---|:---:|---|
+| `CCP-TIMEOUT-001` | ★★ | Retry, or use `--background` (foreground default 600 s) |
+| `CCP-AUDIT-001~002` | ★ | Adjust `--since` range or inspect logs |
 
-전체 카탈로그는 `plugins/ccp/scripts/gemini-companion.mjs`·`codex-companion.mjs` 의 `ERROR_CATALOG` 를 참조하세요.
+For the full catalog see the `ERROR_CATALOG` constants in `plugins/ccp/scripts/gemini-companion.mjs` and `codex-companion.mjs`.
 
-### 6.4 자주 묻는 질문
+### 6.4 FAQ
 
-- **Gemini 무료 티어 한도는?** 60 req/min (`gemini-2.5-pro`). 정확한 값은 Google 계정 정책에 따릅니다.
-- **Codex 무료 티어 한도는?** ChatGPT Plus/Pro 구독에 포함된 사용량 한도를 따릅니다. 정확한 값은 OpenAI 정책에 따릅니다.
-- **OAuth 만료 주기는?** Google ~7일, ChatGPT 는 보통 30일+. 만료 시 각각 `CCP-OAUTH-001`/`CCP-OAUTH-101` 가 자동 안내합니다.
-- **권한 오류 (`npm i -g`)?** nvm 사용 또는 `sudo` 실행. nvm 권장.
-- **브라우저 미접근 환경?** Gemini: `GEMINI_API_KEY` 또는 `gemini auth login --no-browser`. Codex: `codex login --device-auth` (장치 코드 흐름).
-- **`--effort` 가 gemini 측에서 거부된다?** 의도된 동작 — 호환성 매트릭스(§4.5) 참고. codex 전용 옵션이므로 `/ccp:codex-rescue --effort high -- "<task>"` 형태로 사용하세요.
-- **codex 가 stdin 무한 대기?** companion 이 자동으로 `stdio: ['ignore', ...]` 강제. 수동으로 `codex exec` 호출 시에는 `</dev/null` 필수.
-- **`Reading additional input from stdin...` stderr 메시지?** codex CLI 의 정상 동작. 무해 — companion 이 자동 흡수합니다.
+- **What's the Gemini free-tier limit?** 60 req/min on `gemini-2.5-pro`. Exact values follow Google account policy.
+- **What's the Codex free-tier limit?** Bound to your ChatGPT Plus/Pro subscription quota. Exact values follow OpenAI policy.
+- **OAuth expiry?** Google ~7 days, ChatGPT typically 30+ days. On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically guide you.
+- **Permission errors with `npm i -g`?** Use nvm or `sudo`. nvm is recommended.
+- **No browser available?** Gemini: set `GEMINI_API_KEY` (https://aistudio.google.com/apikey). Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
+- **`--effort` rejected on the gemini side?** Intentional — see compatibility matrix (§4.5). Use `/ccp:codex-rescue --effort high -- "<task>"` instead.
+- **codex hangs reading stdin?** The companion forces `stdio: ['ignore', ...]` automatically. If you call `codex exec` manually, append `</dev/null`.
+- **`Reading additional input from stdin...` in stderr?** Normal codex CLI output. Harmless — the companion absorbs it.
 
 ---
 
-## 7. 라이선스·크레딧
+## 7. License & credits
 
-### 7.1 본 프로젝트
+### 7.1 This project
 
 [MIT License](./LICENSE) — © 2026 CCP Contributors
 
-### 7.2 References (차용 — Borrowed)
+### 7.2 References
 
-CCP borrows code and patterns from the following projects. Full per-file mappings, modifications, and source SHAs live in [ATTRIBUTION.md](./ATTRIBUTION.md); license-required notices live in [NOTICE](./NOTICE).
+- [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) — Apache-2.0
+- [oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode) — MIT
+- [everything-claude-code](https://github.com/affaan-m/everything-claude-code) — MIT
 
-- **[codex-plugin-cc](https://github.com/openai/codex-plugin-cc)** — Apache-2.0 (SHA `8e873d6f...`, release/v1.0.4). Codex CLI wrapper primitives (state · process · job-control · tracked-jobs · args) function-level adaptation under `plugins/ccp/scripts/lib/codex-*.mjs` (5 files).
-- **[oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)** — MIT (SHA `1e9f197b...`). Magic keyword pattern primitives (`removeCodeBlocks`, `hasActionableTrigger`, `isInformationalKeywordContext`, `INFORMATIONAL_INTENT_PATTERNS`) adapted into `plugins/ccp/scripts/lib/magic-keywords.mjs`.
-- **[everything-claude-code](https://github.com/affaan-m/everything-claude-code)** — MIT (SHA `c7c7d37f...`, snapshot 2026-04-30). PreCompact suggest-compact hook, context-budget skill SSOT, and harness-audit 8-category rubric adapted into `plugins/ccp/hooks/suggest-compact.js`, `plugins/ccp/skills/context-budget/SKILL.md`, and `plugins/ccp/scripts/harness-audit.js`.
+License texts: [`LICENSES/`](./LICENSES/)
 
-### 7.3 런타임 의존성
+### 7.3 Runtime dependencies
 
-| 패키지 | 라이선스 | 번들 |
-|--------|----------|:----:|
-| `@google/gemini-cli` (≥0.38.0) | Apache-2.0 | 외부 (사용자 설치) |
-| `@openai/codex` (≥0.122.0) | Apache-2.0 | 외부 (사용자 설치) |
-| Node.js (≥20.0) | MIT | 외부 |
+| Package | License | Bundled |
+|---|---|:---:|
+| `@google/gemini-cli` (≥ 0.38.0) | Apache-2.0 | external (user-installed) |
+| `@openai/codex` (≥ 0.122.0) | Apache-2.0 | external (user-installed) |
+| Node.js (≥ 20.0) | MIT | external |
 
-번들 바이너리 없음. 외부 API 약관 (Google Gemini, OpenAI Codex, Anthropic Claude) 은 각 사용자 책임.
-
-### 7.4 상표 면책
-
-> Claude Control Plane 은 Anthropic·Google·OpenAI 와 무관한 독립 커뮤니티 프로젝트입니다. 'Claude', 'Gemini', 'Claude Code', 'Codex' 는 각 소유자의 상표이며, 본 프로젝트는 해당 도구와의 상호운용성(interoperability) 을 위해 명목적으로만 상표를 사용합니다.
+No bundled binaries. External API terms (Google Gemini, OpenAI Codex, Anthropic Claude) are each user's responsibility.
 
 ---
 
-## 8. 로드맵
+## 8. Roadmap
 
-v0.2 에서 완료된 항목:
+Completed in v0.2:
 
-- 라우터 추천 훅 (UserPromptSubmit 시 결정 결과 자동 주입)
-- 라우팅 회귀 데이터셋 70 케이스 (코드 리뷰 케이스 포함)
-- 토큰 절감 측정 v0.2 (canonical / headless 진입 경로 분리)
-- canonical 자동 라우팅 opt-in (`plugin.json#config.auto_routing`)
-- 한국어 라우팅 매직 키워드 (`@젬` / `@코덱` / `@클로드` / `@자동`)
+- Router recommendation hook (decision auto-injected on `UserPromptSubmit`)
+- 70-case routing regression dataset (including code-review cases)
+- Token-saving measurement v0.2 (canonical / headless entry-path split)
+- Canonical auto-routing opt-in (`plugin.json#config.auto_routing`)
+- Korean routing magic keywords (`@젬` / `@코덱` / `@클로드` / `@자동`)
 
-검토 중 / 백로그:
+Under review / backlog:
 
-- SessionEnd 훅 background job 메타 정리 (사용자 요청 시 진입)
-- 역할 기반 모델 할당 스키마 (사용자가 도메인별로 codex / gemini / claude 선택)
+- SessionEnd hook for background job meta cleanup (on user request)
+- Role-based model assignment schema (let users map domains to codex / gemini / claude)
+- Single-slash unified flow (background job → poll → result auto-recovery)
 
-자세한 진행 사항: [CHANGELOG.md](./CHANGELOG.md) 참조
-
----
-
-## 9. 기여
-
-기여 가이드, DCO 서명 방법, 커밋 규약은 [CONTRIBUTING.md](./CONTRIBUTING.md) 를 참조하세요.
-
-한국어 이슈·PR 환영합니다. `feat/`, `fix/`, `docs/` 브랜치 명명 권장.
+Release history: [GitHub Releases](https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases)
 
 ---
 
-## 10. English Summary
+## 9. Contributing
 
-**What is CCP?** A community Claude Code plugin that uses Claude as the main control plane and offloads heavy-context tasks (large codebases, logs, doc summaries) to Gemini CLI. Gemini output is isolated to disk; only a 3-line summary + result path enters the main Claude session, preventing token-bill double-counting.
+GitHub Issues and Pull Requests are welcome in either English or Korean. Branch naming: `feat/<topic>`, `fix/<topic>`, `docs/<topic>`. Commits should follow [Conventional Commits](https://www.conventionalcommits.org).
 
-**Install (5 min):**
+---
 
-```
-/plugin marketplace add claude-control-plane
-/plugin install ccp
-/gemini:setup
-/gemini:rescue "summarize this README in 3 lines"
-```
-
-**Requirements:** Claude Code v1.0+, Node.js ≥ 20, Gemini CLI ≥ 0.38.0 (auto-prompted), Google account.
-
-**Disclaimer:** Independent community project, not affiliated with or endorsed by Anthropic or Google. "Claude", "Gemini", and "Claude Code" are trademarks of their respective owners; used nominatively for interoperability only.
-
-**Docs:** Korean-first. English translation welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-**License:** [MIT](./LICENSE) · See [ATTRIBUTION.md](./ATTRIBUTION.md) for third-party credits.
+**License:** [MIT](./LICENSE) · Third-party license texts: [`LICENSES/`](./LICENSES/) · Korean README: [README.ko.md](./README.ko.md)

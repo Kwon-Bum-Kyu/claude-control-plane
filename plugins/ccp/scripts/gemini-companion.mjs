@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 // CCP — Gemini CLI companion script
-// Mirrors codex-plugin-cc's codex-companion.mjs structure.
 // Subcommands: rescue | status | result | setup | preflight | task-worker
 // Envelope contract: see plugins/ccp/schemas/envelope.schema.json
 // Error codes:        see README §6 (CCP error code registry).

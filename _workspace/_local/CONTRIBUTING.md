@@ -65,7 +65,7 @@ Signed-off-by: Your Name <you@example.com>
 
 본 프로젝트에 기여한 코드는 [MIT License](./LICENSE) 하에 배포됩니다. PR 을 보내시면 본 라이선스에 동의하시는 것으로 간주됩니다.
 
-ecc 차용 파일을 수정하시는 경우, 변경 사항을 [ATTRIBUTION.md](./ATTRIBUTION.md) §1.1 표에 추가해 주세요.
+차용 파일 (ecc·omc·codex-plugin-cc) 을 수정하시거나 신규 차용을 추가하시는 경우, [`NOTICE`](./NOTICE) 의 차용 파일 매핑을 갱신해 주세요. 신규 상위 프로젝트 도입 시 라이선스 원문을 [`LICENSES/`](./LICENSES/) 에 추가해 주세요.
 
 ## 행동 강령
 

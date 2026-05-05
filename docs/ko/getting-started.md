@@ -6,7 +6,7 @@ CCP (Claude Control Plane) 는 Claude 를 메인 컨트롤 플레인으로 두�
 
 ## 사전 조건
 
-- Claude Code v1.0+
+- Claude Code v2.1+
 - Node.js >= 20.0
 - Gemini 위임용: Gemini CLI >= 0.38.0 + Google 계정
 - Codex 위임용: Codex CLI >= 0.122.0 + ChatGPT 계정
@@ -27,12 +27,15 @@ CCP (Claude Control Plane) 는 Claude 를 메인 컨트롤 플레인으로 두�
 ```bash
 # Gemini
 npm install -g @google/gemini-cli@latest
-gemini auth login
+gemini                            # 첫 인터랙티브 실행 시 브라우저로 Google OAuth 자동 시작
+# (대체) export GEMINI_API_KEY="..."   # https://aistudio.google.com/apikey
 
 # Codex
-brew install codex                # macOS
-# 또는 npm install -g @openai/codex
+npm install -g @openai/codex
+# 또는 brew install codex          # macOS
 codex login                       # 브라우저로 ChatGPT 인증
+# (브라우저 없음) codex login --device-auth
+# (API key)      printenv OPENAI_API_KEY | codex login --with-api-key
 ```
 
 ## 설치 확인

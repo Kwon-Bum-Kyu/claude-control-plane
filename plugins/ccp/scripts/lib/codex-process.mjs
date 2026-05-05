@@ -28,7 +28,6 @@ export function runCodexSync({ bin, args, cwd, timeoutMs }) {
 
 /**
  * Detached spawn - use file-fd stdio so the child survives even if the parent exits immediately.
- * Function-level adaptation of codex-plugin-cc's spawnDetachedTaskWorker.
  *
  * Key safeguards (validated empirically against codex CLI 0.122.x):
  *   1) stdio[0] = 'ignore'  -> prevents codex from hanging in a stdin wait loop

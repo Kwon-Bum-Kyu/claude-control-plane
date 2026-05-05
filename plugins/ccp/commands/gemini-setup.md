@@ -17,7 +17,7 @@ Verifies Gemini CLI installation and OAuth authentication status. On failure, it
 
 | Argument | Description |
 |------|------|
-| `--renew` | Re-auth mode guidance (asks the user to run `gemini auth login`) |
+| `--renew` | Re-auth mode guidance (asks the user to run `gemini` once to trigger OAuth, or set `GEMINI_API_KEY`) |
 
 ## Behavior
 
@@ -60,7 +60,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" setup
 |------|------|:---:|----------|
 | `CCP-SETUP-001` | Gemini CLI missing or < 0.38.0 | abort | `npm install -g @google/gemini-cli@latest` |
 | `CCP-SETUP-002` | Node.js < v20 | abort | use nvm or install Node from the official distribution |
-| `CCP-OAUTH-001` | OAuth credentials missing or expired | fallback | run `gemini auth login`, then rerun `/gemini:setup` |
+| `CCP-OAUTH-001` | OAuth credentials missing or expired | fallback | run `gemini` once (browser OAuth) or set `GEMINI_API_KEY`, then rerun `/gemini:setup` |
 
 ## Acceptance Criteria
 

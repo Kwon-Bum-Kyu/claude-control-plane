@@ -3,11 +3,6 @@
 // Events: UserPromptSubmit, PreCompact
 // Behavior: recommend voluntary compaction to the user when context reaches the 75% threshold (info).
 // Never auto-runs /compact (no automatic fallback — see README §4).
-//
-// Originally derived from: github.com/affaan-m/everything-claude-code (hooks/suggest-compact.js)
-// Original license: MIT — see ATTRIBUTION.md
-// Modifications: dual-event registration (UserPromptSubmit + PreCompact),
-//                English message, removal of auto-/compact trigger.
 
 import { readFileSync, statSync, existsSync } from 'node:fs';
 

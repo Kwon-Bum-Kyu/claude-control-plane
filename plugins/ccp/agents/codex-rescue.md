@@ -101,5 +101,4 @@ Whitelist the Bash command pattern in the project's `.claude/settings.json` unde
 
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)
 - `plugins/ccp/scripts/codex-companion.mjs` ERROR_CATALOG (error code SSOT)
-- `ATTRIBUTION.md` §1.3 (codex-plugin-cc Apache-2.0 source mapping)
 - README §4 (subagent isolation principle — no automatic fallback)

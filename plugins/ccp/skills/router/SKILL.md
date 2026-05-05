@@ -59,7 +59,7 @@ Token estimation: `words × 1.3` (see `token-budget-check` skill §2).
 
 ### C. Keyword matching
 
-Keyword matching uses two omc-derived primitives (MIT, see `ATTRIBUTION.md`):
+Keyword matching uses two helper primitives:
 
 1. **`removeCodeBlocks`** strips ` ``` ... ``` ` and `` ` ... ` `` regions before matching, so a keyword inside example code does not trigger a false delegation.
 2. **`hasActionableTrigger`** uses `\b ... \b` word-boundary matching for ASCII triggers and skips informational contexts (e.g. "what is review") via the `INFORMATIONAL_INTENT_PATTERNS` window.
@@ -142,7 +142,6 @@ In `claude -p` headless invocations, when the router recommends gemini/codex the
 ### Do (pre-script the slash)
 
 - ✅ Pre-script the slash command: `claude -p "/gemini:rescue <task>" -- ...`
-- ✅ Direct companion invocation: `node plugins/ccp/scripts/gemini-companion.mjs rescue --task <task>`
 - ✅ On failure, retry once and surface the result to the user (`--fallback-claude` only when explicitly requested — no auto-fallback).
 
 ### Guard
@@ -190,10 +189,8 @@ The router is the core logic that determines CCP's token-saving effect. The 4-ax
 - Router code (single SSOT): `plugins/ccp/scripts/lib/router.mjs`
 - Router agent (forwarding wrapper): `plugins/ccp/agents/router.md`
 - Router CLI entry (for hook + regression): `plugins/ccp/scripts/lib/router-decide.mjs`
-- omc primitives (MIT): `plugins/ccp/scripts/lib/magic-keywords.mjs`
+- Keyword primitives: `plugins/ccp/scripts/lib/magic-keywords.mjs`
 
 ## References
 
 - README §5 (router behavior) · §5.3 (canonical auto-routing opt-in)
-- `ATTRIBUTION.md` (omc adaptation)
-- `.claude/skills/router-implementation/SKILL.md` (meta-skill)

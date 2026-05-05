@@ -2,7 +2,7 @@ import { listJobs } from './codex-state.mjs';
 
 /**
  * Filter only jobs that belong to the current Claude session.
- * If env CLAUDE_SESSION_ID is missing, fall back to process.ppid (same as codex-plugin-cc).
+ * If env CLAUDE_SESSION_ID is missing, fall back to process.ppid.
  *
  * @param {object[]} jobs
  * @param {string} [sessionId]  explicit session ID
@@ -18,7 +18,6 @@ export function filterJobsForCurrentSession(jobs, sessionId) {
 
 /**
  * Return the single most recent resumable job.
- * Function-level adaptation of codex-plugin-cc's findLatestResumableTaskJob.
  * Priority:
  *   1) Metadata-based (current session + state == 'completed' + result_path present)
  *   2) (Not yet wired) codex resume --last fallback remains a future enhancement

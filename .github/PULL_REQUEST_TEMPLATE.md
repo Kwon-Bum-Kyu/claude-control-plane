@@ -18,11 +18,9 @@
 
 ## Borrowed-code checklist (skip if N/A)
 
-<!-- Required when touching files under `plugins/ccp/scripts/lib/codex_adapted/` or `lib/omc_adapted/`. -->
+<!-- Required when touching borrowed files (`plugins/ccp/scripts/lib/codex-*.mjs`, `lib/magic-keywords.mjs`, etc.). -->
 
-- [ ] Five-field adaptation header preserved (Source / SHA / License / Adapted by / Adapted on)
-- [ ] `NOTICE` and `ATTRIBUTION.md` updated if a new upstream function is borrowed
-- [ ] Upstream commit SHA pinned (no `<SHA-of-this-adaptation>` placeholder remaining)
+- [ ] License text added to `LICENSES/` if a new upstream project is introduced
 
 ## DCO sign-off
 

@@ -6,7 +6,7 @@ This page walks you through the five-minute setup and the four canonical samples
 
 ## Prerequisites
 
-- Claude Code v1.0+
+- Claude Code v2.1+
 - Node.js >= 20.0
 - For Gemini delegation: Gemini CLI >= 0.38.0 and a Google account
 - For Codex delegation: Codex CLI >= 0.122.0 and a ChatGPT account
@@ -27,12 +27,15 @@ The two `setup` commands inspect Node.js, the upstream CLI, and OAuth state. If 
 ```bash
 # Gemini
 npm install -g @google/gemini-cli@latest
-gemini auth login
+gemini                            # first interactive run triggers Google OAuth in your browser
+# (alternative) export GEMINI_API_KEY="..."   # https://aistudio.google.com/apikey
 
 # Codex
-brew install codex                # macOS
-# or: npm install -g @openai/codex
+npm install -g @openai/codex
+# or: brew install codex           # macOS
 codex login                       # opens a browser for ChatGPT auth
+# (no browser?) codex login --device-auth
+# (API key?)    printenv OPENAI_API_KEY | codex login --with-api-key
 ```
 
 ## Confirm the install
