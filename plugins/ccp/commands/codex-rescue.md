@@ -7,7 +7,7 @@ allowed-tools:
 
 # /ccp:codex-rescue
 
-Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Only a summary and result file path are returned to the main agent (double-billing prevention — `_workspace/02_arch_decisions.md` Principle 7).
+Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Only a summary and result file path are returned to the main agent (double-billing prevention — see README §4).
 
 ## Usage
 
@@ -20,7 +20,7 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 | `<task>` | Task description to delegate to Codex (required) |
 | `--background` | Detached async execution. Returns `job_id` immediately, then retrieve via `/ccp:codex-status` and `/ccp:codex-result` |
 | `--model NAME` | Model alias (for example `gpt-5-codex-medium`). Uses Codex default if omitted |
-| `--effort low\|medium\|high` | Reasoning effort. Translated to `-c model_reasoning_effort=` (probe §1 — Codex has no direct flag) |
+| `--effort low\|medium\|high` | Reasoning effort. Translated to `-c model_reasoning_effort=` (Codex has no direct flag) |
 | `--sandbox MODE` | `read-only` (default) / `workspace-write` / `danger-full-access` |
 | `--cwd DIR` | Codex working root (`-C` mapping) |
 | `--timeout-ms N` | Foreground response timeout (default 600000). Passed to worker metadata for background jobs |
@@ -29,9 +29,9 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 ## Behavior
 
 1. If `--fallback-claude` is present, return a fallback envelope immediately and skip companion invocation.
-2. Preflight: run `codex login status` (30s timeout, probe §2). Emit `CCP-OAUTH-101` if not authenticated.
-3. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed, probe §3.2). Parse 4 JSONL events into summary, tokens, and thread_id.
-4. Background: spawn a detached worker through `lib/codex_adapted/job-control.dispatchBackgroundJob` (file-fd stdio, probe §4). Return `{job_id, status:"queued"}` immediately.
+2. Preflight: run `codex login status` (30s timeout). Emit `CCP-OAUTH-101` if not authenticated.
+3. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed). Parse 4 JSONL events into summary, tokens, and thread_id.
+4. Background: spawn a detached worker through `lib/codex_adapted/job-control.dispatchBackgroundJob` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
 
 ## Invocation Pattern
 
@@ -82,7 +82,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 
-See `_workspace/01_error_messages.md` for the full catalog.
+See the ERROR_CATALOG block in `plugins/ccp/scripts/codex-companion.mjs` for the full catalog.
 
 ## Model Compatibility
 
@@ -90,13 +90,13 @@ Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the
 
 ## Acceptance Criteria
 
-- Foreground: respond within P95×2 = 15s or return an error envelope (probe §2).
+- Foreground: respond within ~15s or return an error envelope.
 - Background: return `job_id` within 1 second.
 - Pass the envelope schema (`plugins/ccp/schemas/envelope.schema.json`) 100%.
-- Main-context ingress ≤ 500 characters (RC-1).
+- Main-context ingress ≤ 500 characters.
 
 ## Spec SSOT
 
-- `_workspace/06_codex_cli_probe.md` §1, §3
-- `_workspace/06_codex_function_mapping.md` §3, §4
-- `_workspace/01_error_messages.md`
+- `plugins/ccp/schemas/envelope.schema.json`
+- `plugins/ccp/scripts/codex-companion.mjs` ERROR_CATALOG
+- `ATTRIBUTION.md` §1.3 (codex-plugin-cc Apache-2.0 source mapping)

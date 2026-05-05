@@ -1,8 +1,8 @@
 // Adapted from: codex-plugin-cc plugins/codex/scripts/lib/tracked-jobs.mjs
 // Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md §1.3, NOTICE)
-// Modifications: CLAUDE_SESSION_ID env filter, codex resume --last fallback (probe §1 — codex supports picker / --last natively), localised errors
-// SHA-of-this-adaptation: <to be filled at B1 merge>
+// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
+// Modifications: CLAUDE_SESSION_ID env filter, codex resume --last fallback (codex supports picker / --last natively), localised errors
+// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
 
 import { listJobs } from './state.mjs';
 
@@ -27,7 +27,7 @@ export function filterJobsForCurrentSession(jobs, sessionId) {
  * Function-level adaptation of codex-plugin-cc's findLatestResumableTaskJob.
  * Priority:
  *   1) Metadata-based (current session + state == 'completed' + result_path present)
- *   2) (B1 v0.1: not applied) codex resume --last fallback remains on the v0.2 backlog (depends on B19)
+ *   2) (Not yet wired) codex resume --last fallback remains a future enhancement
  *
  * @param {string} jobsDir
  * @param {object} [opts]

@@ -37,7 +37,7 @@ The full markdown specs (description, examples, exit codes) live in `plugins/ccp
 | `--timeout-ms N` | yes (default 600000) | yes (default 600000) | Foreground timeout |
 | `--poll-interval-ms N` | yes (2000) | yes (2000) | Background polling cadence |
 | `--max-tokens N` | yes (default 4000) | no | Gemini-only; rendered as a prompt suffix |
-| `--files <glob>` | partial (B13 backlog) | no | Gemini-only attachment |
+| `--files <glob>` | partial (backlog) | no | Gemini-only attachment |
 | `--model NAME` | no | yes | Codex model alias |
 | `--effort low\|medium\|high` | no, returns `CCP-INVALID-001` | yes (`-c model_reasoning_effort=...`) | Codex-only reasoning effort |
 | `--sandbox MODE` | no, returns `CCP-INVALID-001` | yes (`read-only` / `workspace-write` / `danger-full-access`) | Codex sandbox |
@@ -57,7 +57,7 @@ If you pass a Codex-only flag to `/gemini:rescue` (or vice versa), the companion
 | `--write` | n/a | no | yes (alias for `--sandbox workspace-write`) | Codex shorthand |
 | `--cwd DIR` | n/a (per turn) | no | yes (`-C`) | Codex only |
 | `--max-tokens N` | n/a | yes (prompt suffix) | no | Gemini only |
-| `--files <glob>` | (chat attachment) | partial (B13) | no | Gemini backlog |
+| `--files <glob>` | (chat attachment) | partial (backlog) | no | Gemini backlog |
 | `--resume-last` | n/a | partial (meta-file) | yes (`codex resume --last`) | Codex CLI native |
 
 ## Examples

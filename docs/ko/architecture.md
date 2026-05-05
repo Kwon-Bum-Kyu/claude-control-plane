@@ -1,6 +1,6 @@
 # 아키텍처
 
-CCP 는 7원칙과 단일 envelope 스키마로 구성됩니다. 본 문서는 두 가지를 요약합니다. 정식 SSOT 는 `_workspace/02_arch_decisions.md` (원칙) 와 `plugins/ccp/schemas/envelope.schema.json` (스키마) 이지만 dev-internal 이므로, 본 문서가 공개 페이지입니다.
+CCP 는 7원칙과 단일 envelope 스키마로 구성됩니다. 본 문서는 두 가지를 요약합니다. 스키마 SSOT 는 `plugins/ccp/schemas/envelope.schema.json` 입니다.
 
 ## 7원칙
 

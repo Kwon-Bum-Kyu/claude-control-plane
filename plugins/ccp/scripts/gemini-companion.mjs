@@ -2,8 +2,8 @@
 // CCP — Gemini CLI companion script
 // Mirrors codex-plugin-cc's codex-companion.mjs structure.
 // Subcommands: rescue | status | result | setup | preflight | task-worker
-// Envelope contract: see _workspace/01_schema.md §2 and §3.
-// Error codes:        see _workspace/01_error_messages.md (SSOT).
+// Envelope contract: see plugins/ccp/schemas/envelope.schema.json
+// Error codes:        see README §6 (CCP error code registry).
 
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -105,8 +105,8 @@ function clampSummary(text) {
 }
 
 function sanitizeDetails(details) {
-  // L6 spec: block secrets. Per _workspace/03_r18_decision.md, IDE tokens and
-  // similar values are already blocked by four layers, but envelope details adds one more guard.
+  // Block secrets. IDE tokens and similar values are already blocked by upstream
+  // layers, but envelope details adds one more guard for defense-in-depth.
   const blocked = /token|secret|api[_-]?key|authorization|password/i;
   const out = {};
   for (const [k, v] of Object.entries(details)) {
@@ -118,7 +118,7 @@ function sanitizeDetails(details) {
 }
 
 // ---------------------------------------------------------------------------
-// Error catalog — SSOT mirror of _workspace/01_error_messages.md
+// Error catalog — SSOT for CCP error codes (mirrored in README §6)
 // ---------------------------------------------------------------------------
 
 const FALLBACK_HINT_KO =
@@ -222,7 +222,7 @@ const ERROR_CATALOG = {
 // Argument parsing
 // ---------------------------------------------------------------------------
 
-// Reject immediately if Codex-only options leak into gemini-companion (B1-S3-5).
+// Reject immediately if Codex-only options leak into gemini-companion.
 // Kept consistent with the compatibility matrix (README §Model Compatibility).
 const GEMINI_UNSUPPORTED = new Set(['--effort', '--write', '--sandbox']);
 
@@ -256,7 +256,7 @@ function parseFlags(argv) {
 }
 
 // ---------------------------------------------------------------------------
-// Path traversal guard (S3-3)
+// Path traversal guard
 // ---------------------------------------------------------------------------
 
 function assertGlobInsidePluginRoot(glob) {
@@ -274,7 +274,7 @@ function assertGlobInsidePluginRoot(glob) {
 }
 
 // ---------------------------------------------------------------------------
-// Output size guard (S3-2) — estimated as words × 1.3
+// Output size guard — estimated as words × 1.3
 // ---------------------------------------------------------------------------
 
 function estimateTokens(text) {
@@ -360,7 +360,7 @@ function detectAuthMethod() {
 }
 
 function probeOAuth() {
-  // R17 — `gemini auth status` is unsupported. Decide via a probe call.
+  // `gemini auth status` is unsupported by the CLI. Decide via a probe call.
   // timeout: measured spawnSync on macOS is 9.6 to 11.7s (cold start). 30s leaves headroom.
   const r = spawnSync(
     'gemini',
@@ -452,7 +452,7 @@ function makeSummary(body) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: setup / preflight (S3-6)
+// Subcommand: setup / preflight
 // ---------------------------------------------------------------------------
 
 function cmdSetup(_args) {
@@ -521,7 +521,7 @@ function cmdPreflight(_args) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: status (S3-4)
+// Subcommand: status
 // ---------------------------------------------------------------------------
 
 function cmdStatus(args) {
@@ -556,7 +556,7 @@ function cmdStatus(args) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: result (S3-5)
+// Subcommand: result
 // ---------------------------------------------------------------------------
 
 function cmdResult(args) {
@@ -585,21 +585,21 @@ function cmdResult(args) {
 }
 
 // ---------------------------------------------------------------------------
-// Subcommand: rescue (S3-1) — foreground & background dispatcher
+// Subcommand: rescue — foreground & background dispatcher
 // ---------------------------------------------------------------------------
 
 function buildGeminiArgs(prompt, { maxTokens, files }) {
   // Use only real Gemini CLI 0.38.x flags.
   // - `--max-output-tokens`/`--all-files` do not exist, so omit them.
   // - `maxTokens`: a soft hint in the prompt text; post-call `enforceContextBudget` is the hard cap.
-  // - `files`: unsupported in MVP (backlog B12 — review mapping to `--include-directories`).
+  // - `files`: unsupported in MVP (backlog: file-context injection mapping).
   const cappedPrompt = maxTokens
     ? `${prompt}\n\n(Answer within ${maxTokens} tokens if possible)`
     : prompt;
   return ['-p', cappedPrompt, '-o', 'json'];
 }
 
-const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // B17: allow large user tasks (Phase 5-C)
+const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // 10 min — allow large foreground tasks
 
 function runGeminiSync(prompt, opts, timeoutMs) {
   const r = spawnSync('gemini', buildGeminiArgs(prompt, opts), {
@@ -620,16 +620,16 @@ function cmdRescue(args) {
   }
   assertGlobInsidePluginRoot(args.files);
 
-  // MVP: `--files` is unsupported (no Gemini CLI 0.38.x mapping). Backlog B13.
+  // MVP: `--files` is unsupported (no Gemini CLI 0.38.x mapping yet).
   if (args.files) {
     emitError('CCP-INVALID-001', {
       message: '`--files` is not supported in the MVP',
-      action: 'Include file contents directly in the task body, or use the main Claude agent with `--fallback-claude`. Tracking: backlog B13.',
+      action: 'Include file contents directly in the task body, or use the main Claude agent with `--fallback-claude`. File-context injection is on the roadmap.',
     });
   }
 
   if (args.fallbackClaude) {
-    // R13 — skip the companion call and return only a `mode=fallback_claude` envelope.
+    // Skip the companion call and return only a `mode=fallback_claude` envelope.
     emitSuccess({
       summary: 'Main Claude fallback path — companion call skipped',
       result_path: null,
@@ -706,8 +706,8 @@ function rescueForeground({ task, maxTokens, files }) {
   const body = extractGeminiBody(stdoutText);
   const tokens = parseGeminiTokens(stdoutText);
 
-  // S3-2 — if the result body itself exceeds 1500 tokens, do not place it
-  // directly in the envelope. Save it to `result.md` and return only a summary.
+  // If the result body itself exceeds 1500 tokens, do not place it directly
+  // in the envelope. Save it to `result.md` and return only a summary.
   // If the summary itself exceeds the limit, block it.
   const resultRel = `_workspace/_jobs/${jobId}/result.md`;
   writeFileSync(resolve(REPO_ROOT, resultRel), body);
@@ -746,7 +746,7 @@ function rescueBackground({ task, maxTokens, files }) {
   const dir = jobDir(jobId);
   mkdirSync(dir, { recursive: true });
 
-  // If OAuth is expired, block background mode immediately too (R6)
+  // If OAuth is expired, block background mode immediately too
   const authMethod = detectAuthMethod();
   if (!authMethod) {
     emitError('CCP-OAUTH-001', {

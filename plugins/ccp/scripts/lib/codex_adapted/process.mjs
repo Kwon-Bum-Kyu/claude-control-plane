@@ -1,8 +1,8 @@
 // Adapted from: codex-plugin-cc plugins/codex/scripts/lib/process.mjs
 // Source commit: 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
-// Original license: Apache-2.0 (see ATTRIBUTION.md §1.3, NOTICE)
-// Modifications: forced file-fd stdio (probe §4 — pipe causes SIGPIPE child death), forced stdin: 'ignore' (probe §3.2 — codex hangs if stdin stays open), localised errors
-// SHA-of-this-adaptation: <to be filled at B1 merge>
+// Original license: Apache-2.0 (see ATTRIBUTION.md, NOTICE)
+// Modifications: forced file-fd stdio (pipe causes SIGPIPE child death), forced stdin: 'ignore' (codex hangs if stdin stays open), localised errors
+// SHA-of-this-adaptation: 11f0aaf61ae6d048cc842b3ca42c5e43c6da10ab
 
 import { spawn, spawnSync } from 'node:child_process';
 import { openSync, closeSync } from 'node:fs';
@@ -36,7 +36,7 @@ export function runCodexSync({ bin, args, cwd, timeoutMs }) {
  * Detached spawn - use file-fd stdio so the child survives even if the parent exits immediately.
  * Function-level adaptation of codex-plugin-cc's spawnDetachedTaskWorker.
  *
- * Key safeguards (validated in probe §4):
+ * Key safeguards (validated empirically against codex CLI 0.122.x):
  *   1) stdio[0] = 'ignore'  -> prevents codex from hanging in a stdin wait loop
  *   2) stdio[1], stdio[2] = file fd  -> avoids immediate child death from SIGPIPE when using pipes
  *   3) child.unref()       -> the parent event loop does not wait for the child

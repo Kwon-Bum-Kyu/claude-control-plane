@@ -19,7 +19,7 @@ Verifies Codex CLI installation and OAuth authentication status. On failure, it 
 
 1. Verify Node.js version (≥ v20). Emit `CCP-SETUP-002` if below requirement.
 2. Run `codex --version`. Emit `CCP-SETUP-101` if missing, or `CCP-SETUP-102` if below 0.122.0.
-3. Run `codex login status` (probe §5 — prints "Logged in using ChatGPT" to stderr). Emit `CCP-OAUTH-101` if unauthenticated.
+3. Run `codex login status` (prints "Logged in using ChatGPT" to stderr). Emit `CCP-OAUTH-101` if unauthenticated.
 4. If all checks pass, return an envelope with `details: {codex_version, node_version, mode: "codex"}`.
 
 ## Invocation Pattern
@@ -55,11 +55,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" setup
 
 ## Acceptance Criteria
 
-- Respond within 5 seconds (probe §2: `codex login status` 0.106s + cold-start margin).
+- Respond within 5 seconds (`codex login status` typically returns in ~0.1s plus cold-start margin).
 - Show actionable guidance on errors.
 
 ## Spec SSOT
 
-- `_workspace/06_codex_cli_probe.md` §1, §2, §5
-- `_workspace/06_codex_function_mapping.md` §1
+- `plugins/ccp/scripts/codex-companion.mjs:cmdSetup`
 - `plugins/ccp/schemas/envelope.schema.json` (output self-validation)

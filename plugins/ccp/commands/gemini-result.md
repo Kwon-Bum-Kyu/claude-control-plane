@@ -7,7 +7,7 @@ allowed-tools:
 
 # /gemini:result
 
-Retrieves the result of a job started with `/gemini:rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (R1 double-billing prevention — `_workspace/02_arch_decisions.md` Principle 7).
+Retrieves the result of a job started with `/gemini:rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (double-billing prevention — see README §4).
 
 ## Usage
 
@@ -59,10 +59,9 @@ Main Claude should pass `result_path` to the user, but **must not open it with a
 ## Acceptance Criteria
 
 - Respond within 1 second.
-- Do not include `result.md` body content in the envelope (main-context protection — RC-1 ≤ 500 chars).
+- Do not include `result.md` body content in the envelope (main-context protection — summary ≤ 500 chars).
 
 ## Spec SSOT
 
-- `_workspace/01_command_spec.md` §"/gemini:result"
-- `_workspace/01_schema.md` §2.1 (envelope), §3.4 (secret-ban rules)
-- `_workspace/01_error_messages.md`
+- `plugins/ccp/scripts/gemini-companion.mjs:cmdResult`
+- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

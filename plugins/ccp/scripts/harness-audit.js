@@ -4,7 +4,7 @@
 // Output: JSON envelope (foreground success) + persisted report at _workspace/_audits/<ts>.{md,json}
 //
 // Originally derived from: github.com/affaan-m/everything-claude-code (scripts/harness-audit.js)
-// Original license: MIT — see /ATTRIBUTION.md §1.1
+// Original license: MIT — see ATTRIBUTION.md
 // Modifications: 7-category rubric retuned for CCP workloads (envelope/router/secret_leak),
 //                _workspace/_audits/ output path, foreground-success envelope wrapper.
 
@@ -135,7 +135,7 @@ function readJobs(sinceTs) {
 // ---------------------------------------------------------------------------
 
 function scoreContextEfficiency(jobs) {
-  // RC-1 — summary length <= 500 chars / total summary length stays small
+  // Summary length <= 500 chars / total summary length stays small
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   const compliant = jobs.filter(
     (j) => !j.summary_3lines || j.summary_3lines.length <= 500
@@ -149,7 +149,7 @@ function scoreContextEfficiency(jobs) {
 }
 
 function scoreCostEfficiency(jobs) {
-  // Ratio of jobs with token stats present (actual savings rate finalized in the S4-4 measurement report)
+  // Ratio of jobs with token stats present
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   const measured = jobs.filter(
     (j) => j.token_usage && j.token_usage.estimated === false
@@ -163,14 +163,14 @@ function scoreCostEfficiency(jobs) {
 }
 
 function scoreRouterAccuracy() {
-  // Cite the S4-3 report (_workspace/04_router_report.md) if present; otherwise N/A
+  // Cite the router report if present; otherwise N/A.
   const report = resolve(REPO_ROOT, '_workspace', '04_router_report.md');
-  if (!existsSync(report)) return { score: null, note: 'router report not written (waiting on S4-3)' };
+  if (!existsSync(report)) return { score: null, note: 'router report not written' };
   return { score: 5, note: 'router report completed' };
 }
 
 function scoreDoubleBilling(jobs) {
-  // R1 — meta.summary_3lines must be shorter than the result_file_path body size
+  // Double-billing guard — meta.summary_3lines must be shorter than the result_file_path body size
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   let safe = 0;
   for (const j of jobs) {
@@ -197,19 +197,19 @@ function scoreDoubleBilling(jobs) {
 }
 
 function scoreFallbackHealth(jobs) {
-  // R6 — Estimate recovery rate after user re-invocation following OAuth expiry.
-  // Here we approximate it with the OAuth error-code ratio and user re-invocation (--fallback-claude) count.
+  // Estimate recovery rate after user re-invocation following OAuth expiry.
+  // Approximated by the OAuth error-code ratio and user re-invocation (--fallback-claude) count.
   if (jobs.length === 0) return { score: null, note: 'no jobs' };
   const oauth = jobs.filter((j) => j.error?.code === 'CCP-OAUTH-001').length;
   if (oauth === 0) return { score: 5, note: '0 OAuth errors' };
-  return { score: 3, note: `${oauth} OAuth errors - re-invocation tracking not implemented (P1)` };
+  return { score: 3, note: `${oauth} OAuth errors - re-invocation tracking not yet implemented` };
 }
 
 function scorePluginCompat() {
-  // R4 — Verify compliance with the official plugin.json schema.
-  // In Phase 5-A T5, minClaudeVersion/engines were confirmed as nonstandard keys and removed
-  // (`_workspace/05_phase5a_install_troubleshooting.md` §T5). Therefore this check
-  // validates only the 5 standard keys from the official plugins-reference (B15 / 2026-04-27).
+  // Verify compliance with the official plugin.json schema.
+  // The check validates only the 5 standard keys from the official plugins-reference
+  // (name / version / description / author / license). Non-standard keys
+  // (minClaudeVersion / engines) are deliberately not enforced here.
   const pluginJson = resolve(PLUGIN_ROOT, '.claude-plugin', 'plugin.json');
   if (!existsSync(pluginJson)) return { score: 0, note: 'plugin.json missing' };
   let obj;
@@ -241,11 +241,11 @@ function scorePluginCompat() {
 }
 
 function scoreAdaptedHeaders() {
-  // G1-I (added in B1) — borrowed files under lib/codex_adapted/ require a 5-field header.
-  // Missing headers break license traceability by diverging from ATTRIBUTION §6 / NOTICE.
+  // Borrowed files under lib/codex_adapted/ require a 5-field header.
+  // Missing headers break license traceability by diverging from ATTRIBUTION / NOTICE.
   const dir = resolve(PLUGIN_ROOT, 'scripts', 'lib', 'codex_adapted');
   if (!existsSync(dir)) {
-    return { score: null, note: 'lib/codex_adapted/ missing (pre-B1 stage)' };
+    return { score: null, note: 'lib/codex_adapted/ missing' };
   }
   const required = [
     /^\/\/ Adapted from:/m,
@@ -308,9 +308,9 @@ function renderMarkdown({ scores, jobs, since, generatedAt }) {
   }
   lines.push('');
   lines.push('## Spec SSOT');
-  lines.push('- `_workspace/01_command_spec.md` §"/ccp:audit"');
-  lines.push('- `_workspace/02_regression_cases.md` (RC-1~RC-7)');
-  lines.push('- `_workspace/02_arch_decisions.md` Principle 7 (subagent isolation)');
+  lines.push('- `plugins/ccp/commands/ccp-audit.md` (slash-command spec)');
+  lines.push('- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)');
+  lines.push('- README §4 (subagent isolation principle)');
   return lines.join('\n');
 }
 

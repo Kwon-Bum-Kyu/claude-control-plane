@@ -2,9 +2,9 @@
 // CCP — Codex CLI companion script
 // Mirrors gemini-companion.mjs structure with codex-specific adaptations.
 // Subcommands: setup | rescue | status | result | cancel | task-worker
-// Envelope contract: see _workspace/01_schema.md §2 + plugins/ccp/schemas/envelope.schema.json
-// Error codes:        see _workspace/01_error_messages.md (SSOT) and ERROR_CATALOG below.
-// Adapted decisions:  _workspace/06_codex_cli_probe.md (B1-S1-1) + _workspace/06_codex_function_mapping.md (B1-S1-2)
+// Envelope contract: see plugins/ccp/schemas/envelope.schema.json
+// Error codes:        see ERROR_CATALOG below (mirrored in README §6).
+// Adapted decisions:  see ATTRIBUTION.md §1.3 (codex-plugin-cc Apache-2.0 source mapping).
 
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
@@ -43,10 +43,10 @@ const JOBS_DIR =
 
 const SUMMARY_MAX_CHARS = 500;
 const SUMMARY_TOKEN_CAP = 1500;
-const DEFAULT_TIMEOUT_MS = 240000; // probe §2 — codex_exec P95 7.242s × 2 + margin
+const DEFAULT_TIMEOUT_MS = 240000; // codex_exec P95 ~7s × 2 + margin (measured)
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const PROBE_OAUTH_TIMEOUT_MS = 30000; // same as gemini (cold start buffer)
-const FOREGROUND_TIMEOUT_MS = 600000; // allow large user tasks (mirrors gemini-companion B17 policy)
+const FOREGROUND_TIMEOUT_MS = 600000; // 10 min — mirrors gemini-companion foreground default
 const MIN_NODE_MAJOR = 20;
 const MIN_CODEX_VERSION = '0.122.0';
 
@@ -254,7 +254,7 @@ function nodeMajor() {
 }
 
 function probeOAuth(timeoutMs = PROBE_OAUTH_TIMEOUT_MS) {
-  // probe §5: codex login status uses empty stdout and prints "Logged in using ChatGPT" to stderr
+  // codex login status prints empty stdout and "Logged in using ChatGPT" to stderr
   const r = spawnSync('codex', ['login', 'status'], {
     encoding: 'utf8',
     timeout: timeoutMs,
@@ -278,7 +278,7 @@ function probeOAuth(timeoutMs = PROBE_OAUTH_TIMEOUT_MS) {
 // ---------------------------------------------------------------------------
 
 function parseCodexJsonl(text) {
-  // probe §3.1: 4 events — thread.started / turn.started / item.completed / turn.completed
+  // codex stream-json emits 4 events: thread.started / turn.started / item.completed / turn.completed
   const events = [];
   const lines = String(text || '').split(/\r?\n/);
   for (const line of lines) {
@@ -531,7 +531,7 @@ function handleResult(parsed) {
 }
 
 // ---------------------------------------------------------------------------
-// Cancel subcommand (new in B1)
+// Cancel subcommand
 // ---------------------------------------------------------------------------
 
 function handleCancel(parsed) {

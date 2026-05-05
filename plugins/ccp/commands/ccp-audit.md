@@ -25,13 +25,13 @@ Generates an audit report that scores CCP token usage, context efficiency, route
 1. Invoke `harness-audit.js`.
 2. Scan `_workspace/_jobs/*/meta.json` and recent session logs.
 3. Compute 7 category scores (0-5 each):
-   - **Context Efficiency** — average `summary` length and RC-1 (`main_context_delta ≤ 500`) compliance
-   - **Cost Efficiency** — average token savings across T1-T7
-   - **Router Accuracy** — accuracy on the 36-case dataset (≥ 80% PASS)
-   - **Double-billing Detection (R1)** — verifies zero raw `result.md` leakage into main context
-   - **Fallback Health (R6)** — user reinvocation success rate after OAuth expiry
-   - **Plugin Compatibility (R4)** — compliance with `minClaudeVersion`, `engines.node`, and `engines.gemini_cli`
-   - **Secret Leak Check (L5·L6)** — grep for secrets in envelope `details` and verify `.gitignore` isolation
+   - **Context Efficiency** — average `summary` length and main-context delta ≤ 500 chars compliance
+   - **Cost Efficiency** — average token savings across measured tasks
+   - **Router Accuracy** — accuracy on the routing regression dataset (≥ 80% PASS)
+   - **Double-billing Detection** — verifies zero raw `result.md` leakage into main context
+   - **Fallback Health** — user reinvocation success rate after OAuth expiry
+   - **Plugin Compatibility** — compliance with `name`, `version`, `description`, `author`, `license` (5 standard plugin.json fields)
+   - **Secret Leak Check** — grep for secrets in envelope `details` and verify `.gitignore` isolation
 4. Persist the result to `_workspace/_audits/<YYYY-MM-DDTHHMMSSZ>.md` or `.json`.
 
 ## Invocation Pattern
@@ -62,7 +62,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js" [--since <date>] [--format
 }
 ```
 
-> **S2-5 details placement rule:** Store the `scores` object in the `details` subobject, not at the envelope root.
+> **details placement rule:** Store the `scores` object in the `details` subobject, not at the envelope root.
 
 ## Error Codes
 
@@ -79,6 +79,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js" [--since <date>] [--format
 
 ## Spec SSOT
 
-- `_workspace/01_command_spec.md` §"/ccp:audit"
-- `_workspace/02_arch_decisions.md` Principle 7
-- `_workspace/02_regression_cases.md` (RC-1~RC-7 verification items)
+- `plugins/ccp/scripts/harness-audit.js` (scoring rubric + report writer)
+- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)
+- README §4 (subagent isolation principle)

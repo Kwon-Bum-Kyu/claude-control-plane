@@ -37,7 +37,7 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 | `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | foreground timeout |
 | `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | background polling 주기 |
 | `--max-tokens N` | ✅ (default 4000) | ❌ | Gemini 전용, prompt suffix 변환 |
-| `--files <glob>` | ⚠️ B13 백로그 | ❌ | Gemini 첨부 파일 |
+| `--files <glob>` | ⚠️ 백로그 | ❌ | Gemini 첨부 파일 |
 | `--model NAME` | ❌ | ✅ | Codex 모델 별칭 |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=...`) | Codex 전용 |
 | `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (`read-only` / `workspace-write` / `danger-full-access`) | Codex 샌드박스 |
@@ -57,7 +57,7 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 | `--write` | N/A | ❌ | ✅ (`--sandbox workspace-write` alias) | Codex 단축형 |
 | `--cwd DIR` | N/A (turn 별) | ❌ | ✅ (`-C`) | Codex 만 |
 | `--max-tokens N` | N/A | ✅ (prompt suffix) | ❌ | Gemini 만 |
-| `--files <glob>` | (chat 첨부) | ⚠️ B13 | ❌ | Gemini 백로그 |
+| `--files <glob>` | (chat 첨부) | ⚠️ 백로그 | ❌ | Gemini 백로그 |
 | `--resume-last` | N/A | ⚠️ meta-file 흉내 | ✅ (`codex resume --last`) | Codex CLI 네이티브 |
 
 ## 예제

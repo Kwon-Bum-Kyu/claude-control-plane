@@ -61,10 +61,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" status <job_id>
 ## Acceptance Criteria
 
 - Respond within 1 second.
-- `details.status` must exactly match the enum in `01_schema.md` §1.2 (`queued|running|completed|failed`).
+- `details.status` must be one of `queued|running|completed|failed`.
 
 ## Spec SSOT
 
-- `_workspace/01_command_spec.md` §"/gemini:status"
-- `_workspace/01_schema.md` §1 Job metadata
-- `_workspace/01_error_messages.md`
+- `plugins/ccp/scripts/gemini-companion.mjs:cmdStatus`
+- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

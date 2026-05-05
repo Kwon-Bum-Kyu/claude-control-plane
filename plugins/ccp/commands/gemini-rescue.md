@@ -7,7 +7,7 @@ allowed-tools:
 
 # /gemini:rescue
 
-Delegates work to a Gemini CLI subagent to reduce main Claude context tokens. Only a 3-line summary and result file path are returned to the main agent (double-billing prevention — `_workspace/02_arch_decisions.md` Principle 7).
+Delegates work to a Gemini CLI subagent to reduce main Claude context tokens. Only a 3-line summary and result file path are returned to the main agent (double-billing prevention — see README §4).
 
 ## Usage
 
@@ -73,19 +73,17 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" rescue --task "<task>"
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 
-See `_workspace/01_error_messages.md` for the full catalog.
+See the ERROR_CATALOG block in `plugins/ccp/scripts/gemini-companion.mjs` for the full catalog.
 
-## Acceptance Criteria (PRD §7)
+## Acceptance Criteria
 
 - Foreground: respond within 15 seconds or return an error envelope.
 - Background: return `job_id` within 1 second.
 - All errors must use the common envelope (`error.code` regex `^CCP-[A-Z]+-[0-9]{3}$` matches 100%).
-- Main-context ingress ≤ 500 characters (RC-1).
-- No automatic fallback (Principle 4) — if Gemini fails, offer options to the user.
+- Main-context ingress ≤ 500 characters.
+- No automatic fallback — if Gemini fails, offer options to the user.
 
 ## Spec SSOT
 
-- `_workspace/01_command_spec.md` §"/gemini:rescue"
-- `_workspace/01_schema.md` §1.2 (`token_usage`), §2 (envelope)
-- `_workspace/01_user_scenarios.md` Scenarios 1, 2, 3
-- `_workspace/01_error_messages.md` (error catalog SSOT)
+- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)
+- `plugins/ccp/scripts/gemini-companion.mjs` ERROR_CATALOG (error code SSOT)

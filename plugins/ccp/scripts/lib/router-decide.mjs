@@ -1,7 +1,5 @@
 #!/usr/bin/env node
-// CCP — router-decide.mjs (B24 Step 2, deterministic-router CLI entry)
-// Spec: _workspace/02_arch_decisions.md principle 4 §4.1 + principle 7 5-defense
-//       _workspace/08_b24_plan.md §5.2
+// CCP — router-decide.mjs (deterministic-router CLI entry)
 //
 // Single Bash entry point invoked by:
 //   1. agents/router.md (router agent — forwarding wrapper, dispatch defense)
@@ -10,15 +8,16 @@
 //
 // Behavior — strictly deterministic:
 //   - Reads --prompt (or stdin JSON `prompt`/`user_prompt`/`input`)
-//   - Calls router.mjs#classify (same SSOT as B19 / router-eval)
-//   - Detects canonical/headless via multi-signal OR (U7-B):
+//   - Calls router.mjs#classify (same SSOT shared with the recommendation hook
+//     and the router regression suite)
+//   - Detects canonical/headless via multi-signal OR:
 //       env.CI / env.CLAUDE_CODE_NONINTERACTIVE / env.CLAUDE_CODE_ENTRYPOINT (≠cli)
-//     `process.stdin.isTTY` is NOT used (U7-B finding — always null in hook child).
+//     `process.stdin.isTTY` is NOT used (always null inside hook child processes).
 //   - Reads plugin.json#config.auto_routing (opt-in, default false)
 //   - Emits success envelope with details.mode === "router" + reason_code enum
 //
-// 5-defense rule 3 (runtime) — JSON only, no free text. The reason_code enum
-// is the only free-form field allowed in details and is bounded to 12 values.
+// Runtime defense — JSON only, no free text. The reason_code enum is the
+// only free-form field allowed in details and is bounded to 12 values.
 // Stderr is reserved for diagnostic notes (e.g. headless reason text).
 //
 // Usage:
@@ -78,7 +77,7 @@ function resolvePromptFromStdin(raw) {
   }
 }
 
-// --- canonical/headless detection (U7-B multi-signal OR) -------------------
+// --- canonical/headless detection (multi-signal OR) ------------------------
 
 function detectHeadlessConfident(env = process.env) {
   if (env.CI === 'true' || env.CI === '1') {
@@ -89,7 +88,7 @@ function detectHeadlessConfident(env = process.env) {
   }
   // CLAUDE_CODE_ENTRYPOINT default 'cli' = canonical. Anything else (e.g.
   // future 'headless' or 'sdk') is treated as headless. Empty or missing is
-  // tolerated as canonical (current Claude Code behavior, U7-B baseline).
+  // tolerated as canonical (matches current Claude Code behavior).
   const ep = env.CLAUDE_CODE_ENTRYPOINT;
   if (ep && ep !== 'cli') {
     return { confident: true, reason: `env.CLAUDE_CODE_ENTRYPOINT=${ep}` };
@@ -120,7 +119,7 @@ const REASON_CODE_MAP = {
   user_explicit_gemini: 'AXIS_A_SLASH',
   user_explicit_claude: 'AXIS_A_FALLBACK_CLAUDE',
   user_explicit_codex_option: 'AXIS_A_OPTION',
-  // B25 — magic keywords share AXIS_A_SLASH (axis A user-explicit, same priority).
+  // Magic keywords share AXIS_A_SLASH (axis A user-explicit, same priority).
   user_explicit_gemini_magic: 'AXIS_A_SLASH',
   user_explicit_codex_magic: 'AXIS_A_SLASH',
   user_explicit_claude_magic: 'AXIS_A_SLASH',

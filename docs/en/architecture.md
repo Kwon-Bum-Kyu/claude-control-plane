@@ -1,6 +1,6 @@
 # Architecture
 
-CCP is built around seven principles and one common envelope schema. This page summarizes both. The authoritative versions live in `_workspace/02_arch_decisions.md` (principles) and `plugins/ccp/schemas/envelope.schema.json` (schema), but those documents are dev-internal; this page is the public-facing summary.
+CCP is built around seven principles and one common envelope schema. This page summarizes both. The schema SSOT is `plugins/ccp/schemas/envelope.schema.json`.
 
 ## The seven principles
 

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// CCP — router-suggest hook (B19 + B24 W4 split-responsibility)
+// CCP — router-suggest hook (recommendation hook · split responsibility)
 // Event: UserPromptSubmit
 //
-// B24 (2026-05-05) — responsibility split between hook and router agent:
-//   - auto_routing OFF (default) → hook injects recommendation (current B19 behavior)
+// Responsibility split between hook and router agent:
+//   - auto_routing OFF (default) → hook injects recommendation
 //   - auto_routing ON + canonical → hook is NOOP (router agent handles dispatch via
-//     description-based auto-invocation — Principle 4 §4.1)
+//     description-based auto-invocation — see README §5.3)
 //   - auto_routing ON + headless detected → hook still injects recommendation
-//     (router agent does NOT auto-delegate, B-2 multi-signal OR — U7-B finding)
+//     (router agent does NOT auto-delegate; multi-signal OR detection)
 //   - decision === 'claude' → noop in both modes
 //
 // Failure-silent: on parse failure or exception, exit with empty output.
@@ -25,9 +25,9 @@ const SLASH_HINT = {
   codex: '/ccp:codex-rescue',
 };
 
-// B21-3 (2026-05-03) — warn against meta-bypass when headless automation is suspected.
-// Intended to block the 12 meta-bypass cases reported in B9 §8.5.4
-// (Skill→Agent→companion→direct CLI).
+// Warn against meta-bypass when headless automation is suspected.
+// Intended to block meta-exploration cycles (Skill→Agent→companion→direct CLI)
+// observed in headless benchmark runs that erased delegation savings.
 // If there is no sign of a direct user slash call and automation keywords appear,
 // append one recommended pattern line.
 const HEADLESS_HINT = /headless|claude\s*-p|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654|automation|cron|CI/i;
@@ -38,10 +38,10 @@ function isLikelyHeadless(promptText) {
   return HEADLESS_HINT.test(promptText);
 }
 
-// B24 (2026-05-05) \u2014 multi-signal OR for confident headless detection.
-// Mirrors router-decide.mjs#detectHeadlessConfident (single SSOT for
-// canonical/headless decision). `process.stdin.isTTY` intentionally NOT used
-// (U7-B finding \u2014 always null inside hook child process).
+// Multi-signal OR for confident headless detection.
+// Mirrors router-decide.mjs#detectHeadlessConfident (single SSOT for the
+// canonical/headless decision). `process.stdin.isTTY` intentionally NOT used \u2014
+// it is always null inside hook child processes regardless of parent TTY.
 function detectHeadlessConfident(env = process.env) {
   if (env.CI === 'true' || env.CI === '1') return true;
   if (env.CLAUDE_CODE_NONINTERACTIVE === '1' || env.CLAUDE_CODE_NONINTERACTIVE === 'true') return true;
@@ -50,7 +50,7 @@ function detectHeadlessConfident(env = process.env) {
   return false;
 }
 
-// B24 \u2014 read plugin.json#config.auto_routing (opt-in, default false).
+// Read plugin.json#config.auto_routing (opt-in, default false).
 function readAutoRoutingConfig() {
   const root = process.env.CLAUDE_PLUGIN_ROOT
     ? resolve(process.env.CLAUDE_PLUGIN_ROOT)
@@ -144,15 +144,15 @@ async function main() {
     return emit({});
   }
 
-  // B24 W4 — split responsibility between hook (recommendation) and
-  // router agent (auto-delegation). When auto_routing is on AND the
-  // environment is canonical (no confident headless signals), hook is NOOP
-  // because the router agent's description-based auto-invocation will pick
-  // up the prompt and run router-decide.mjs itself.
+  // Split responsibility between hook (recommendation) and router agent
+  // (auto-delegation). When auto_routing is on AND the environment is
+  // canonical (no confident headless signals), the hook is NOOP because the
+  // router agent's description-based auto-invocation will pick up the prompt
+  // and run router-decide.mjs itself.
   //
   // In all other cases (auto_routing off / headless confident) we keep the
-  // current B19 recommendation behavior — single source of recommendation,
-  // no double-emission.
+  // recommendation behavior — single source of recommendation, no
+  // double-emission.
   const autoRoutingActive = readAutoRoutingConfig() && !detectHeadlessConfident();
   if (autoRoutingActive) {
     return emit({});

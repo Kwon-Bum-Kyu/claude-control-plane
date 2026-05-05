@@ -2,10 +2,10 @@
 // CCP — suggest-compact hook
 // Events: UserPromptSubmit, PreCompact
 // Behavior: recommend voluntary compaction to the user when context reaches the 75% threshold (info).
-// Never auto-runs /compact (Principle 4 — _workspace/02_arch_decisions.md).
+// Never auto-runs /compact (no automatic fallback — see README §4).
 //
 // Originally derived from: github.com/affaan-m/everything-claude-code (hooks/suggest-compact.js)
-// Original license: MIT — see /ATTRIBUTION.md §1.1
+// Original license: MIT — see ATTRIBUTION.md
 // Modifications: dual-event registration (UserPromptSubmit + PreCompact),
 //                English message, removal of auto-/compact trigger.
 

@@ -50,5 +50,5 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status <job_id>
 
 ## Spec SSOT
 
-- `_workspace/06_codex_function_mapping.md` §3.1
 - `plugins/ccp/scripts/lib/codex_adapted/state.mjs`
+- `plugins/ccp/schemas/envelope.schema.json`

@@ -4,10 +4,10 @@
 // Source commit:     1e9f197bcc85602da87ad35b18d908a0575b8583
 // Source file:       src/features/magic-keywords.ts
 // Source license:    MIT — © Yeachan Heo (2025)
-// SHA-of-this-adaptation: <to be filled at N4 merge>
+// SHA-of-this-adaptation: c0cca1e0d5fcf5f851eee57f68ea6469c3fd250d
 // ─────────────────────────────────────────────────────────────────────────────
 //
-// Adoption rationale (N4, 2026-05-04):
+// Adoption rationale:
 //   The CCP router needs to suppress keyword false positives, so it adopts
 //   five primitives from omc (removeCodeBlocks, escapeRegExp,
 //   hasActionableTrigger, isInformationalKeywordContext, and
@@ -23,8 +23,8 @@
 //
 // MIT license obligations:
 //   - 5-field header at the top of this file (source / SHA / license) — met.
-//   - Copyright preservation — covered via `ATTRIBUTION.md` §1.5 plus this header.
-//   - License text in redistributions — covered via `ATTRIBUTION.md` §1.6 (omc MIT).
+//   - Copyright preservation — covered via this header plus ATTRIBUTION.md.
+//   - License text in redistributions — covered via ATTRIBUTION.md (omc MIT).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CODE_BLOCK_PATTERN = /```[\s\S]*?```/g;

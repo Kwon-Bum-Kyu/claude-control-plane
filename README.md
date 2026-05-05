@@ -27,10 +27,9 @@
 
 ### 무엇을 하지 않는가 (MVP 범위 밖)
 
-- Codex CLI 통합 (Phase 6+)
 - Ralph 루프 자동화
-- 한국어 매직 키워드 (`구조요청` 등)
 - ML 기반 분류기 (현재는 규칙 기반)
+- Gemini Vision / Multi-modal 입력
 
 ### 대상 사용자
 
@@ -45,7 +44,7 @@
 - Claude Code v1.0+ 설치
 - Node.js ≥ 20.0
 - **Gemini 사용**: Gemini CLI ≥ 0.38.0 + Google 계정 (자동 안내됨)
-- **Codex 사용 (B1 신설)**: Codex CLI ≥ 0.122.0 + ChatGPT 계정 (자동 안내됨)
+- **Codex 사용**: Codex CLI ≥ 0.122.0 + ChatGPT 계정 (자동 안내됨)
 
 ### 설치 명령
 
@@ -53,7 +52,7 @@
 /plugin marketplace add claude-control-plane
 /plugin install ccp
 /gemini:setup        # gemini CLI·OAuth 진단
-/ccp:codex-setup     # codex CLI·OAuth 진단 (B1)
+/ccp:codex-setup     # codex CLI·OAuth 진단
 ```
 
 `/gemini:setup` 과 `/ccp:codex-setup` 이 Node.js·각 CLI·OAuth 상태를 자동 진단합니다. 미설치 시 안내 명령:
@@ -101,7 +100,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 
 → `job_id` 즉시 반환 → `/gemini:status <job_id>` 로 진행 확인 → `/gemini:result <job_id>` 로 요약 회수.
 
-### 샘플 3 — 코드 리뷰 위임 (B1 신설)
+### 샘플 3 — 코드 리뷰 위임
 
 ```
 /ccp:codex-rescue --cwd $(pwd) -- "이 PR 의 git diff 를 검토하고 잠재적 버그 5건 식별"
@@ -130,7 +129,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `/gemini:result <job_id>` | 완료된 job 의 요약+경로 회수 |
 | `/gemini:setup [--renew]` | Gemini CLI·OAuth 환경 진단 |
 
-### 4.2 Codex (코드 리뷰·diff·버그 조사) — B1 신설
+### 4.2 Codex (코드 리뷰·diff·버그 조사)
 
 | 커맨드 | 요약 |
 |--------|------|
@@ -156,7 +155,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | foreground timeout |
 | `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | background polling 주기 |
 | `--max-tokens N` | ✅ (default 4000) | ❌ | gemini 응답 토큰 상한 (prompt suffix 변환) |
-| `--files <glob>` | ⚠️ MVP 미구현 (B13) | ❌ | gemini 첨부 파일 |
+| `--files <glob>` | ⚠️ MVP 미구현 | ❌ | gemini 첨부 파일 |
 | `--model NAME` | ❌ | ✅ | codex 모델 별칭 |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | reasoning effort |
 | `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only/workspace-write/danger-full-access) | codex 샌드박스 |
@@ -181,21 +180,21 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--write` | N/A | ❌ | ✅ (= `--sandbox workspace-write`) | codex 의 가독성 alias |
 | `--cwd DIR` | N/A (대화 turn) | ❌ | ✅ (`-C`) | codex 만 |
 | `--max-tokens N` | N/A | ✅ (prompt suffix 변환) | ❌ | gemini 만 |
-| `--files <glob>` | (대화 첨부) | ⚠️ MVP 미구현 (B13) | ❌ | gemini 백로그 |
+| `--files <glob>` | (대화 첨부) | ⚠️ MVP 미구현 | ❌ | gemini 백로그 |
 | `--resume-last` | N/A | ⚠️ MVP 미구현 (메타파일 흉내) | ✅ (`codex resume --last`) | codex 가 CLI 자체 지원 |
-| OAuth 검증 | N/A | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` (probe §5) | 양 companion 30s timeout |
+| OAuth 검증 | N/A | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | 양 companion 30s timeout |
 
 **범례:** ✅ 지원 / ❌ `CCP-INVALID-001` 또는 `CCP-UNSUPPORTED-001` 거부 / ⚠️ 부분 매핑 / N/A 해당 없음
 **각주:**
 - ‡ Claude extended thinking: `Option+T` 토글 또는 `~/.claude/settings.json` 의 `alwaysThinkingEnabled`
 - † Claude `/model` 슬래시: Claude Code 내장 명령
-- gemini ❌ 표시 옵션이 인자로 새어 들어오면 즉시 `CCP-INVALID-001` (companion 인라인 거부, B1-S3-5)
+- gemini ❌ 표시 옵션이 인자로 새어 들어오면 즉시 `CCP-INVALID-001` (companion 인라인 거부)
 
-자세한 결정 근거: [`ATTRIBUTION.md`](./ATTRIBUTION.md) §1.3·1.4·6 (Codex 통합 차용 함수 매핑)
+자세한 결정 근거: [`ATTRIBUTION.md`](./ATTRIBUTION.md) (Codex 통합 차용 함수 매핑)
 
 ---
 
-## 5. 라우터 동작 (3-way — B1 확장)
+## 5. 라우터 동작 (3-way)
 
 CCP 라우터는 **4축 우선순위** 로 Claude / Gemini / Codex 3 경로 중 하나를 결정합니다.
 
@@ -219,9 +218,9 @@ CCP 라우터는 **4축 우선순위** 로 Claude / Gemini / Codex 3 경로 중 
    [axis D] fallback → Claude (보수적)
 ```
 
-- **자동화 검증**: 50 케이스 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델.
+- **자동화 검증**: 70 케이스 회귀 데이터셋에서 정확도 **100%**, P/R ≥ 0.93 모든 모델.
 - **투명성**: 모든 호출 결과 `details.mode` 필드에 결정 결과 노출 (`gemini` | `codex`).
-- **추천 훅 활성** (B19, v0.2): UserPromptSubmit 시 결정 결과를 `[CCP-ROUTER-001]` system reminder 로 주입. 자동 위임은 미수행 — 사용자가 직접 슬래시 호출.
+- **추천 훅 활성** (v0.2): UserPromptSubmit 시 결정 결과를 `[CCP-ROUTER-001]` system reminder 로 주입. 헤드리스 자동 위임은 미수행 — 사용자가 직접 슬래시 호출.
 
 ### 5.1 토큰 절감 패턴 (canonical 권장)
 
@@ -232,11 +231,11 @@ CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** �
 ✅ 권장:  /ccp:codex-rescue 이 PR diff 검토
 ```
 
-이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다. 본 프로젝트 T5 fixture canonical 측정 (N=2): 메인 846K + 외부 오프로드 179K = 총 1,025K.
+이 패턴에서 envelope 캡(≤500자) + result_path 영속화가 작동해 메인 Claude 컨텍스트 토큰 누적을 차단합니다.
 
-### 5.2 헤드리스 자동화 권고 패턴 (B21-3)
+### 5.2 헤드리스 자동화 권고 패턴
 
-`claude -p` 헤드리스 호출에서는 모델이 위임 진입점을 탐색하다가 메타 우회(예: `Skill→Agent→companion --help`)를 12회까지 누적해 토큰이 오히려 2.1배 증가하는 사례가 보고되었습니다 (B9 §8.5.4). 헤드리스 자동화에서 위임 효과를 보려면 다음 패턴을 사용하세요.
+`claude -p` 헤드리스 호출에서는 모델이 위임 진입점을 탐색하다가 메타 우회(예: `Skill→Agent→companion --help`)를 누적해 토큰이 오히려 증가하는 사례가 외부 벤치마크에서 보고되었습니다. 헤드리스 자동화에서 위임 효과를 보려면 다음 패턴을 사용하세요.
 
 ```bash
 # ✅ 권장 1: 슬래시 사전 스크립트화
@@ -249,13 +248,13 @@ node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
 # ❌ 금지: rescue --help / Skill→Agent 우회 / 동일 task 변형 재시도
 ```
 
-`hooks/router-suggest.js` 가 `headless|claude -p|스크립트|자동화|automation|cron|CI` 키워드를 감지하면 `[CCP-META-WARN]` 안내를 자동 추가합니다.
+`hooks/router-suggest.js` 가 `headless|claude -p|스크립트|자동화|automation|cron|CI` 키워드를 감지하면 `[CCP-META-WARN]` 안내를 자동 추가합니다 (메타 우회 가드).
 
 오판 의심 시 `/ccp:audit` 으로 router_accuracy 카테고리 점수를 확인하세요.
 
-### 5.3 canonical 자동 라우팅 (B24, opt-in)
+### 5.3 canonical 자동 라우팅 (opt-in)
 
-기본 동작은 **추천 only** 입니다 (B19 — `[CCP-ROUTER-001]` 메시지 주입, 사용자가 슬래시 직접 호출). 인터랙티브 (canonical) 세션에서 라우팅을 자동화하려면 `plugin.json#config.auto_routing` 을 활성화하세요.
+기본 동작은 **추천 only** 입니다 (`[CCP-ROUTER-001]` 메시지 주입, 사용자가 슬래시 직접 호출). 인터랙티브 (canonical) 세션에서 라우팅을 자동화하려면 `plugin.json#config.auto_routing` 을 활성화하세요.
 
 ```jsonc
 // plugins/ccp/.claude-plugin/plugin.json
@@ -271,16 +270,15 @@ node plugins/ccp/scripts/codex-companion.mjs rescue --task "PR diff 검토"
 | 진입 경로 | 동작 |
 |---------|------|
 | canonical (인터랙티브) | `agents/router.md` (deterministic-router) 가 자동 호출되어 `decision != claude` 시 `target` 슬래시를 다음 턴 자동 입력. envelope `auto_routed: true`. |
-| headless (`claude -p`, CI runner) | 자동 위임 차단. 추천 메시지만 (B21-3 가드). 다중 신호 OR — `env.CI=true` / `env.CLAUDE_CODE_NONINTERACTIVE=1` / `env.CLAUDE_CODE_ENTRYPOINT≠cli` 검출 시 즉시 차단. |
-| 위임 실패 (OAuth 만료·CLI 미설치) | 자동 fallback 금지 (원칙 4 §4.2 불변). envelope 안내 → 사용자 명시 재입력. |
+| headless (`claude -p`, CI runner) | 자동 위임 차단. 추천 메시지만. 다중 신호 OR — `env.CI=true` / `env.CLAUDE_CODE_NONINTERACTIVE=1` / `env.CLAUDE_CODE_ENTRYPOINT≠cli` 검출 시 즉시 차단. |
+| 위임 실패 (OAuth 만료·CLI 미설치) | 자동 fallback 금지 (no automatic fallback). envelope 안내 → 사용자 명시 재입력. |
 
-비활성화 (opt-out) 방법 3가지:
+비활성화 (opt-out) 방법 2가지:
 
 1. `plugin.json#config.auto_routing: false` — 기본값
 2. `--no-auto-route` 플래그 (세션별)
-3. `/ccp:audit --auto-routing off` (영구, B24 Step 4 신설 예정)
 
-R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 + router agent 5중 방어선 + envelope free text 차단 (`reason_code` 12종 enum) + AC-B24-4 회귀 측정 (U4 84.3 tok ≤ 250). 자세한 내용은 `_workspace/02_arch_decisions.md` 원칙 4 §4.1 / 원칙 7 §5.
+이중 청구 방어 메커니즘 — `auto_routed: true` envelope 표시 + router agent 의 forwarding-only 패턴 + envelope free text 차단 (`reason_code` 12종 enum) + 회귀 측정 (forwarding overhead ~84 tok mean, CV 0%).
 
 ---
 
@@ -299,7 +297,7 @@ R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 +
 | `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
 | `CCP-JOB-001~004` | ★ | `/gemini:status` 로 job 상태 재확인 |
 
-### 6.2 Codex 측 에러 코드 (B1 신설)
+### 6.2 Codex 측 에러 코드
 
 | 코드 | 빈도 | 다음 행동 |
 |------|:----:|----------|
@@ -330,7 +328,7 @@ R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 +
 - **브라우저 미접근 환경?** Gemini: `GEMINI_API_KEY` 또는 `gemini auth login --no-browser`. Codex: `codex login --device-auth` (장치 코드 흐름).
 - **`--effort` 가 gemini 측에서 거부된다?** 의도된 동작 — 호환성 매트릭스(§4.5) 참고. codex 전용 옵션이므로 `/ccp:codex-rescue --effort high -- "<task>"` 형태로 사용하세요.
 - **codex 가 stdin 무한 대기?** companion 이 자동으로 `stdio: ['ignore', ...]` 강제. 수동으로 `codex exec` 호출 시에는 `</dev/null` 필수.
-- **`Reading additional input from stdin...` stderr 메시지?** codex CLI 의 정상 동작 (probe §3.2). 무해 — companion 이 자동 흡수합니다.
+- **`Reading additional input from stdin...` stderr 메시지?** codex CLI 의 정상 동작. 무해 — companion 이 자동 흡수합니다.
 
 ---
 
@@ -346,9 +344,9 @@ R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 +
   - `plugins/ccp/hooks/suggest-compact.js` (PreCompact 가드레일)
   - `plugins/ccp/skills/context-budget/SKILL.md` (컨텍스트 임계 안내)
   - `plugins/ccp/scripts/harness-audit.js` (감사 8카테고리 루브릭)
-- **codex-plugin-cc** by OpenAI — Apache-2.0 (SHA `8e873d6f...`, release/v1.0.4) — **B1 신설, 함수 단위 차용**
+- **codex-plugin-cc** by OpenAI — Apache-2.0 (SHA `8e873d6f...`, release/v1.0.4) — **함수 단위 차용**
   - `plugins/ccp/scripts/lib/codex_adapted/{state,tracked-jobs,process,args,job-control}.mjs`
-  - 5필드 헤더 의무 (Adapted from / Source / License / Modifications / SHA), audit G1-I 강제 검사
+  - 5필드 헤더 의무 (Adapted from / Source / License / Modifications / SHA), audit 가 강제 검사
   - Apache-2.0 NOTICE: [./NOTICE](./NOTICE)
 - 상세 변경 내역: [ATTRIBUTION.md](./ATTRIBUTION.md)
 
@@ -368,18 +366,22 @@ R1 (이중 청구) 방어 메커니즘 — `auto_routed: true` envelope 표시 +
 
 ---
 
-## 8. v0.2 로드맵 (B1 분리 항목)
+## 8. 로드맵
 
-| ID | 항목 | 진입 조건 |
-|---|---|---|
-| B18 | codex review·adversarial-review 슬래시 | B1 합격 + git diff 추출 로직 설계 |
-| B19 | 라우터 자동 위임 활성화 + UserPromptSubmit 추천 훅 | 추천 정확도 데이터 수집 |
-| B20 | codex 신규 회귀 케이스 14건 추가 (50+ 데이터셋) | B19 진입 시 |
-| B21 | 토큰 절감 v0.2 측정 (B9 실측 결과 통합) | B9 리포트 수신 + 측정 단위 SSOT 재검토 |
-| B22 | SessionEnd 훅으로 background job 메타 정리 | 메타파일 잔존 사용자 보고 시 |
-| B23 | options schema 도입 검토 | 옵션 종류 N+5 이상 추가 시 (현 13개) |
+v0.2 에서 완료된 항목:
 
-자세한 백로그: [GitHub Issues](https://github.com/) 또는 [`CHANGELOG.md`](./CHANGELOG.md) 참조
+- 라우터 추천 훅 (UserPromptSubmit 시 결정 결과 자동 주입)
+- 라우팅 회귀 데이터셋 70 케이스 (코드 리뷰 케이스 포함)
+- 토큰 절감 측정 v0.2 (canonical / headless 진입 경로 분리)
+- canonical 자동 라우팅 opt-in (`plugin.json#config.auto_routing`)
+- 한국어 라우팅 매직 키워드 (`@젬` / `@코덱` / `@클로드` / `@자동`)
+
+검토 중 / 백로그:
+
+- SessionEnd 훅 background job 메타 정리 (사용자 요청 시 진입)
+- 역할 기반 모델 할당 스키마 (사용자가 도메인별로 codex / gemini / claude 선택)
+
+자세한 진행 사항: [CHANGELOG.md](./CHANGELOG.md) 참조
 
 ---
 

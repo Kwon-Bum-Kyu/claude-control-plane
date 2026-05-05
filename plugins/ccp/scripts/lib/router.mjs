@@ -1,15 +1,13 @@
 // CCP Router — 3-way routing decision logic (Claude / Gemini / Codex)
 // Spec: plugins/ccp/skills/router/SKILL.md §"4-axis decision algorithm"
-// Dataset: _workspace/_router_test/EVAL_DATASET.md (65 cases — N5)
-// Eval entry: _workspace/_router_test/router-eval.mjs
 //
-// B19 (Phase 6-A v0.2): hooks/router-suggest.js imports this module to
-//   inject recommendation as system reminder on UserPromptSubmit.
-//   Auto-delegation is NOT performed (Principle 4 — no automatic fallback).
+// hooks/router-suggest.js imports this module to inject a recommendation as
+// system reminder on UserPromptSubmit. Headless auto-delegation is NOT
+// performed (no automatic fallback for delegated calls).
 //
-// N3·N4 (v0.1.0 release prep, 2026-05-04):
-//   - English keyword dictionaries promoted as primary, Korean kept as auxiliary
-//   - omc magic-keywords primitives integrated for false positive suppression:
+// Dictionary policy:
+//   - English keyword dictionaries are primary, Korean kept as auxiliary
+//   - omc magic-keywords primitives integrated for false-positive suppression:
 //     * removeCodeBlocks: skip keywords inside ``` ... ``` and `...` blocks
 //     * hasActionableTrigger: word-boundary matching + informational intent skip
 //   - KW_MAIN_CONTEXT_BIND extended with English variants
@@ -59,7 +57,7 @@ const KW_CLAUDE = [
 
 // Main-context-bind keywords — English (primary) + Korean (auxiliary).
 // These force `claude` regardless of other matches because the input
-// references the main Claude context (delegating would break continuity → R3).
+// references the main Claude context (delegating would break continuity).
 const KW_MAIN_CONTEXT_BIND = [
   // English (primary)
   'just now', 'just edited', 'just wrote', 'just ran',
@@ -68,10 +66,10 @@ const KW_MAIN_CONTEXT_BIND = [
   '방금', '위에서', '이전 응답', '실행한 명령',
 ];
 
-// B25 (2026-05-05) — Magic keywords (axis A, user-explicit, same priority as
-// slash commands). Korean-first design with English duals. omc magic-keywords
-// pattern: prefix + alias forms. Use removeCodeBlocks-stripped text for matching
-// to avoid false positives inside code fences.
+// Magic keywords (axis A, user-explicit, same priority as slash commands).
+// Korean-first design with English duals. omc magic-keywords pattern: prefix
+// + alias forms. Use removeCodeBlocks-stripped text for matching to avoid
+// false positives inside code fences.
 const KW_MAGIC_GEMINI = ['@gemini', '@젬', '@제미니'];
 const KW_MAGIC_CODEX = ['@codex', '@코덱', '@코덱스'];
 const KW_MAGIC_CLAUDE = ['@claude', '@클', '@클로드'];
@@ -108,12 +106,12 @@ function classify(input, opts = {}) {
     return { target: 'codex', axis: 'A', reason: 'user_explicit_codex_option' };
   }
 
-  // Strip code blocks before keyword matching (omc N4 — false positive guard).
+  // Strip code blocks before keyword matching (false-positive guard).
   // User-explicit signals above are checked on raw text because slash commands
   // and CLI flags must not be obscured by code fences.
   const stripped = removeCodeBlocks(text);
 
-  // A (B25, 2026-05-05) — Magic keyword (axis A, same priority as slash).
+  // A — Magic keyword (axis A, same priority as slash).
   // Checked AFTER removeCodeBlocks so magic keywords inside code fences are
   // ignored (false positive guard, identical to keyword-axis behavior).
   // `@auto` is a marker — it does not force a target, but signals user intent

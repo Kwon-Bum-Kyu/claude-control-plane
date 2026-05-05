@@ -1,4 +1,4 @@
-// CCP — envelope 6-key self-validator (B1-S2-2)
+// CCP — envelope 6-key self-validator
 // Enforces the core constraints from schemas/envelope.schema.json with zero deps.
 // Both companions (gemini / codex) call this just before stdout emit; SSOT
 // violations cause a stderr warning (or throw under CCP_ENVELOPE_STRICT=1).
@@ -8,8 +8,8 @@
 //   - success: summary ≤ 500 chars, exit_code === 0, tokens {input, output} required
 //   - error: code matches ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
 //   - details.mode enum [gemini, codex, router] (when present)
-//   - auto_routed (when present): boolean only — B24 §4-A consistency check
-//   - details.reason_code (when mode=router): enum only — B24 5-defense rule 3
+//   - auto_routed (when present): boolean only — auto-delegation consistency check
+//   - details.reason_code (when mode=router): enum only — runtime defense
 
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
@@ -95,7 +95,7 @@ export function validateEnvelope(env) {
   }
 
   if (env.auto_routed !== undefined && typeof env.auto_routed !== 'boolean') {
-    errors.push(`auto_routed "${env.auto_routed}" must be boolean (B24 §4-A)`);
+    errors.push(`auto_routed "${env.auto_routed}" must be boolean`);
   }
 
   if (env.details !== undefined) {
@@ -104,7 +104,7 @@ export function validateEnvelope(env) {
     } else if (env.details.mode !== undefined && !MODE_ENUM.has(env.details.mode)) {
       errors.push(`details.mode "${env.details.mode}" not in [gemini, codex, router]`);
     } else if (env.details.mode === 'router') {
-      // B24 5-defense rule 3 (runtime) — enum-only, no free text.
+      // Router branch — enum-only, no free text (runtime defense).
       if (env.details.decision !== undefined && !ROUTER_DECISION_ENUM.has(env.details.decision)) {
         errors.push(`details.decision "${env.details.decision}" not in [claude, gemini, codex]`);
       }
@@ -112,10 +112,10 @@ export function validateEnvelope(env) {
         errors.push(`details.axis "${env.details.axis}" not in [A, B, C, D]`);
       }
       if (env.details.reason_code !== undefined && !ROUTER_REASON_CODE_ENUM.has(env.details.reason_code)) {
-        errors.push(`details.reason_code "${env.details.reason_code}" not in router enum (B24)`);
+        errors.push(`details.reason_code "${env.details.reason_code}" not in router enum`);
       }
       if (env.details.headless_confident !== undefined && typeof env.details.headless_confident !== 'boolean') {
-        errors.push(`details.headless_confident must be boolean (B24 §4.4)`);
+        errors.push(`details.headless_confident must be boolean`);
       }
     }
   }

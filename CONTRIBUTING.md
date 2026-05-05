@@ -41,7 +41,7 @@ Signed-off-by: Your Name <you@example.com>
 | `test` | 테스트 추가/수정 |
 | `chore` | 빌드·CI·기타 |
 
-예: `feat(router): add Korean keyword detection (Phase 6+)`
+예: `feat(router): add Korean keyword detection`
 
 ## 코드 스타일
 
@@ -59,7 +59,7 @@ Signed-off-by: Your Name <you@example.com>
 | 문서 | `documentation` |
 | 라우터 정확도 | `router` |
 | Gemini CLI 호환성 | `gemini-cli` |
-| 한국어 키워드 (Phase 6+) | `i18n-ko` |
+| 한국어 키워드 | `i18n-ko` |
 
 ## 라이선스
 

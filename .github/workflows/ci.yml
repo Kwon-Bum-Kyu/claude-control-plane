@@ -54,8 +54,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: run router-eval (must be 65/65 = 100%)
-        run: node _workspace/_router_test/router-eval.mjs
+      - name: run router-eval (must be 70/70 = 100%)
+        run: node tests/router/router-eval.mjs
 
   router-suggest:
     name: router-suggest hook regression (node ${{ matrix.node }})
@@ -69,8 +69,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: run router-suggest hook regression (9/9)
-        run: node _workspace/_router_test/router-suggest-test.mjs
+      - name: run router-suggest hook regression (≥18/19, 95%)
+        run: node tests/router/router-suggest-test.mjs
 
   audit:
     name: harness-audit (>= 33/40)

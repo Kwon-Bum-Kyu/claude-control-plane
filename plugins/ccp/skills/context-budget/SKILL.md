@@ -50,26 +50,25 @@ Rationale: see `.claude/skills/token-budget-check/SKILL.md` §2. The `words × 1
 The ecc original triggers strategic-compact automatically. CCP forbids automatic invocation for the following reasons:
 
 1. **User intent**: `/compact` must be invoked explicitly.
-2. **R1 (double billing) prevention**: if the user re-issues the same task after an automatic compaction, tokens are charged twice.
+2. **Double-billing prevention**: if the user re-issues the same task after an automatic compaction, tokens are charged twice.
 3. **Debuggability**: the user can answer "why did it compact?" without log spelunking.
 
-The auto-compact trigger is frozen as a Phase 6+ backlog item in `_workspace/01_backlog.md`.
+Automatic compaction is intentionally not in scope for v0.x.
 
 ## Integration points
 
 - `plugins/ccp/hooks/suggest-compact.js` — UserPromptSubmit / PreCompact hook consumes the threshold matrix above
 - `plugins/ccp/scripts/gemini-companion.mjs` — companion output guard (`enforceContextBudget`) applies the same 1,500-token / 500-character cap
 
-## Acceptance criteria (regression — `_workspace/02_regression_cases.md`)
+## Acceptance criteria
 
-- RC-1 `main_context_delta ≤ 500` — main-context inflow ≤ 500 chars
+- Main-context inflow ≤ 500 chars per hook injection
 - At the 75% threshold, `additionalContext` is injected exactly once
 - The user's raw prompt MUST NOT be echoed inside `additionalContext`
 
 ## Spec SSOT
 
-- `_workspace/02_arch_decisions.md` Principle 5 (≥ 2 hooks) · Principle 4 (no auto-fallback)
-- `_workspace/03_hook_feasibility.md` §1 UserPromptSubmit spec
-- `_workspace/03_hook_strategy.md` §2.1 (suggest-compact spec)
-- `_workspace/02_token_scenarios.md` T1~T7 token-saving criteria
+- `plugins/ccp/hooks/suggest-compact.js` (hook implementation)
+- `plugins/ccp/scripts/gemini-companion.mjs:enforceContextBudget` (companion output guard)
+- README §4 (subagent isolation principle — no automatic fallback)
 - `.claude/skills/token-budget-check/SKILL.md` (meta-skill)

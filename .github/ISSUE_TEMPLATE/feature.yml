@@ -6,8 +6,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before filing: check `_workspace/01_backlog.md` (in the dev repo) — your idea may already be tracked
-        as B-series item. The MVP is intentionally narrow; non-trivial additions need scope justification.
+        Before filing: search existing issues — your idea may already be tracked.
+        The MVP is intentionally narrow; non-trivial additions need scope justification.
 
   - type: textarea
     id: problem

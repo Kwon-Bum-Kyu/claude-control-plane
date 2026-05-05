@@ -11,8 +11,8 @@
 <!-- Concrete verification steps. CI runs the four jobs below; list anything you ran locally as well. -->
 
 - [ ] `node --check` passes for every changed `.mjs` under `plugins/ccp/scripts/`
-- [ ] `node _workspace/_router_test/router-eval.mjs` — 65/65 PASS (or unchanged baseline)
-- [ ] `node _workspace/_router_test/router-suggest-test.mjs` — 9/9 PASS
+- [ ] `node tests/router/router-eval.mjs` — 70/70 PASS (or unchanged baseline)
+- [ ] `node tests/router/router-suggest-test.mjs` — ≥18/19 PASS (95%)
 - [ ] `node plugins/ccp/scripts/harness-audit.js` — total ≥ 33/40
 - [ ] Manual smoke test for any affected slash command (`/gemini:*`, `/codex:*`, `/ccp:*`)
 

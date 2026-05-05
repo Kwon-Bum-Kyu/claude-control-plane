@@ -49,5 +49,5 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" result <job_id>
 
 ## Spec SSOT
 
-- `_workspace/06_codex_function_mapping.md` §3
 - `plugins/ccp/scripts/codex-companion.mjs:handleResult`
+- `plugins/ccp/schemas/envelope.schema.json`
