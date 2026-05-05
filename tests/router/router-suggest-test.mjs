@@ -128,14 +128,15 @@ const CASES = [
     label: 'split: auto_routing on + canonical → hook noop (router agent dispatches), router-decide auto_routed=true',
     run: () => {
       const root = makePluginRoot(true);
+      const canonicalEnv = { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '', CLAUDE_CODE_ENTRYPOINT: '' };
       try {
         const hook = runHook({
           input: { prompt: '이 디렉토리 전체 요약' },
-          env: { CLAUDE_PLUGIN_ROOT: root },
+          env: canonicalEnv,
         });
         const decide = runDecide({
           args: ['--prompt', '이 디렉토리 전체 요약'],
-          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '' },
+          env: canonicalEnv,
         });
         return { hook, decide: decide.stdout };
       } finally {
