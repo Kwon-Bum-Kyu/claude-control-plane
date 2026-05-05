@@ -48,8 +48,8 @@
 ### 설치 명령
 
 ```
-/plugin marketplace add claude-control-plane
-/plugin install ccp
+/plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
+/plugin install ccp@claude-control-plane
 /gemini:setup        # gemini CLI·OAuth 진단
 /ccp:codex-setup     # codex CLI·OAuth 진단
 ```

@@ -50,8 +50,8 @@ You only need the CLI for the side(s) you actually want to use.
 ### Install commands
 
 ```
-/plugin marketplace add claude-control-plane
-/plugin install ccp
+/plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
+/plugin install ccp@claude-control-plane
 /gemini:setup        # Diagnose Gemini CLI · OAuth status
 /ccp:codex-setup     # Diagnose Codex CLI · OAuth status
 ```

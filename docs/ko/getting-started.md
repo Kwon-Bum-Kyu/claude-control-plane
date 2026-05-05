@@ -16,8 +16,8 @@ CCP (Claude Control Plane) 는 Claude 를 메인 컨트롤 플레인으로 두�
 ## 설치
 
 ```text
-/plugin marketplace add claude-control-plane
-/plugin install ccp
+/plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
+/plugin install ccp@claude-control-plane
 /gemini:setup        # Gemini CLI · OAuth 진단
 /ccp:codex-setup     # Codex CLI · OAuth 진단
 ```
