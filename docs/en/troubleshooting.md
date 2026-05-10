@@ -40,11 +40,15 @@ The full catalog is the `ERROR_CATALOG` constant inside `plugins/ccp/scripts/gem
 ## FAQ
 
 **What are the free-tier limits?**
-Gemini: ~60 req/min on `gemini-2.5-pro` for free Google accounts; the exact value follows Google's policy.
-Codex: included in your ChatGPT Plus/Pro subscription quota; the exact value follows OpenAI's policy.
+Gemini has two distinct authentication modes with different quotas:
+- **OAuth (Gemini Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models; default routing is Flash-class.
+- **API key (AI Studio):** per-model independent limits — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD, etc.
+- As of 2026-04, the free tier covers Flash-class models only (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`); `gemini-2.5-pro` requires a paid Google AI Pro/Ultra subscription. Exact values follow Google's current policy.
+
+Codex: bound to your ChatGPT plan quota. Plus/Pro/Business/Enterprise include Codex; Free/Go include limited Codex Mini access (subject to change). Quotas have been token-based since 2026-04-02. Exact values follow OpenAI policy.
 
 **How long do OAuth tokens last?**
-Google ~7 days, ChatGPT typically 30+ days. Expiration surfaces as `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically.
+Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Google Gemini OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` surface automatically.
 
 **`npm i -g` fails with permission errors.**
 Use nvm to manage Node, or prefix with `sudo`. nvm is recommended.

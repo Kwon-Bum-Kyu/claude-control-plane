@@ -58,7 +58,7 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 | `--cwd DIR` | N/A (turn 별) | ❌ | ✅ (`-C`) | Codex 만 |
 | `--max-tokens N` | N/A | ✅ (prompt suffix) | ❌ | Gemini 만 |
 | `--files <glob>` | (chat 첨부) | ⚠️ 백로그 | ❌ | Gemini 백로그 |
-| `--resume-last` | N/A | ⚠️ meta-file 흉내 | ✅ (`codex resume --last`) | Codex CLI 네이티브 |
+| `--resume-last` | N/A | ⚠️ meta-file 흉내 | ✅ (`codex resume --last`) | Codex CLI 네이티브; 현재 cwd 범위 한정 (다른 디렉토리는 `codex resume --all`) |
 
 ## 예제
 
