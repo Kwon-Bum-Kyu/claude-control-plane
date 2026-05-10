@@ -58,7 +58,7 @@ If you pass a Codex-only flag to `/gemini:rescue` (or vice versa), the companion
 | `--cwd DIR` | n/a (per turn) | no | yes (`-C`) | Codex only |
 | `--max-tokens N` | n/a | yes (prompt suffix) | no | Gemini only |
 | `--files <glob>` | (chat attachment) | partial (backlog) | no | Gemini backlog |
-| `--resume-last` | n/a | partial (meta-file) | yes (`codex resume --last`) | Codex CLI native |
+| `--resume-last` | n/a | partial (meta-file) | yes (`codex resume --last`) | Codex CLI native; scoped to current cwd (use `codex resume --all` for other dirs) |
 
 ## Examples
 

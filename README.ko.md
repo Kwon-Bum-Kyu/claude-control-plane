@@ -116,7 +116,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 /ccp:audit --since 7d
 ```
 
-8카테고리 점수 (context/cost/router/double_billing/fallback/plugin_compat/adapted_headers/secret_leak) 를 마크다운 리포트로 출력.
+8카테고리 점수 (`context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `borrowed_code_documented`, `secret_leak`) 를 마크다운 리포트로 출력.
 
 ---
 
@@ -183,7 +183,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--cwd DIR` | N/A (대화 turn) | ❌ | ✅ (`-C`) | codex 만 |
 | `--max-tokens N` | N/A | ✅ (prompt suffix 변환) | ❌ | gemini 만 |
 | `--files <glob>` | (대화 첨부) | ⚠️ MVP 미구현 | ❌ | gemini 백로그 |
-| `--resume-last` | N/A | ⚠️ MVP 미구현 (메타파일 흉내) | ✅ (`codex resume --last`) | codex 가 CLI 자체 지원 |
+| `--resume-last` | N/A | ⚠️ MVP 미구현 (메타파일 흉내) | ✅ (`codex resume --last`) | codex CLI 네이티브; 현재 cwd 범위 한정 (다른 디렉토리 세션은 `codex resume --all`) |
 | OAuth 검증 | N/A | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | 양 companion 30s timeout |
 
 **범례:** ✅ 지원 / ❌ `CCP-INVALID-001` 또는 `CCP-UNSUPPORTED-001` 거부 / ⚠️ 부분 매핑 / N/A 해당 없음
@@ -318,9 +318,12 @@ claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 
 ### 6.4 자주 묻는 질문
 
-- **Gemini 무료 티어 한도는?** 60 req/min (`gemini-2.5-pro`). 정확한 값은 Google 계정 정책에 따릅니다.
-- **Codex 무료 티어 한도는?** ChatGPT Plus/Pro 구독에 포함된 사용량 한도를 따릅니다. 정확한 값은 OpenAI 정책에 따릅니다.
-- **OAuth 만료 주기는?** Google ~7일, ChatGPT 는 보통 30일+. 만료 시 각각 `CCP-OAUTH-001`/`CCP-OAUTH-101` 가 자동 안내합니다.
+- **Gemini 무료 티어 한도는?** 인증 방식에 따라 두 체계가 다릅니다.
+  - **OAuth (Gemini Code Assist for individuals, CLI 기본):** 60 RPM / 1,000 RPD — 모든 모델 합산. 기본 라우팅은 Flash 계열.
+  - **API key (AI Studio):** 모델별 독립 한도 — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD 등.
+  - 2026-04 시점 무료 티어는 Flash 계열 (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) 만 포함합니다. `gemini-2.5-pro` 는 Google AI Pro/Ultra 유료 구독이 필요합니다. 정확한 값은 Google 의 현재 정책을 따릅니다.
+- **Codex 무료 티어 한도는?** ChatGPT 플랜 쿼터에 묶입니다. Plus/Pro/Business/Enterprise 는 Codex 포함, Free/Go 는 한시적 Codex Mini 한정 (정책 변경 가능). 2026-04-02 부로 토큰 단위 과금으로 전환되었습니다. 정확한 값은 OpenAI 정책에 따릅니다.
+- **OAuth 만료 주기는?** Codex 는 활성 세션 중 자동 refresh 되며, idle 약 8일 후 stale → 재로그인 필요. Gemini 의 Google OAuth 는 별도 만료 정책 (정책 변경 가능, 로컬에서 확인 권장). 만료 시 각각 `CCP-OAUTH-001`/`CCP-OAUTH-101` 가 자동 안내합니다.
 - **권한 오류 (`npm i -g`)?** nvm 사용 또는 `sudo` 실행. nvm 권장.
 - **브라우저 미접근 환경?** Gemini: `GEMINI_API_KEY` 설정 (https://aistudio.google.com/apikey). Codex: `codex login --device-auth` (장치 코드 흐름) 또는 `printenv OPENAI_API_KEY | codex login --with-api-key`.
 - **`--effort` 가 gemini 측에서 거부된다?** 의도된 동작 — 호환성 매트릭스(§4.5) 참고. codex 전용 옵션이므로 `/ccp:codex-rescue --effort high -- "<task>"` 형태로 사용하세요.

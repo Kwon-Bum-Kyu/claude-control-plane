@@ -38,6 +38,17 @@ codex login                       # 브라우저로 ChatGPT 인증
 # (API key)      printenv OPENAI_API_KEY | codex login --with-api-key
 ```
 
+## Gemini 인증 모드 (OAuth vs API key)
+
+Gemini CLI 는 두 가지 인증 경로를 지원하며, **무료 티어 한도와 모델 가용성이 서로 다릅니다**:
+
+| 모드 | 로그인 | 무료 티어 한도 | Pro 모델? |
+|---|---|---|---|
+| **OAuth** (Code Assist for individuals) | 첫 `gemini` 실행 시 브라우저 OAuth | 60 RPM / 1,000 RPD — 모든 모델 합산 | 제한적 (기본 라우팅 Flash, `gemini-2.5-pro` 는 2026-04 기점 Google AI Pro/Ultra 유료 구독 필요) |
+| **API key** (AI Studio) | `export GEMINI_API_KEY="..."` | 모델별 독립 한도 (Flash 10 RPM / 250 RPD, Flash-Lite 15 RPM / 1,000 RPD 등) | Pro 는 유료 구독 필요 |
+
+캐주얼한 인터랙티브 사용에는 OAuth, 모델별 예측 가능한 쿼터가 필요하거나 헤드리스 사용에는 API key 가 적합합니다. CCP 는 설정된 쪽을 자동 감지합니다.
+
 ## 설치 확인
 
 라우터를 거치는 작은 요청을 실행해 보세요.
@@ -87,7 +98,7 @@ Codex 가 무거운 리뷰 추론을 처리합니다. 메인 Claude 컨텍스트
 /ccp:audit --since 7d
 ```
 
-8 카테고리 점수 (`context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `adapted_headers`, `secret_leak`) 를 마크다운 또는 JSON 으로 출력합니다.
+8 카테고리 점수 (`context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `borrowed_code_documented`, `secret_leak`) 를 마크다운 또는 JSON 으로 출력합니다.
 
 ## 다음 읽을거리
 

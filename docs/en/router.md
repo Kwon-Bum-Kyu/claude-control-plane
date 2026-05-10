@@ -57,7 +57,7 @@ If none of the above matched, the router returns Claude. The reasoning: Claude i
 
 ## Calibration
 
-The router ships with a 65-case offline regression dataset. Current accuracy: **65/65 = 100%**, with precision/recall >= 0.93 for every model. CI runs the dataset on every PR.
+The router ships with a 70-case offline regression dataset. Current accuracy: **70/70 = 100%**, with precision/recall >= 0.93 for every model. CI runs the dataset on every PR.
 
 ## How to influence the decision
 

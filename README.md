@@ -190,7 +190,7 @@ How `/ccp:codex-rescue` (codex), `/gemini:rescue` (gemini), and the main Claude 
 | `--cwd DIR` | n/a (conversation turn) | ❌ | ✅ (`-C`) | codex only |
 | `--max-tokens N` | n/a | ✅ (prompt-suffix translation) | ❌ | gemini only |
 | `--files <glob>` | (conversation attachment) | ⚠️ MVP unimplemented | ❌ | gemini backlog |
-| `--resume-last` | n/a | ⚠️ MVP unimplemented (meta-file imitation) | ✅ (`codex resume --last`) | codex CLI native support |
+| `--resume-last` | n/a | ⚠️ MVP unimplemented (meta-file imitation) | ✅ (`codex resume --last`) | codex CLI native; scoped to current cwd (use `codex resume --all` for other directories) |
 | OAuth probe | n/a | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | Both companions: 30 s timeout |
 
 **Legend:** ✅ supported / ❌ rejected with `CCP-INVALID-001` or `CCP-UNSUPPORTED-001` / ⚠️ partial mapping / n/a not applicable
@@ -325,9 +325,12 @@ For the full catalog see the `ERROR_CATALOG` constants in `plugins/ccp/scripts/g
 
 ### 6.4 FAQ
 
-- **What's the Gemini free-tier limit?** 60 req/min on `gemini-2.5-pro`. Exact values follow Google account policy.
-- **What's the Codex free-tier limit?** Bound to your ChatGPT Plus/Pro subscription quota. Exact values follow OpenAI policy.
-- **OAuth expiry?** Google ~7 days, ChatGPT typically 30+ days. On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically guide you.
+- **What's the Gemini free-tier limit?** Two distinct authentication modes apply:
+  - **OAuth (Gemini Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models. Default routing is Flash-class.
+  - **API key (AI Studio):** per-model independent limits — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD, etc.
+  - As of 2026-04, the free tier covers Flash-class models only (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`); `gemini-2.5-pro` requires a paid Google AI Pro/Ultra subscription. Exact values follow Google's current policy.
+- **What's the Codex free-tier limit?** Bound to your ChatGPT plan quota. Plus/Pro/Business/Enterprise include Codex; Free/Go include limited Codex Mini access (subject to change). Quotas have been token-based since 2026-04-02. Exact values follow OpenAI policy.
+- **OAuth expiry?** Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Gemini's Google OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically guide you.
 - **Permission errors with `npm i -g`?** Use nvm or `sudo`. nvm is recommended.
 - **No browser available?** Gemini: set `GEMINI_API_KEY` (https://aistudio.google.com/apikey). Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
 - **`--effort` rejected on the gemini side?** Intentional — see compatibility matrix (§4.5). Use `/ccp:codex-rescue --effort high -- "<task>"` instead.

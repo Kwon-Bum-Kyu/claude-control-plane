@@ -38,6 +38,17 @@ codex login                       # opens a browser for ChatGPT auth
 # (API key?)    printenv OPENAI_API_KEY | codex login --with-api-key
 ```
 
+## Gemini authentication modes (OAuth vs API key)
+
+Gemini CLI supports two distinct authentication paths, and they have **different free-tier quotas and model availability**:
+
+| Mode | Login | Free-tier quota | Pro models? |
+|---|---|---|---|
+| **OAuth** (Code Assist for individuals) | First `gemini` run opens a browser | 60 RPM / 1,000 RPD aggregated across all models | Limited (default routing is Flash; `gemini-2.5-pro` typically requires paid Google AI Pro/Ultra as of 2026-04) |
+| **API key** (AI Studio) | `export GEMINI_API_KEY="..."` | Per-model limits (Flash 10 RPM / 250 RPD, Flash-Lite 15 RPM / 1,000 RPD, etc.) | Pro requires paid tier |
+
+Pick OAuth for casual interactive use; pick API key when you want predictable per-model quotas or are running headless. CCP detects whichever you set up.
+
 ## Confirm the install
 
 Run a small request that exercises the router:
@@ -87,7 +98,7 @@ Codex handles the heavy review reasoning. The main Claude context only sees the 
 /ccp:audit --since 7d
 ```
 
-Produces a Markdown (or JSON) report scoring eight categories: `context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `adapted_headers`, `secret_leak`.
+Produces a Markdown (or JSON) report scoring eight categories: `context_efficiency`, `cost_efficiency`, `router_accuracy`, `double_billing`, `fallback_health`, `plugin_compat`, `borrowed_code_documented`, `secret_leak`.
 
 ## What to read next
 
