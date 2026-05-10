@@ -59,6 +59,7 @@
 | 버전·태그 | `v0.1.0`·`v0.2.0`·`v0.38.x` | 릴리스 표식 |
 | Runtime 디스크 경로 | `_workspace/_jobs/`·`_workspace/_audits/`·`_workspace/_probe/` | companion·audit 가 사용자 호스트에 쓰는 실제 경로. `.gitignore` 차단으로 공개 레포 추적 0. result_path 안내·테스트 산출물 위치 설명에 사용 |
 | 회귀 테스트 디렉터리 | `_workspace/_router_test/` | router 회귀 데이터셋·하니스 디렉터리. CI 가 실행하므로 git 추적 (`.gitignore` 예외). PR 체크리스트·workflow 에 명시적으로 등장. |
+| 옵시디언 문서화 config | `.obsidian-doc.local.json` | 옵시디언 vault 설정 SSOT (vault path·차단 패턴 시드·치환 사전 path 등). dev 전용 — `.gitignore` 차단으로 공개 레포 추적 0. 변환 시점 가드 SSOT (작성 시점 가드 = 본 룰 §1 과 분리). |
 
 ---
 
@@ -126,3 +127,4 @@ Claude 는 §3.1 파일에서 §1 패턴을 발견하면 즉시 사용자에게 
 |------|------|------|
 | 2026-05-05 | 초안 작성 | 사용자 지시: "작업자만 알면 되는 내용들은 룰로 지정해서 주석으로 추가 못하도록 지정", "이것은 dev 용 룰이므로 ccp 에 추가할 필요 없음". `_workspace/`·`CLAUDE.local.md` 제외 + `plugins/ccp/**` 와 공개 문서 강제 준수. 1단계 (Claude 자율 준수) 만 즉시 활성, 2·3단계는 필요 시 추가. |
 | 2026-05-05 | §2 보존 대상에 "Runtime 디스크 경로" 행 추가 (`_workspace/_jobs/`·`_workspace/_audits/`·`_workspace/_probe/`) | Public Surface Cleanup 진행 중 분기점. companion 이 background job 결과를 사용자 호스트 로컬에 쓰는 실제 디렉터리 경로 — `.gitignore` 차단으로 공개 레포 추적 0. dev 추적 ID 가 아니라 runtime 디스크 경로이므로 외부 사용자 result_path 안내 + 테스트 산출물 위치 설명에 보존 가능. dev 추적 문서 인용 (`_workspace/01_backlog.md`·`02_arch_decisions.md` 등) 만 차단 대상으로 좁힘. |
+| 2026-05-08 | §1 정규식 13건을 `.obsidian-doc.local.json` 의 `blocked_patterns` 로 1회 복사 (변환 시점 가드 SSOT 분리). 본 룰은 작성 시점 가드 (strict block), config 는 변환 시점 가드 (interactive replacement). §2 보존 대상에 `.obsidian-doc.local.json` 행 추가. | 옵시디언 문서화 변환 시 외부 노출 방지. 향후 §1 변경 시 config 도 수동 동기화 필요 (drift 검사 미래 옵션). |
