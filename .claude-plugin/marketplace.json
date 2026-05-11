@@ -6,7 +6,7 @@
   "metadata": {
     "displayName": "Claude Control Plane",
     "description": "Claude as the main control plane orchestrating Gemini (MVP) and Codex (Phase 6+) CLIs as sub-agents. Mirrors codex-plugin-cc patterns for zero learning cost; ports ecc guardrails to prevent token regression.",
-    "version": "0.1.0",
+    "version": "0.2.1",
     "license": "MIT"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "ccp",
       "source": "./plugins/ccp",
       "description": "Gemini CLI wrapper + model router + ecc guardrails port.",
-      "version": "0.1.0",
+      "version": "0.2.1",
       "license": "MIT"
     }
   ]
