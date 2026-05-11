@@ -1,13 +1,12 @@
 {
   "name": "ccp",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "Claude as control plane, Gemini + Codex as CLI sub-agents — companion wrappers, 3-way model router, ecc guardrails.",
   "author": {
     "name": "CCP contributors"
   },
   "license": "MIT",
   "keywords": ["claude-code", "plugin", "gemini", "codex", "router", "control-plane"],
-  "hooks": "./hooks/hooks.json",
   "config": {
     "auto_routing": false,
     "_doc": "When true, canonical interactive sessions automatically delegate to gemini/codex via the router agent (deterministic-router pattern). Headless (claude -p, CI) remains recommendation-only — see README §5.3. Default false to pre-empt double-billing. Opt-in only."
