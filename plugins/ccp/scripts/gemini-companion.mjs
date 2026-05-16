@@ -641,14 +641,14 @@ function cmdRescue(args) {
 
   // Background branch — launch a detached child and return an envelope immediately
   if (args.background) {
-    return rescueBackground({ task, maxTokens, files: args.files });
+    return rescueBackground({ task, maxTokens, files: args.files, timeoutMs: args.timeoutMs });
   }
 
   // Foreground branch
-  return rescueForeground({ task, maxTokens, files: args.files });
+  return rescueForeground({ task, maxTokens, files: args.files, timeoutMs: args.timeoutMs });
 }
 
-function rescueForeground({ task, maxTokens, files }) {
+function rescueForeground({ task, maxTokens, files, timeoutMs }) {
   // OAuth pre-check is lighter than full setup — only inspect env/credential files.
   if (!detectAuthMethod()) emitError('CCP-OAUTH-001');
 
@@ -678,7 +678,7 @@ function rescueForeground({ task, maxTokens, files }) {
   };
   writeMeta(jobId, meta);
 
-  const r = runGeminiSync(task, { maxTokens, files }, args.timeoutMs);
+  const r = runGeminiSync(task, { maxTokens, files }, timeoutMs);
   if (r.error || r.status === null) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
@@ -740,7 +740,7 @@ function rescueForeground({ task, maxTokens, files }) {
   });
 }
 
-function rescueBackground({ task, maxTokens, files }) {
+function rescueBackground({ task, maxTokens, files, timeoutMs }) {
   const jobId = randomUUID();
   const dir = jobDir(jobId);
   mkdirSync(dir, { recursive: true });
@@ -769,7 +769,7 @@ function rescueBackground({ task, maxTokens, files }) {
     gemini_session_id: null,
     gemini_cli_version: geminiVersion(),
     max_tokens: maxTokens,
-    timeout_ms: Number.isFinite(args.timeoutMs) ? args.timeoutMs : null,
+    timeout_ms: Number.isFinite(timeoutMs) ? timeoutMs : null,
     files: files ?? null,
     token_usage: null,
     result_file_path: null,
