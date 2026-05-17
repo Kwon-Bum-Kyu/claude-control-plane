@@ -1,6 +1,6 @@
 {
   "name": "ccp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Claude as control plane, Gemini + Codex as CLI sub-agents — companion wrappers, 3-way model router, ecc guardrails.",
   "author": {
     "name": "CCP contributors"
