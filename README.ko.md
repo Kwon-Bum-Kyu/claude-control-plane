@@ -50,6 +50,7 @@
 ```
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
+/reload-plugins
 /gemini:setup        # gemini CLI·OAuth 진단
 /ccp:codex-setup     # codex CLI·OAuth 진단
 ```
