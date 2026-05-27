@@ -7,7 +7,7 @@ This dataset is used by `tests/router/router-eval.mjs` to verify the routing dec
 | Class | Cases | Share |
 |-------|------:|------:|
 | Claude-favoured (`C01~C16`, `B01~B05`) | 21 | 30.0% |
-| Gemini-favoured (`G01~G15`, minus `G09` which is codex-favoured) | 14 | 20.0% |
+| Antigravity-favoured (`G01~G15`, minus `G09` which is codex-favoured) | 14 | 20.0% |
 | Codex-favoured (`G09`, `X01~X14`, magic keywords from `F16~F20`) | 19 | 27.1% |
 | False-positive guards (`F01~F15`) | 15 | 21.4% |
 | Boundary cases (`B01~B05`, alt label permitted) | 5 (overlaps with C class) | — |
@@ -23,7 +23,7 @@ ID prefixes are kept stable across runs so debug output stays diffable.
 | Clear-case accuracy | 100% |
 | Boundary-case accuracy (alt label allowed) | ≥ 80% |
 | False-positive guard accuracy | 100% |
-| Per-class precision and recall (claude / gemini / codex) | ≥ 0.93 |
+| Per-class precision and recall (claude / antigravity / codex) | ≥ 0.93 |
 
 ## 3. Class label rationale (selected examples)
 
@@ -36,11 +36,11 @@ Claude is the right target when the task is short, depends on the previous main-
 - `C08` — review **the code I just edited** ("방금" forces `main_context_bind`)
 - `C16` — `eslint --fix` autofix (CLI invocation, claude keyword)
 
-### Gemini (G01–G15, except G09)
+### Antigravity (G01–G15, except G09)
 
-Gemini is the right target for large-context summarization or directory-wide analysis:
+Antigravity is the right target for large-context summarization or directory-wide analysis:
 
-- `G01` — slash command `/gemini:rescue` with explicit prompt (axis A user-explicit)
+- `G01` — slash command `/antigravity:rescue` with explicit prompt (axis A user-explicit)
 - `G03` — summarize the entire repository in 3 lines (`estimated_tokens` 80,000)
 - `G06` — parse a 500MB access log (`large log` keyword + size)
 - `G08` — read the whole project and identify security risks (100,000 tokens)
@@ -54,13 +54,13 @@ Codex is the right target for code review, diff analysis, and bug investigation:
 - `X04` — `--effort high` flag (axis A user-explicit option)
 - `X05` — `--sandbox workspace-write` flag (axis A user-explicit option)
 - `X06–X09` — review/diff/bug-investigation prompts in the 5K–30K range
-- `X10–X14` — multi-keyword cases (codex keyword wins over gemini under priority rules)
+- `X10–X14` — multi-keyword cases (codex keyword wins over antigravity under priority rules)
 
 ### Boundary cases (B01–B05)
 
 Cases where two labels are acceptable. The runner accepts either `expected` or `alt_label`:
 
-- `B01` — pattern-find across 3 small files (claude or gemini)
+- `B01` — pattern-find across 3 small files (claude or antigravity)
 - `B05` — duplicate-test detection in a 1,000-line test file (claude or codex)
 
 ### Main-context-bind override
@@ -74,7 +74,8 @@ Triggered by phrases that anchor the task to the previous turn. These force `cla
 - `F01–F05` — keywords inside ` ``` ` code blocks must NOT trigger delegation
 - `F06–F10` — informational questions ("what is review?") must NOT trigger delegation
 - `F11–F15` — English actionable keywords must trigger correctly
-- `F16–F20` — magic keywords (`@gemini`, `@젬`, `@codex`, `@코덱`, `@claude`, `@auto`) trigger axis A
+- `F16–F20` — magic keywords (`@antigravity`, `@ag`, `@안티`, `@codex`, `@코덱`, `@claude`, `@auto`) trigger axis A.
+  Legacy `@gemini` / `@젬` / `@제미니` are retained as backward-compat aliases for `@antigravity` after the upstream Gemini CLI EOL.
 
 ## 4. How to run
 

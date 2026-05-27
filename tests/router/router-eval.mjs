@@ -5,8 +5,8 @@
 // mirrored by plugins/ccp/scripts/lib/router.mjs. This script and
 // plugins/ccp/hooks/router-suggest.js both import that single module.
 //
-// Dataset composition: claude / gemini / codex labels, boundary cases, and
-// false-positive guards (code-block keywords, informational questions,
+// Dataset composition: claude / antigravity / codex labels, boundary cases,
+// and false-positive guards (code-block keywords, informational questions,
 // English actionable keywords).
 
 import { classify, TARGETS } from '../../plugins/ccp/scripts/lib/router.mjs';
@@ -30,28 +30,28 @@ const DATASET = [
   { id: 'C15', input: '이 파일에서 TODO 주석 찾아서 리스트로 보여줘.', expected: 'claude', deciding_axis_expected: 'C' },
   { id: 'C16', input: 'eslint 에러 전부 autofix로 고쳐줘.', expected: 'claude', deciding_axis_expected: 'C' },
 
-  // G01~G15 — Gemini-favoured (G09 is codex-favoured: large diff review)
-  { id: 'G01', input: '/gemini:rescue "이 디렉토리(src/**/*.ts, 12k LOC) 아키텍처 요약"', expected: 'gemini', deciding_axis_expected: 'A' },
-  { id: 'G02', input: '/gemini:rescue --background "logs/production.log 15MB에서 ERROR 빈도 상위 10"', expected: 'gemini', deciding_axis_expected: 'A' },
-  { id: 'G03', input: '이 전체 레포지토리를 3줄로 요약해줘.', expected: 'gemini', deciding_axis_expected: 'C', estimated_tokens: 80000 },
-  { id: 'G04', input: 'docs/ 아래 모든 마크다운 읽고 공통 개념 10개 뽑아줘.', expected: 'gemini', deciding_axis_expected: 'C', estimated_tokens: 60000 },
-  { id: 'G05', input: '이 디렉토리의 테스트 커버리지 현황 요약.', expected: 'gemini', deciding_axis_expected: 'C' },
-  { id: 'G06', input: '대용량 로그 파싱: access.log 500MB에서 상위 엔드포인트 100개', expected: 'gemini', deciding_axis_expected: 'C' },
-  { id: 'G07', input: '/gemini:rescue "이 모노레포의 패키지 의존성 그래프 요약"', expected: 'gemini', deciding_axis_expected: 'A' },
-  { id: 'G08', input: 'node_modules 제외한 전체 프로젝트를 읽고 보안 리스크 식별해줘.', expected: 'gemini', deciding_axis_expected: 'C', estimated_tokens: 100000 },
+  // G01~G15 — Antigravity-favoured (G09 is codex-favoured: large diff review)
+  { id: 'G01', input: '/antigravity:rescue "이 디렉토리(src/**/*.ts, 12k LOC) 아키텍처 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G02', input: '/antigravity:rescue --background "logs/production.log 15MB에서 ERROR 빈도 상위 10"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G03', input: '이 전체 레포지토리를 3줄로 요약해줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 80000 },
+  { id: 'G04', input: 'docs/ 아래 모든 마크다운 읽고 공통 개념 10개 뽑아줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 60000 },
+  { id: 'G05', input: '이 디렉토리의 테스트 커버리지 현황 요약.', expected: 'antigravity', deciding_axis_expected: 'C' },
+  { id: 'G06', input: '대용량 로그 파싱: access.log 500MB에서 상위 엔드포인트 100개', expected: 'antigravity', deciding_axis_expected: 'C' },
+  { id: 'G07', input: '/antigravity:rescue "이 모노레포의 패키지 의존성 그래프 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G08', input: 'node_modules 제외한 전체 프로젝트를 읽고 보안 리스크 식별해줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 100000 },
   { id: 'G09', input: '이 PR의 diff 10,000줄 전체를 리뷰해줘.', expected: 'codex', deciding_axis_expected: 'B', estimated_tokens: 50000 },
-  { id: 'G10', input: '프로젝트 전체 코드베이스에서 unused export 목록 뽑아줘.', expected: 'gemini', deciding_axis_expected: 'C' },
-  { id: 'G11', input: '/gemini:rescue "이 10GB 데이터셋 CSV의 컬럼 스키마 요약"', expected: 'gemini', deciding_axis_expected: 'A' },
-  { id: 'G12', input: '이 라이선스 파일 50개(LICENSE, COPYING 등) 모두 분석해서 호환성 표 만들어줘.', expected: 'gemini', deciding_axis_expected: 'C' },
-  { id: 'G13', input: 'tsconfig.json부터 시작해서 모든 include 대상 파일 트리 요약.', expected: 'gemini', deciding_axis_expected: 'C' },
-  { id: 'G14', input: '이 전체 API 문서(spec.yaml 8000줄)에서 breaking changes 식별해줘.', expected: 'gemini', deciding_axis_expected: 'B', estimated_tokens: 40000 },
-  { id: 'G15', input: '이 디렉토리 전체를 읽고 아키텍처 다이어그램용 ASCII 트리 생성.', expected: 'gemini', deciding_axis_expected: 'C' },
+  { id: 'G10', input: '프로젝트 전체 코드베이스에서 unused export 목록 뽑아줘.', expected: 'antigravity', deciding_axis_expected: 'C' },
+  { id: 'G11', input: '/antigravity:rescue "이 10GB 데이터셋 CSV의 컬럼 스키마 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G12', input: '이 라이선스 파일 50개(LICENSE, COPYING 등) 모두 분석해서 호환성 표 만들어줘.', expected: 'antigravity', deciding_axis_expected: 'C' },
+  { id: 'G13', input: 'tsconfig.json부터 시작해서 모든 include 대상 파일 트리 요약.', expected: 'antigravity', deciding_axis_expected: 'C' },
+  { id: 'G14', input: '이 전체 API 문서(spec.yaml 8000줄)에서 breaking changes 식별해줘.', expected: 'antigravity', deciding_axis_expected: 'B', estimated_tokens: 40000 },
+  { id: 'G15', input: '이 디렉토리 전체를 읽고 아키텍처 다이어그램용 ASCII 트리 생성.', expected: 'antigravity', deciding_axis_expected: 'C' },
 
   // B01~B05 — boundary cases (alt_label permitted)
-  { id: 'B01', input: 'src/ 하위 3개 파일(총 200 LOC) 읽고 공통 패턴 찾아줘.', expected: 'claude', alt_label: 'gemini' },
-  { id: 'B02', input: '이 README(~2000 words) 읽고 3줄 요약.', expected: 'claude', alt_label: 'gemini' },
-  { id: 'B03', input: '이 파일(500 LOC) 리팩터링 계획 세워줘.', expected: 'claude', alt_label: 'gemini' },
-  { id: 'B04', input: '개발 문서 5개(각 300 words) 읽고 일관성 검사.', expected: 'claude', alt_label: 'gemini' },
+  { id: 'B01', input: 'src/ 하위 3개 파일(총 200 LOC) 읽고 공통 패턴 찾아줘.', expected: 'claude', alt_label: 'antigravity' },
+  { id: 'B02', input: '이 README(~2000 words) 읽고 3줄 요약.', expected: 'claude', alt_label: 'antigravity' },
+  { id: 'B03', input: '이 파일(500 LOC) 리팩터링 계획 세워줘.', expected: 'claude', alt_label: 'antigravity' },
+  { id: 'B04', input: '개발 문서 5개(각 300 words) 읽고 일관성 검사.', expected: 'claude', alt_label: 'antigravity' },
   { id: 'B05', input: '이 테스트 파일(1000 LOC)의 중복 테스트 식별.', expected: 'claude', alt_label: 'codex' },
 
   // X01~X14 — Codex-favoured cases (slash + option + mid_review_codex + multi-keyword)
@@ -94,14 +94,16 @@ const DATASET = [
   { id: 'F11', input: 'review this PR carefully and flag risky changes', expected: 'codex', deciding_axis_expected: 'C' },
   { id: 'F12', input: 'find the bug in src/main.go that causes the panic', expected: 'codex', deciding_axis_expected: 'C' },
   { id: 'F13', input: 'audit this diff for security issues', expected: 'codex', deciding_axis_expected: 'C' },
-  { id: 'F14', input: 'summarize the entire codebase under src/', expected: 'gemini', deciding_axis_expected: 'C' },
+  { id: 'F14', input: 'summarize the entire codebase under src/', expected: 'antigravity', deciding_axis_expected: 'C' },
   { id: 'F15', input: 'just edit this single line in config.ts', expected: 'claude', deciding_axis_expected: 'C' },
 
   // F16~F20 — magic keywords (Korean + English duals). axis A user-explicit (same priority as slash).
-  { id: 'F16', input: '@젬 이 디렉토리 전체 정리해줘', expected: 'gemini', deciding_axis_expected: 'A' },
+  // F16 / F19 use legacy `@젬` / `@gemini` aliases retained for backward
+  // compatibility — they route to the Antigravity backend now.
+  { id: 'F16', input: '@젬 이 디렉토리 전체 정리해줘', expected: 'antigravity', deciding_axis_expected: 'A' },
   { id: 'F17', input: '@코덱 이 PR 검토 부탁', expected: 'codex', deciding_axis_expected: 'A' },
   { id: 'F18', input: '@claude 방금 수정한 함수 다시 봐줘', expected: 'claude', deciding_axis_expected: 'A' },
-  { id: 'F19', input: '@gemini summarize the README', expected: 'gemini', deciding_axis_expected: 'A' },
+  { id: 'F19', input: '@gemini summarize the README', expected: 'antigravity', deciding_axis_expected: 'A' },
   // F20 — 매직 키워드가 코드 블록 안에 있으면 false positive 차단 (axis A 미발동)
   { id: 'F20', input: '아래 코드 한 줄 수정\n```\n// @젬 example here\n```\nconfig.ts 의 첫 줄 변경', expected: 'claude', deciding_axis_expected: 'C' },
 ];
@@ -169,10 +171,10 @@ for (const t of TARGETS) {
 }
 
 console.log('\n## 3. 혼동 행렬 (3×3)\n');
-console.log('|              | 예측 claude | 예측 gemini | 예측 codex |');
-console.log('|--------------|:-----------:|:-----------:|:----------:|');
+console.log('|              | 예측 claude | 예측 antigravity | 예측 codex |');
+console.log('|--------------|:-----------:|:----------------:|:----------:|');
 for (const a of TARGETS) {
-  console.log(`| 실제 ${a.padEnd(7)} | ${matrix[a].claude} | ${matrix[a].gemini} | ${matrix[a].codex} |`);
+  console.log(`| 실제 ${a.padEnd(11)} | ${matrix[a].claude} | ${matrix[a].antigravity} | ${matrix[a].codex} |`);
 }
 
 const failed = rows.filter((r) => !r.correct);
