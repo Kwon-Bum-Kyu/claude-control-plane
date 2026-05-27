@@ -21,7 +21,7 @@ const __dirname = dirname(__filename);
 
 const SUMMARY_MAX_CHARS = 500;
 const SLASH_HINT = {
-  gemini: '/gemini:rescue',
+  antigravity: '/antigravity:rescue',
   codex: '/ccp:codex-rescue',
 };
 
@@ -31,7 +31,7 @@ const SLASH_HINT = {
 // If there is no sign of a direct user slash call and automation keywords appear,
 // append one recommended pattern line.
 const HEADLESS_HINT = /headless|claude\s*-p|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654|automation|cron|CI/i;
-const SLASH_PRESENT = /\/(?:ccp:codex-|gemini:|ccp:gemini-)/;
+const SLASH_PRESENT = /\/(?:ccp:codex-|antigravity:|gemini:)/;
 
 function isLikelyHeadless(promptText) {
   if (SLASH_PRESENT.test(promptText)) return false;
@@ -101,7 +101,7 @@ function buildMessage(decision, headlessSuspected) {
 
   if (!headlessSuspected) return clamp(baseLine);
 
-  const companionScript = decision.target === 'codex' ? 'codex-companion.mjs' : 'gemini-companion.mjs';
+  const companionScript = decision.target === 'codex' ? 'codex-companion.mjs' : 'antigravity-companion.mjs';
   const headlessLine =
     ` [CCP-META-WARN] Possible headless usage: instead of meta exploration (\`--help\`, bypassing \`Skill\`→\`Agent\`), ` +
     `directly run \`node plugins/ccp/scripts/${companionScript} rescue --task <task>\`.`;

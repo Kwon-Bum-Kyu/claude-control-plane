@@ -1,6 +1,6 @@
 ---
 name: router
-description: "Deterministic router for CCP 3-way model selection (Claude / Gemini / Codex). Use proactively when the user prompt may benefit from delegation — large-context summarization, code review, diff analysis, bug investigation. MUST BE USED when the user prompt contains a magic keyword (@gemini / @젬 / @codex / @코덱 / @claude / @클로드 / @auto / @자동) or when the user prompt is ambiguous before manually invoking /gemini:rescue or /ccp:codex-rescue. Forwarding wrapper only — runs router-decide.mjs and returns its JSON envelope verbatim. No LLM judgment added (forwarding-wrapper dispatch defense)."
+description: "Deterministic router for CCP 3-way model selection (Claude / Antigravity / Codex). Use proactively when the user prompt may benefit from delegation — large-context summarization, code review, diff analysis, bug investigation. MUST BE USED when the user prompt contains a magic keyword (@antigravity / @ag / @안티 / @gemini / @젬 / @codex / @코덱 / @claude / @클로드 / @auto / @자동) or when the user prompt is ambiguous before manually invoking /antigravity:rescue or /ccp:codex-rescue. Forwarding wrapper only — runs router-decide.mjs and returns its JSON envelope verbatim. No LLM judgment added (forwarding-wrapper dispatch defense)."
 tools: ["Bash"]
 disallowedTools: ["mcp__*", "Task"]
 model: haiku
@@ -48,8 +48,8 @@ Return the stdout of the Bash command verbatim. The envelope shape is fixed (see
   "auto_routed": <boolean>,
   "details": {
     "mode": "router",
-    "decision": "claude" | "gemini" | "codex",
-    "target": "/gemini:rescue" | "/ccp:codex-rescue" | null,
+    "decision": "claude" | "antigravity" | "codex",
+    "target": "/antigravity:rescue" | "/ccp:codex-rescue" | null,
     "axis": "A" | "B" | "C" | "D",
     "reason_code": "<one of 12 enum values>",
     "headless_confident": <boolean>
@@ -57,7 +57,7 @@ Return the stdout of the Bash command verbatim. The envelope shape is fixed (see
 }
 ```
 
-The `reason_code` field is enum-bounded to 12 values (`AXIS_A_SLASH`, `AXIS_A_OPTION`, `AXIS_A_FALLBACK_CLAUDE`, `AXIS_B_OVERSIZED`, `AXIS_B_MID_REVIEW`, `AXIS_B_TOO_SMALL`, `AXIS_C_KW_GEMINI`, `AXIS_C_KW_CODEX`, `AXIS_C_KW_CLAUDE`, `AXIS_C_MAIN_CONTEXT_BIND`, `AXIS_D_DEFAULT_CONSERVATIVE`, `OPT_OUT_NO_AUTO_ROUTE`). Free text is forbidden — this runtime defense caps main-context absorption (target ≤ 250 tok mean per dispatch).
+The `reason_code` field is enum-bounded to 12 values (`AXIS_A_SLASH`, `AXIS_A_OPTION`, `AXIS_A_FALLBACK_CLAUDE`, `AXIS_B_OVERSIZED`, `AXIS_B_MID_REVIEW`, `AXIS_B_TOO_SMALL`, `AXIS_C_KW_ANTIGRAVITY`, `AXIS_C_KW_CODEX`, `AXIS_C_KW_CLAUDE`, `AXIS_C_MAIN_CONTEXT_BIND`, `AXIS_D_DEFAULT_CONSERVATIVE`, `OPT_OUT_NO_AUTO_ROUTE`). Free text is forbidden — this runtime defense caps main-context absorption (target ≤ 250 tok mean per dispatch).
 
 ## How the main Claude reads this envelope
 
@@ -84,7 +84,7 @@ The user prompt flows verbatim from main Claude → router agent → router-deci
 Justification for Haiku specifically:
 1. **Dispatch defense** — LLM judgment must be 0. A weaker model is more reliable for "do nothing but forward" because stronger models tend to add unsolicited interpretation.
 2. **Measured forwarding overhead (~84 tok mean, CV 0.00% across 9 samples)** — proves Haiku forwards the envelope deterministically. Output variance 0.
-3. **Consistency with rescue agents** — `gemini-rescue` and `codex-rescue` are also Haiku for the same thin-wrapper reason. The wrapper layer is uniform.
+3. **Consistency with rescue agents** — `antigravity-rescue` and `codex-rescue` are also Haiku for the same thin-wrapper reason. The wrapper layer is uniform.
 4. **Double-billing defense** — a stronger model would generate longer transcripts when invoked, increasing main-context absorption. Haiku keeps absorption bounded.
 5. **Runtime guard rails catch deviation** — if Haiku ever adds free text or violates the JSON envelope, `envelope-validate.mjs` enum checks (`reason_code` 12-value enum, `headless_confident` boolean only) reject it. Defense-in-depth makes the model choice safe.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // CCP — rescue-finalize hook
 // Event: SubagentStop
-// Behavior: right after the gemini-rescue subagent stops, if
+// Behavior: right after the antigravity-rescue (or codex-rescue) subagent stops, if
 //           _workspace/_jobs/<id>/meta.json is stuck at status=running, finalize it as failed
 //           to clean up the orphan.
 // Failure-silent: no error blocks user flow.

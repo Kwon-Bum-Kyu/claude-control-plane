@@ -1,24 +1,24 @@
 ---
 name: router
-description: "CCP model router — 3-way delegation decision logic for Claude (main) vs Gemini vs Codex. 4-axis priority: user-explicit > input-size > keyword > fallback. Use when deciding `/gemini:rescue` / `/ccp:codex-rescue` invocation, evaluating routing, or guarding against router misclassification cost. **hooks/router-suggest.js injects recommendations on UserPromptSubmit. Headless auto-delegation is NOT performed (no automatic fallback for delegated calls).**"
+description: "CCP model router — 3-way delegation decision logic for Claude (main) vs Antigravity vs Codex. 4-axis priority: user-explicit > input-size > keyword > fallback. Use when deciding `/antigravity:rescue` / `/ccp:codex-rescue` invocation, evaluating routing, or guarding against router misclassification cost. **hooks/router-suggest.js injects recommendations on UserPromptSubmit. Headless auto-delegation is NOT performed (no automatic fallback for delegated calls).**"
 ---
 
-# CCP Router — 3-way Routing Skill (Claude / Gemini / Codex)
+# CCP Router — 3-way Routing Skill (Claude / Antigravity / Codex)
 
 Decides whether to delegate work from the main Claude context. Acceptance criterion: overall accuracy ≥ 98% on the regression dataset, with per-class precision/recall ≥ 0.93.
 
-**v0.2 scope:**
+**v0.3 scope:**
 - The 4-axis algorithm in this SKILL.md is mirrored in code by `plugins/ccp/scripts/lib/router.mjs`. Both the recommendation hook and the regression suite import that single module (single SSOT).
 - **Recommendation hook active**: `hooks/router-suggest.js` injects the decision as a system reminder on UserPromptSubmit (`[CCP-ROUTER-001]`). When the decision is `claude`, it is a no-op.
 - **Canonical auto-routing (opt-in)**: in canonical interactive sessions, set `plugin.json#config.auto_routing: true` to let the router agent dispatch automatically (see README §5.3). Default is `false`.
-- **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/gemini:rescue` / `/ccp:codex-rescue`).
-- Regression dataset: 70 cases (codex / gemini / claude classes + boundary false-positive guards).
+- **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/antigravity:rescue` / `/ccp:codex-rescue`).
+- Regression dataset: 70 cases (codex / antigravity / claude classes + boundary false-positive guards).
 
 ## Trigger conditions
 
 Apply this skill when any of the following holds:
 
-- The user invokes `/gemini:rescue` or `/gemini:*` slash commands directly.
+- The user invokes `/antigravity:rescue` or `/antigravity:*` slash commands directly.
 - Main context utilisation exceeds 75% and a new large task is incoming.
 - The input contains delegation keywords such as "summarize", "review codebase", "this directory", or "large log".
 - Attached files or text exceed 30,000 tokens.
@@ -33,18 +33,21 @@ The router applies four axes in priority order. The first matching axis wins.
 
 | Signal | Decision | reason |
 |--------|----------|--------|
-| `/gemini:rescue` slash invocation | `gemini` | `user_explicit_gemini` |
+| `/antigravity:rescue` slash invocation | `antigravity` | `user_explicit_antigravity` |
 | `/ccp:codex-rescue` slash invocation | `codex` | `user_explicit_codex` |
 | `--fallback-claude` flag | `claude` | `user_explicit_claude` |
 | `--force-claude` flag (future) | `claude` | `user_explicit_claude` |
 | `--effort` (codex-specific) | `codex` | `user_explicit_codex_option` |
 | `--sandbox workspace-write` | `codex` | `user_explicit_codex_option` |
-| Magic keyword `@gemini` / `@젬` / `@제미니` | `gemini` | `user_explicit_gemini_magic` |
+| Magic keyword `@antigravity` / `@ag` / `@안티` | `antigravity` | `user_explicit_antigravity_magic` |
+| Legacy magic keyword `@gemini` / `@젬` / `@제미니` | `antigravity` | `user_explicit_antigravity_magic` |
 | Magic keyword `@codex` / `@코덱` / `@코덱스` | `codex` | `user_explicit_codex_magic` |
 | Magic keyword `@claude` / `@클` / `@클로드` | `claude` | `user_explicit_claude_magic` |
 | Magic keyword `@auto` / `@자동` | (marker — fall through to B/C/D) | — |
 
 User-explicit signals invalidate every other axis. Magic keywords are matched after `removeCodeBlocks` so keywords inside code fences do not trigger.
+
+The `@gemini` / `@젬` / `@제미니` aliases are retained for backward compatibility after the upstream Gemini CLI EOL (2026-06-18) — they all route to the Antigravity backend now.
 
 ### B. Input size
 
@@ -53,7 +56,7 @@ User-explicit signals invalidate every other axis. Magic keywords are matched af
 | < 5,000 | — | `claude` | `too_small` (delegation cost > savings) |
 | 5,000 – 30,000 | review / PR / diff / bug-investigation match | `codex` | `mid_review_codex` |
 | 5,000 – 30,000 | otherwise | (proceed to axis C) | — |
-| > 30,000 | — | `gemini` | `too_large` (1M context advantage) |
+| > 30,000 | — | `antigravity` | `too_large` (long-context backend) |
 
 Token estimation: `words × 1.3` (see `token-budget-check` skill §2).
 
@@ -66,7 +69,7 @@ Keyword matching uses two helper primitives:
 
 Non-ASCII triggers fall back to substring matching but apply the same informational-intent guard. The full keyword dictionaries (including localised terms used by the primary user persona) live in `plugins/ccp/scripts/lib/router.mjs`.
 
-#### Gemini-favoured keywords (large-context summary / analysis)
+#### Antigravity-favoured keywords (large-context summary / analysis)
 - `summarize`, `summary`, `review codebase`, `review the entire`, `whole directory`, `whole codebase`, `whole repo`, `whole project`, `entire codebase`, `monorepo`, `parse large log`, `log analysis`, `all markdown`, `all APIs`
 - Attached files matching `*.log`, `*.csv`, `*.ndjson`, etc.
 
@@ -78,7 +81,7 @@ Non-ASCII triggers fall back to substring matching but apply the same informatio
 - `edit`, `fix this line`, `rename this variable`, `add a comment`, `add a test`, `add type`, `autofix`, `TODO comment`, `error message`
 
 #### Main-context-bind keywords (override)
-The following keywords override every codex / gemini match because they signal that the input depends on the main Claude turn — delegation would break continuity:
+The following keywords override every codex / antigravity match because they signal that the input depends on the main Claude turn — delegation would break continuity:
 
 - `just now`, `just edited`, `just wrote`, `just ran`, `above`, `previous response`, `previous output`, `last command`
 
@@ -86,10 +89,10 @@ The following keywords override every codex / gemini match because they signal t
 | Match | Decision | reason |
 |-------|----------|--------|
 | Main-context-bind keyword present | `claude` | `main_context_bind` |
-| Gemini keywords only | `gemini` | `keyword_gemini` |
+| Antigravity keywords only | `antigravity` | `keyword_antigravity` |
 | Codex keywords only | `codex` | `keyword_codex` |
 | Claude keywords only | `claude` | `keyword_claude` |
-| Multiple matches (excluding bind) | priority codex > gemini > claude | `keyword_<chosen>_priority` |
+| Multiple matches (excluding bind) | priority codex > antigravity > claude | `keyword_<chosen>_priority` |
 | No match | (proceed to axis D) | — |
 
 ### D. Fallback (default)
@@ -97,7 +100,7 @@ The following keywords override every codex / gemini match because they signal t
 | Situation | Decision | reason |
 |-----------|----------|--------|
 | Decision is codex but codex CLI is missing or unauthenticated | `claude` | `fallback_codex_unavailable` |
-| Decision is gemini but Gemini OAuth is expired / quota-exceeded / CLI missing | `claude` | `fallback_gemini_unavailable` |
+| Decision is antigravity but `agy` auth is invalid / quota-exceeded / CLI missing | `claude` | `fallback_antigravity_unavailable` |
 | All previous axes undecided | `claude` | `default_conservative` |
 
 **Conservative default**: when in doubt, route to the main Claude. A wrong delegation triggers the router-misclassification cost.
@@ -106,8 +109,8 @@ The following keywords override every codex / gemini match because they signal t
 
 ```json
 {
-  "target": "claude" | "gemini" | "codex",
-  "reason": "user_explicit_gemini | user_explicit_codex | user_explicit_codex_option | user_explicit_claude | user_explicit_gemini_magic | user_explicit_codex_magic | user_explicit_claude_magic | too_small | mid_review_codex | too_large | keyword_gemini | keyword_codex | keyword_claude | keyword_codex_priority | keyword_gemini_priority | fallback_codex_unavailable | fallback_gemini_unavailable | default_conservative",
+  "target": "claude" | "antigravity" | "codex",
+  "reason": "user_explicit_antigravity | user_explicit_codex | user_explicit_codex_option | user_explicit_claude | user_explicit_antigravity_magic | user_explicit_codex_magic | user_explicit_claude_magic | too_small | mid_review_codex | too_large | keyword_antigravity | keyword_codex | keyword_claude | keyword_codex_priority | keyword_antigravity_priority | fallback_codex_unavailable | fallback_antigravity_unavailable | default_conservative",
   "axis": "A" | "B" | "C" | "D",
   "estimated_input_tokens": 12345,
   "matched_keywords": ["review this PR", "audit diff"]
@@ -116,11 +119,11 @@ The following keywords override every codex / gemini match because they signal t
 
 ## No-auto-fallback rule
 
-After the router decides `gemini` or `codex`, a failed delegation must NOT be retried automatically against the main Claude. Instead, the envelope presents the user with one of the following choices.
+After the router decides `antigravity` or `codex`, a failed delegation must NOT be retried automatically against the main Claude. Instead, the envelope presents the user with one of the following choices.
 
 | Model | Failure cause | User choices |
 |-------|---------------|--------------|
-| gemini | OAuth expired / quota | `/gemini:setup --renew` or `/gemini:rescue --fallback-claude "<task>"` |
+| antigravity | auth invalid / quota | `/antigravity:setup --renew` or `/antigravity:rescue --fallback-claude "<task>"` |
 | codex | not authenticated | `codex login` then retry, or `/ccp:codex-rescue --fallback-claude "<task>"` |
 
 Reasons for forbidding auto-fallback:
@@ -130,28 +133,28 @@ Reasons for forbidding auto-fallback:
 
 ## Anti-pattern in headless automation
 
-In `claude -p` headless invocations, when the router recommends gemini/codex the model may accumulate meta-bypass attempts. An external 4-environment benchmark observed up to 12 such attempts in a single run — the direct cause of a net-negative token regression.
+In `claude -p` headless invocations, when the router recommends antigravity/codex the model may accumulate meta-bypass attempts. An external 4-environment benchmark observed up to 12 such attempts in a single run — the direct cause of a net-negative token regression.
 
 ### Do not (avoid meta-bypass accumulation)
 
-- ❌ probing `gemini-companion.mjs --help` / `rescue --help`
-- ❌ triple entry-point search (`Skill ccp:gemini-rescue` → `Agent ccp:gemini-rescue` → companion direct call)
+- ❌ probing `antigravity-companion.mjs --help` / `rescue --help`
+- ❌ triple entry-point search (`Skill ccp:antigravity-rescue` → `Agent ccp:antigravity-rescue` → companion direct call)
 - ❌ retrying the same task with different variants (Korean → English → minimal case)
 - ❌ source spelunking with `grep "rescue|--task"`
 
 ### Do (pre-script the slash)
 
-- ✅ Pre-script the slash command: `claude -p "/gemini:rescue <task>" -- ...`
+- ✅ Pre-script the slash command: `claude -p "/antigravity:rescue <task>" -- ...`
 - ✅ On failure, retry once and surface the result to the user (`--fallback-claude` only when explicitly requested — no auto-fallback).
 
 ### Guard
 
 - `hooks/router-suggest.js` detects keywords such as `headless`, `claude -p`, `script`, `automation` on UserPromptSubmit and adds a `[CCP-META-WARN]` notice.
-- When the user/script invokes a slash command (`/gemini:rescue` etc.), the headless suspicion is cleared and only the standard `[CCP-ROUTER-001]` recommendation is emitted.
+- When the user/script invokes a slash command (`/antigravity:rescue` etc.), the headless suspicion is cleared and only the standard `[CCP-ROUTER-001]` recommendation is emitted.
 
 ## Accuracy measurement procedure
 
-Use the 70-case regression dataset that ships with this repo (codex / gemini / claude classes + boundary false-positive guards).
+Use the 70-case regression dataset that ships with this repo (codex / antigravity / claude classes + boundary false-positive guards).
 
 ```
 accuracy = (prediction == ground-truth label) / total
@@ -165,8 +168,8 @@ Acceptance criteria:
 | Clear-case accuracy | 100% |
 | Boundary-case accuracy (alt label allowed) | ≥ 80% |
 | False-positive guard accuracy | 100% |
-| Claude / Gemini / Codex precision and recall | ≥ 0.93 each |
-| Confusion matrix | 3×3 (claude / gemini / codex) |
+| Claude / Antigravity / Codex precision and recall | ≥ 0.93 each |
+| Confusion matrix | 3×3 (claude / antigravity / codex) |
 
 If a metric falls below threshold, follow this remediation order:
 1. Augment the keyword dictionary with the misclassified core terms.

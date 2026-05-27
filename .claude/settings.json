@@ -1,10 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs *)",
+      "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs *)",
       "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js *)",
-      "Bash(gemini --version)",
-      "Bash(gemini -p \"ping\" -o json)"
+      "Bash(${HOME}/.local/bin/agy --version)",
+      "Bash(${HOME}/.local/bin/agy -p \"ping\")"
     ]
   }
 }
