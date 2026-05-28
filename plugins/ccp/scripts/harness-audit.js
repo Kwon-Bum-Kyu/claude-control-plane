@@ -31,7 +31,7 @@ const AUDITS_DIR = resolve(REPO_ROOT, '_workspace', '_audits');
 const SUMMARY_MAX_CHARS = 500;
 
 // ---------------------------------------------------------------------------
-// Envelope helpers (mirror gemini-companion.mjs contract)
+// Envelope helpers (mirror antigravity-companion.mjs contract)
 // ---------------------------------------------------------------------------
 
 function emit(envelope) {
@@ -50,12 +50,12 @@ function emitSuccess({ summary, result_path, details }) {
   process.exit(0);
 }
 
-function emitError(code, message_ko, action_ko, details) {
+function emitError(code, message, action, details) {
   const env = {
     error: {
       code,
-      message_ko,
-      action_ko,
+      message,
+      action,
       recovery: code === 'CCP-AUDIT-002' ? 'retry' : 'abort',
     },
     exit_code: 1,
@@ -265,7 +265,7 @@ function scoreBorrowedCodeDocumented() {
 
 function scoreSecretLeak(jobs) {
   // L5·L6 — grep secret-pattern matches in meta.json / summary_3lines / details
-  const blocked = /(Bearer\s+[A-Za-z0-9._-]+|GEMINI_API_KEY|AKIA[0-9A-Z]{16})/i;
+  const blocked = /(Bearer\s+[A-Za-z0-9._-]+|ANTIGRAVITY_API_KEY|GEMINI_API_KEY|AKIA[0-9A-Z]{16})/i;
   let leaks = 0;
   for (const j of jobs) {
     const blob = JSON.stringify(j);
