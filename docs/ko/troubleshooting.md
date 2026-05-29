@@ -2,18 +2,18 @@
 
 CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, 다음에 입력할 `action`, 그리고 `recovery` enum 을 가집니다. 본 문서는 가장 빈번한 코드를 표면별로 정리합니다.
 
-## Gemini 측 에러
+## Antigravity 측 에러
 
 | 코드 | 빈도 | 다음 행동 |
 |---|:---:|---|
-| `CCP-OAUTH-001` | ★★★ | `gemini` 한 번 실행해 OAuth 트리거 (또는 `GEMINI_API_KEY` 설정) 후 `/gemini:setup` 재실행 |
-| `CCP-SETUP-001` | ★★★ | `npm install -g @google/gemini-cli@latest` |
+| `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/antigravity:setup` 재실행 |
+| `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
-| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/gemini:rescue --fallback-claude` |
+| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/antigravity:rescue --fallback-claude` |
 | `CCP-CTX-001` | ★ | summary 가 500자 초과 — 입력 축소 |
 | `CCP-ROUTER-001` | ★ | `/ccp:audit` 으로 라우터 결정 검토 |
 | `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
-| `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/gemini:status <job_id>` 로 job 상태 재확인 |
+| `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/antigravity:status <job_id>` 로 job 상태 재확인 |
 
 ## Codex 측 에러
 
@@ -26,7 +26,7 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 | `CCP-CODEX-002` | ★ | JSONL 파싱 실패 — `--verbose` 또는 stderr 확인 후 재시도 |
 | `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/ccp:codex-status <job_id>` 로 재확인 |
 | `CCP-JOB-409` | ★ | 현 상태에서 취소 불가 — 상태 확인 후 재시도 |
-| `CCP-INVALID-001` | ★ | Codex 전용 플래그 (`--effort`/`--sandbox`/`--write`) 가 `/gemini:rescue` 에 들어왔습니다 — `/ccp:codex-rescue` 사용 |
+| `CCP-INVALID-001` | ★ | Codex 전용 플래그 (`--effort`/`--sandbox`/`--write`) 가 `/antigravity:rescue` 에 들어왔습니다 — `/ccp:codex-rescue` 사용 |
 
 ## 공통 에러
 
@@ -35,29 +35,29 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 | `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` (foreground default 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | ★ | `--since` 윈도 조정 또는 스크립트 로그 확인 |
 
-전체 카탈로그는 `plugins/ccp/scripts/gemini-companion.mjs` 와 `codex-companion.mjs` 의 `ERROR_CATALOG` 상수에 있습니다.
+전체 카탈로그는 `plugins/ccp/scripts/antigravity-companion.mjs` 와 `codex-companion.mjs` 의 `ERROR_CATALOG` 상수에 있습니다.
 
 ## 자주 묻는 질문
 
 **무료 티어 한도는?**
-Gemini 는 인증 방식에 따라 두 체계가 다릅니다.
-- **OAuth (Gemini Code Assist for individuals, CLI 기본):** 60 RPM / 1,000 RPD — 모든 모델 합산. 기본 라우팅은 Flash 계열.
+Antigravity 는 인증 방식에 따라 두 체계가 다릅니다.
+- **OAuth (Antigravity Code Assist for individuals, CLI 기본):** 60 RPM / 1,000 RPD — 모든 모델 합산. 기본 라우팅은 Flash 계열.
 - **API key (AI Studio):** 모델별 독립 한도 — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD 등.
 - 2026-04 시점 무료 티어는 Flash 계열 (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`) 만 포함합니다. `gemini-2.5-pro` 는 Google AI Pro/Ultra 유료 구독이 필요합니다. 정확한 값은 Google 의 현재 정책을 따릅니다.
 
 Codex: ChatGPT 플랜 쿼터에 묶입니다. Plus/Pro/Business/Enterprise 는 Codex 포함, Free/Go 는 한시적 Codex Mini 한정 (정책 변경 가능). 2026-04-02 부로 토큰 단위 과금으로 전환되었습니다. 정확한 값은 OpenAI 정책에 따릅니다.
 
 **OAuth 만료 주기는?**
-Codex 는 활성 세션 중 자동 refresh 되며, idle 약 8일 후 stale → 재로그인 필요. Gemini 의 Google OAuth 는 별도 만료 정책 (정책 변경 가능, 로컬에서 확인 권장). 만료 시 `CCP-OAUTH-001` / `CCP-OAUTH-101` 가 자동 안내됩니다.
+Codex 는 활성 세션 중 자동 refresh 되며, idle 약 8일 후 stale → 재로그인 필요. Antigravity 의 Google OAuth 는 별도 만료 정책 (정책 변경 가능, 로컬에서 확인 권장). 만료 시 `CCP-OAUTH-001` / `CCP-OAUTH-101` 가 자동 안내됩니다.
 
 **`npm i -g` 권한 에러?**
 nvm 사용 권장, 또는 `sudo` 실행. nvm 우선.
 
 **브라우저 미접근 환경?**
-- Gemini: `GEMINI_API_KEY` 환경변수 설정 (https://aistudio.google.com/apikey)
+- Antigravity: `ANTIGRAVITY_API_KEY` 환경변수 설정 (https://aistudio.google.com/apikey)
 - Codex: `codex login --device-auth` (장치 코드 흐름) 또는 `printenv OPENAI_API_KEY | codex login --with-api-key`
 
-**`--effort` 가 Gemini 측에서 거부된다?**
+**`--effort` 가 Antigravity 측에서 거부된다?**
 의도된 동작입니다. `--effort` 는 Codex 전용입니다. `/ccp:codex-rescue --effort high -- "<task>"` 형태로 사용하세요. [호환성 매트릭스](./slash-commands.md#3-way-호환성) 참고.
 
 **Codex 가 stdin 에서 멈춘다?**
@@ -71,16 +71,16 @@ Codex CLI 의 정상 동작입니다. 무해하며 companion 이 자동 흡수�
 두 setup 커맨드는 멱등합니다. 환경 변경이 의심될 때마다 실행하세요.
 
 ```text
-/gemini:setup            # Node + Gemini CLI + OAuth
-/gemini:setup --renew    # OAuth 재인증까지 안내
+/antigravity:setup            # Node + Antigravity CLI + OAuth
+/antigravity:setup --renew    # OAuth 재인증까지 안내
 /ccp:codex-setup         # Node + Codex CLI + OAuth
 ```
 
-각 setup 은 감지된 버전을 출력합니다. 문서화된 최소값 (`Node ≥ 20`, `Gemini ≥ 0.38.0`, `Codex ≥ 0.122.0`) 미달이면 `CCP-SETUP-*` 코드로 표시됩니다.
+각 setup 은 감지된 버전을 출력합니다. 문서화된 최소값 (`Node ≥ 20`, `Antigravity ≥ 1.0.0`, `Codex ≥ 0.122.0`) 미달이면 `CCP-SETUP-*` 코드로 표시됩니다.
 
 ## 버그 신고 시점
 
-에러 코드가 누락되었거나, action 이 message 와 맞지 않거나, `CCP-CODEX-*` / `CCP-GEMINI-*` 가 재시도 후에도 반복되면 issue 템플릿으로 신고해주세요. envelope JSON 과 `/gemini:setup` · `/ccp:codex-setup` 의 출력을 첨부해주세요.
+에러 코드가 누락되었거나, action 이 message 와 맞지 않거나, `CCP-CODEX-*` / `CCP-GEMINI-*` 가 재시도 후에도 반복되면 issue 템플릿으로 신고해주세요. envelope JSON 과 `/antigravity:setup` · `/ccp:codex-setup` 의 출력을 첨부해주세요.
 
 ## 관련 문서
 

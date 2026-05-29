@@ -1,15 +1,15 @@
 # 슬래시 커맨드 레퍼런스
 
-CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위임, Codex 위임, 공통 감사. 모든 커맨드는 동일한 형태의 JSON envelope 을 반환합니다 (자세한 형식: [아키텍처 — envelope 스키마](./architecture.md#envelope-스키마)).
+CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Antigravity 위임, Codex 위임, 공통 감사. 모든 커맨드는 동일한 형태의 JSON envelope 을 반환합니다 (자세한 형식: [아키텍처 — envelope 스키마](./architecture.md#envelope-스키마)).
 
-## Gemini (대용량 요약·분석)
+## Antigravity (대용량 요약·분석)
 
 | 커맨드 | 용도 |
 |---|---|
-| `/gemini:rescue <prompt>` | Gemini 에 무거운 작업 위임 |
-| `/gemini:status <job_id>` | background job 상태 조회 |
-| `/gemini:result <job_id>` | 완료된 job 의 요약 + `result_path` 회수 |
-| `/gemini:setup [--renew]` | Gemini CLI · OAuth 진단 |
+| `/antigravity:rescue <prompt>` | Antigravity 에 무거운 작업 위임 |
+| `/antigravity:status <job_id>` | background job 상태 조회 |
+| `/antigravity:result <job_id>` | 완료된 job 의 요약 + `result_path` 회수 |
+| `/antigravity:setup [--renew]` | Antigravity CLI · OAuth 진단 |
 
 ## Codex (코드 리뷰·diff·버그 조사)
 
@@ -30,25 +30,25 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 
 ## 플래그 매트릭스
 
-| 플래그 | Gemini | Codex | 비고 |
+| 플래그 | Antigravity | Codex | 비고 |
 |---|:---:|:---:|---|
 | `--background` | ✅ | ✅ | `job_id` 즉시 반환 |
 | `--fallback-claude` | ✅ | ✅ | 라우터 무시하고 Claude 로 처리 |
 | `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | foreground timeout |
 | `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | background polling 주기 |
-| `--max-tokens N` | ✅ (default 4000) | ❌ | Gemini 전용, prompt suffix 변환 |
-| `--files <glob>` | ⚠️ 백로그 | ❌ | Gemini 첨부 파일 |
+| `--max-tokens N` | ✅ (default 4000) | ❌ | Antigravity 전용, prompt suffix 변환 |
+| `--files <glob>` | ⚠️ 백로그 | ❌ | Antigravity 첨부 파일 |
 | `--model NAME` | ❌ | ✅ | Codex 모델 별칭 |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=...`) | Codex 전용 |
 | `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (`read-only` / `workspace-write` / `danger-full-access`) | Codex 샌드박스 |
 | `--cwd DIR` | ❌ | ✅ | Codex 작업 루트 |
 | `--renew` | ✅ | (`codex login` 직접 사용) | OAuth 재인증 안내 |
 
-`/gemini:rescue` 에 Codex 전용 플래그 (또는 그 반대) 가 들어오면 companion 이 인라인으로 `CCP-INVALID-001` 을 반환합니다. 의도된 동작이며, 잘못된 슬래시를 조기에 노출합니다.
+`/antigravity:rescue` 에 Codex 전용 플래그 (또는 그 반대) 가 들어오면 companion 이 인라인으로 `CCP-INVALID-001` 을 반환합니다. 의도된 동작이며, 잘못된 슬래시를 조기에 노출합니다.
 
 ## 3-way 호환성
 
-| 기능 | Claude | Gemini | Codex | 비고 |
+| 기능 | Claude | Antigravity | Codex | 비고 |
 |---|:---:|:---:|:---:|---|
 | `--background` | N/A | ✅ | ✅ | Claude 는 메인 컨텍스트, async 없음 |
 | `--model NAME` | `/model` 슬래시 | ✅ | ✅ | Claude 는 내장 `/model` |
@@ -56,8 +56,8 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 | `--sandbox <mode>` | N/A | ❌ | ✅ | Codex 만 |
 | `--write` | N/A | ❌ | ✅ (`--sandbox workspace-write` alias) | Codex 단축형 |
 | `--cwd DIR` | N/A (turn 별) | ❌ | ✅ (`-C`) | Codex 만 |
-| `--max-tokens N` | N/A | ✅ (prompt suffix) | ❌ | Gemini 만 |
-| `--files <glob>` | (chat 첨부) | ⚠️ 백로그 | ❌ | Gemini 백로그 |
+| `--max-tokens N` | N/A | ✅ (prompt suffix) | ❌ | Antigravity 만 |
+| `--files <glob>` | (chat 첨부) | ⚠️ 백로그 | ❌ | Antigravity 백로그 |
 | `--resume-last` | N/A | ⚠️ meta-file 흉내 | ✅ (`codex resume --last`) | Codex CLI 네이티브; 현재 cwd 범위 한정 (다른 디렉토리는 `codex resume --all`) |
 
 ## 예제
@@ -65,10 +65,10 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Gemini 위
 ### Background job 라이프사이클
 
 ```text
-/gemini:rescue --background "/var/log/app/error.log 최근 24시간 요약"
+/antigravity:rescue --background "/var/log/app/error.log 최근 24시간 요약"
 # → envelope.summary 에 job_id
-/gemini:status <job_id>     # queued / running / completed / failed
-/gemini:result <job_id>     # 요약 + result_path
+/antigravity:status <job_id>     # queued / running / completed / failed
+/antigravity:result <job_id>     # 요약 + result_path
 ```
 
 ### Codex — effort + sandbox 명시

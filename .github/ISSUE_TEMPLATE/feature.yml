@@ -38,11 +38,11 @@ body:
       multiple: true
       options:
         - Router (4-axis decision)
-        - Slash command (`/gemini:*` or `/codex:*`)
+        - Slash command (`/antigravity:*` or `/codex:*`)
         - Hook (UserPromptSubmit / PreCompact / SessionEnd)
-        - Companion script (Gemini or Codex)
+        - Companion script (Antigravity or Codex)
         - Audit (`/ccp:audit`)
-        - Subagent (gemini-rescue / codex-rescue)
+        - Subagent (antigravity-rescue / codex-rescue)
         - Documentation
         - Other
     validations:

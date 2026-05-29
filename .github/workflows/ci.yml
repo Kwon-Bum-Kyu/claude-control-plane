@@ -86,7 +86,7 @@ jobs:
           # CI runs against a clean checkout where _workspace/ is gitignored
           # (no _jobs/, no 04_router_report.md, no 04_token_report.md). Seed
           # a minimal but complete job so harness-audit can score all 8
-          # categories. Metadata mirrors a real gemini-companion completion.
+          # categories. Metadata mirrors a real antigravity-companion completion.
           mkdir -p _workspace/_jobs/ci-seed _workspace/_audits
           cat > _workspace/_jobs/ci-seed/result.txt <<'BODY'
           CI seed job result body — long enough to dominate summary_3lines
@@ -97,7 +97,7 @@ jobs:
           cat > _workspace/_jobs/ci-seed/meta.json <<'JOB'
           {
             "job_id": "ci-seed",
-            "mode": "gemini",
+            "mode": "antigravity",
             "state": "completed",
             "created_at": "2026-05-05T00:00:00.000Z",
             "started_at": "2026-05-05T00:00:00.000Z",
