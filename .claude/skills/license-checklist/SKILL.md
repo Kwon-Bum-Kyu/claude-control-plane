@@ -27,12 +27,12 @@ CCP가 공개 레포(MIT 가정)로 배포될 때 차용·참조한 코드의 �
 - **유의:** "구조 참조"는 차용이 아님 (저작권 대상 아님)
 - 단, README "Inspired by" 섹션에 명시 (커뮤니티 예의)
 
-### L5. `@google/gemini-cli` 의존성
-- **라이선스:** Apache 2.0 (확인 필요)
+### L5. Antigravity CLI 외부 호출
+- **유형:** 외부 CLI 런타임 호출 (npm 의존성 아님 — 코드 번들·차용 없음, ATTRIBUTION 대상 아님)
 - **검증:**
-  - [ ] MIT와 호환 (Apache 2.0은 MIT 호환)
-  - [ ] `package.json`에 버전 핀 (`^X.Y.Z` 또는 `~X.Y.Z`)
-  - [ ] README에 설치 명령 명시
+  - [ ] README에 설치 명령 명시 (`curl -fsSL https://antigravity.google/cli/install.sh | bash`)
+  - [ ] 최소 버전 요구 명시 (≥ 1.0.0)
+  - [ ] 런타임 외부 호출이므로 라이선스 차용 의무 없음 확인
 
 ### L6. Node.js 버전 요구사항
 - **검증:**
@@ -61,7 +61,7 @@ CCP가 공개 레포(MIT 가정)로 배포될 때 차용·참조한 코드의 �
 
 ```bash
 # API 키 패턴
-grep -rE "(sk-|api_key|API_KEY|GEMINI_API_KEY)\s*[:=]\s*['\"][^'\"]+['\"]" .
+grep -rE "(sk-|api_key|API_KEY|GEMINI_API_KEY|ANTIGRAVITY_API_KEY)\s*[:=]\s*['\"][^'\"]+['\"]" .
 
 # OAuth 토큰
 grep -rE "(access_token|refresh_token)\s*[:=]\s*['\"][^'\"]+['\"]" .
@@ -77,7 +77,7 @@ grep -rE "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}" --exclude-dir=node_mod
 ```markdown
 | 이름 | 버전 | 라이선스 | 용도 | 호환성 |
 |------|------|----------|------|--------|
-| @google/gemini-cli | ^X.Y.Z | Apache 2.0 | Gemini CLI 호출 | ✅ MIT 호환 |
+| Antigravity CLI (`agy`) | ≥ 1.0.0 | 외부 CLI | 런타임 호출 (번들 아님) | ✅ 차용 의무 없음 |
 | node | >=18.0.0 | MIT | 런타임 | ✅ |
 ```
 

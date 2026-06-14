@@ -1,6 +1,6 @@
 ---
 name: ccp-orchestrator
-description: "Claude Control Plane 플러그인 개발 하네스 오케스트레이터. 기획→검수→개발 3-Phase 파이프라인으로 에이전트 팀을 조율하여 Gemini CLI wrapper + 라우터 + ecc 가드레일을 구현. CCP 플러그인 개발, 라우터 작업, 토큰 절감 플러그인, Gemini 통합, codex-plugin-cc 미러링, 플러그인 기획·검수·개발, 결과 수정·부분 재실행·업데이트·보완·다시 실행·이전 결과 개선·기획 다시·검수 다시·구현 다시·하네스 재실행 요청 시 반드시 이 스킬을 사용."
+description: "Claude Control Plane 플러그인 개발 하네스 오케스트레이터. 기획→검수→개발 3-Phase 파이프라인으로 에이전트 팀을 조율하여 Antigravity CLI wrapper + 라우터 + ecc 가드레일을 구현. CCP 플러그인 개발, 라우터 작업, 토큰 절감 플러그인, Antigravity 통합, codex-plugin-cc 미러링, 플러그인 기획·검수·개발, 결과 수정·부분 재실행·업데이트·보완·다시 실행·이전 결과 개선·기획 다시·검수 다시·구현 다시·하네스 재실행 요청 시 반드시 이 스킬을 사용."
 ---
 
 # CCP Orchestrator — Claude Control Plane 개발 하네스
@@ -50,7 +50,7 @@ TeamCreate(
       name: "scope-guard",
       agent_type: "scope-guard",
       model: "opus",
-      prompt: "당신은 scope-guard입니다. MVP 4개 핵심 항목 (Gemini CLI wrapper, 라우터, ecc 가드레일, 토큰 실측) 외 모든 항목을 _workspace/01_backlog.md에 분리 기록하세요. spec-writer/ux-designer의 SendMessage로 들어온 신규 기능 후보를 즉시 판정하고 회신하세요."
+      prompt: "당신은 scope-guard입니다. MVP 4개 핵심 항목 (Antigravity CLI wrapper, 라우터, ecc 가드레일, 토큰 실측) 외 모든 항목을 _workspace/01_backlog.md에 분리 기록하세요. spec-writer/ux-designer의 SendMessage로 들어온 신규 기능 후보를 즉시 판정하고 회신하세요."
     },
     {
       name: "ux-designer",
@@ -67,8 +67,8 @@ TeamCreate(
 ```
 TaskCreate(tasks: [
   { title: "PRD 작성", description: "prd-template 스킬 사용", assignee: "spec-writer" },
-  { title: "슬래시 커맨드 명세", description: "/gemini:rescue, status, result, setup, /ccp:audit", assignee: "spec-writer" },
-  { title: "서브에이전트 명세", description: "gemini-rescue 정의", assignee: "spec-writer" },
+  { title: "슬래시 커맨드 명세", description: "/antigravity:rescue, status, result, setup, /ccp:audit", assignee: "spec-writer" },
+  { title: "서브에이전트 명세", description: "antigravity-rescue 정의", assignee: "spec-writer" },
   { title: "MVP 범위 판정", description: "모든 기능 후보 분류", assignee: "scope-guard" },
   { title: "백로그 작성", description: "Phase 6+ 항목 (Codex, Ralph, 한국어 키워드)", assignee: "scope-guard" },
   { title: "사용자 시나리오 작성", description: "신규/숙련/실패 복구 3개", assignee: "ux-designer" },
@@ -162,7 +162,7 @@ TeamCreate(
       name: "adapter-engineer",
       agent_type: "adapter-engineer",
       model: "opus",
-      prompt: "당신은 adapter-engineer입니다. companion-script-pattern + router-implementation 스킬을 사용하여 gemini-companion.mjs, router.mjs, suggest-compact.js, context-budget 스킬, harness-audit.js를 구현하세요. 모듈 단위 완성 즉시 harness-qa에게 SendMessage (incremental QA)."
+      prompt: "당신은 adapter-engineer입니다. companion-script-pattern + router-implementation 스킬을 사용하여 antigravity-companion.mjs, router.mjs, suggest-compact.js, context-budget 스킬, harness-audit.js를 구현하세요. 모듈 단위 완성 즉시 harness-qa에게 SendMessage (incremental QA)."
     },
     {
       name: "harness-qa",
@@ -180,9 +180,9 @@ TeamCreate(
 TaskCreate(tasks: [
   { title: "플러그인 스캐폴드 (manifest, dirs)", assignee: "plugin-scaffolder" },
   { title: "슬래시 커맨드 파일 작성", assignee: "plugin-scaffolder" },
-  { title: "gemini-rescue 서브에이전트 정의", assignee: "plugin-scaffolder" },
+  { title: "antigravity-rescue 서브에이전트 정의", assignee: "plugin-scaffolder" },
   { title: "README + LICENSE", assignee: "plugin-scaffolder" },
-  { title: "gemini-companion.mjs 구현", assignee: "adapter-engineer" },
+  { title: "antigravity-companion.mjs 구현", assignee: "adapter-engineer" },
   { title: "router 구현", assignee: "adapter-engineer" },
   { title: "suggest-compact.js 포팅", assignee: "adapter-engineer" },
   { title: "context-budget 스킬 포팅", assignee: "adapter-engineer" },
@@ -266,7 +266,7 @@ _workspace/00_input/project_brief.md
 4. adapter-engineer가 키워드 사전 보강 → 재구현
 5. 재측정 → 여전히 78% (개선됨, 미달)
 6. `_workspace/03_mvp_verdict.md`에 불합격 명시
-7. 오케스트레이터가 사용자에게 보고: "라우터 정확도 미달, 스코프 축소 권고 — Gemini는 수동 슬래시만 지원, 자동 라우팅 제거"
+7. 오케스트레이터가 사용자에게 보고: "라우터 정확도 미달, 스코프 축소 권고 — Antigravity는 수동 슬래시만 지원, 자동 라우팅 제거"
 8. 사용자 결정 대기
 
 ### 부분 재실행 흐름

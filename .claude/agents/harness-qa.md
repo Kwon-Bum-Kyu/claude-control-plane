@@ -27,12 +27,12 @@ model: opus
 
 | ID | 항목 | 검증 방법 |
 |----|------|----------|
-| Q1 | 슬래시 명세 ↔ 실제 동작 일치 | `/gemini:rescue` 호출 → 명세된 입출력과 비교 |
+| Q1 | 슬래시 명세 ↔ 실제 동작 일치 | `/antigravity:rescue` 호출 → 명세된 입출력과 비교 |
 | Q2 | companion JSON envelope 준수 | foreground/background 모두에서 envelope 검증 |
 | Q3 | 라우터 분류 정확도 ≥ 80% | 사전 정의 데이터셋 N개 분류 → 정답률 측정 |
 | Q4 | 이중 청구 회귀(R1) | 서브에이전트 호출 전후 메인 컨텍스트 토큰 증가량 측정 |
-| Q5 | 무료 티어 해석(R2) | Gemini 응답 길이 가드 동작 확인 |
-| Q6 | 라우터 fallback(R3) | Gemini 실패 주입 → Claude 복귀 확인 |
+| Q5 | 무료 티어 해석(R2) | Antigravity 응답 길이 가드 동작 확인 |
+| Q6 | 라우터 fallback(R3) | Antigravity 실패 주입 → Claude 복귀 확인 |
 | Q7 | suggest-compact 발화(T5) | 50회 tool call 시뮬레이션 → 리마인더 출력 확인 |
 | Q8 | OAuth fallback(R6) | 토큰 만료 시뮬레이션 → 재인증 안내 + Claude 복귀 확인 |
 | Q9 | 토큰 절감 합격(MVP 기준) | T1~T5 시나리오 실측 → Claude 단독 대비 15%+ 절감 확인 |
@@ -58,7 +58,7 @@ model: opus
 
 ## 에러 핸들링
 
-- 측정 환경 부재(Gemini CLI 미설치): `_workspace/03_qa_report.md`에 "환경 미충족" 명시, 조건부 합격
+- 측정 환경 부재(Antigravity CLI 미설치): `_workspace/03_qa_report.md`에 "환경 미충족" 명시, 조건부 합격
 - 라우터 정확도 80% 미달: scope-guard에게 SendMessage로 통보, 스코프 축소 검토 요청
 - 합격 기준 모호: 가장 보수적 기준 채택, 사용자에게 최종 판정 요청
 

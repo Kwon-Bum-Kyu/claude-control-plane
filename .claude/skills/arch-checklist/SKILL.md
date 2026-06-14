@@ -23,7 +23,7 @@ plugins/ccp/{plugin.json,agents/,commands/,scripts/,hooks/,skills/}
 ### A2. 슬래시 네이밍
 **기준:** `/{plugin}:{action}` 형식. 다른 플러그인과 충돌 없음.
 **판정 기준:**
-- 충돌 검사: `codex`, `gemini`, `omc`, `ecc` 네임스페이스와 비교
+- 충돌 검사: `codex`, `antigravity`, `omc`, `ecc` 네임스페이스와 비교
 - 일관성: 모든 슬래시가 동일 prefix 사용
 
 ### A3. 서브에이전트 권한 화이트리스트
@@ -41,7 +41,7 @@ plugins/ccp/{plugin.json,agents/,commands/,scripts/,hooks/,skills/}
 **기준:** companion 스크립트가 두 모드 모두 지원
 - foreground: 동기 stdout
 - background: detached child + job 메타 디스크 저장
-- background는 `/gemini:status`, `/gemini:result`로 회수 가능
+- background는 `/antigravity:status`, `/antigravity:result`로 회수 가능
 
 ### A6. JSON 결과 정규화
 **기준:** 에러 envelope 표준 정의
@@ -56,7 +56,7 @@ plugins/ccp/{plugin.json,agents/,commands/,scripts/,hooks/,skills/}
 **금지:** 비공식·실험적 이벤트 사용
 
 ### A8. OAuth fallback 경로
-**기준:** Gemini OAuth 만료 시 Claude 본체로 자동 fallback
+**기준:** Antigravity OAuth 만료 시 Claude 본체로 자동 fallback
 **필수 명세:**
 - 사전 검증 (호출 전 토큰 유효성 체크)
 - 재인증 안내 메시지 (ux-designer 작성 메시지 인용)

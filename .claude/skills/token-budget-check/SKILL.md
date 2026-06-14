@@ -36,16 +36,16 @@ estimated_tokens = word_count × 1.3
 
 ### R2: 무료 티어 해석 오류
 
-1. Gemini 호출 시 `max_output_tokens` 명시 여부 확인
+1. Antigravity 호출 시 max-tokens(prompt-suffix) 명시 여부 확인
 2. 응답 길이 가드 동작 확인 (초과 시 잘라냄)
-3. 서브에이전트가 Gemini 원본 응답을 그대로 반환하지 않고 재요약하는지 확인
+3. 서브에이전트가 Antigravity 원본 응답을 그대로 반환하지 않고 재요약하는지 확인
 
 ### R3: 라우터 오판 비용
 
 1. 정답 라벨이 있는 분류 데이터셋 N개 (≥30) 준비
 2. 라우터 실행 → 분류 결과 ↔ 정답 비교
 3. 정확도 = 일치 / 전체. **80% 미만 = R3 발현**
-4. 오판 시나리오에서 fallback이 발생하는지 (Gemini 실패 → Claude 복귀) 확인
+4. 오판 시나리오에서 fallback이 발생하는지 (Antigravity 실패 → Claude 복귀) 확인
 
 ### R5: strategic-compact 약한 시그널
 
@@ -57,7 +57,7 @@ estimated_tokens = word_count × 1.3
 
 - `ccusage` 등 토큰 사용량 CLI (보고서 §8.3 권장)
 - Claude Code의 `/cost` 또는 세션 종료 통계
-- 자체 로깅: `gemini-companion.mjs` 호출 전후 토큰 기록
+- 자체 로깅: `antigravity-companion.mjs` 호출 전후 토큰 기록
 
 ## 합격 기준 (MVP)
 

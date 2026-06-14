@@ -1,6 +1,6 @@
 ---
 name: subagent-template
-description: "Claude Code 플러그인 서브에이전트 정의 템플릿. 권한 화이트리스트·입출력 계약·요약 반환 강제 패턴. gemini-rescue 등 서브에이전트 명세 작성 시 반드시 이 스킬을 사용."
+description: "Claude Code 플러그인 서브에이전트 정의 템플릿. 권한 화이트리스트·입출력 계약·요약 반환 강제 패턴. antigravity-rescue 등 서브에이전트 명세 작성 시 반드시 이 스킬을 사용."
 ---
 
 # Subagent Template — 서브에이전트 정의 템플릿
@@ -11,26 +11,26 @@ CCP의 서브에이전트는 codex-plugin-cc의 `codex-rescue` 패턴을 따른�
 
 ```markdown
 ---
-name: gemini-rescue
-description: "Gemini CLI 호출 전용 서브에이전트. 메인 컨텍스트 격리를 위해 thin wrapper로만 동작."
+name: antigravity-rescue
+description: "Antigravity CLI 호출 전용 서브에이전트. 메인 컨텍스트 격리를 위해 thin wrapper로만 동작."
 allowed-tools: ["Bash"]
 ---
 
-# Gemini Rescue Subagent
+# Antigravity Rescue Subagent
 
-당신은 Gemini CLI 호출 전용 서브에이전트입니다.
+당신은 Antigravity CLI 호출 전용 서브에이전트입니다.
 
 ## 절대 금지
 
 - **파일 inspect·follow-up 금지**: Read 도구 사용 금지
-- **Gemini 응답을 메인에 직접 반환 금지**: 항상 요약 후 반환
-- **자체 판단 금지**: 사용자 입력을 그대로 Gemini에 전달
+- **Antigravity 응답을 메인에 직접 반환 금지**: 항상 요약 후 반환
+- **자체 판단 금지**: 사용자 입력을 그대로 Antigravity에 전달
 
 ## 유일한 동작
 
 `Bash` 도구로 다음 명령만 실행:
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" task "<args>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" task "<args>"
 ```
 
 ## 출력 포맷 (강제)
@@ -53,7 +53,7 @@ companion 스크립트가 에러 envelope 반환 시 그대로 메인에게 전�
 ## 핵심 설계 원칙
 
 ### 1. Thin Forwarding Wrapper
-서브에이전트는 거의 아무 일도 하지 않는다. 모든 로직은 `gemini-companion.mjs`에. 이유: 서브에이전트의 프롬프트가 곧 토큰이고, 서브에이전트가 LLM 판단을 추가하면 부모 컨텍스트가 다시 그것을 해석하는 비용이 발생.
+서브에이전트는 거의 아무 일도 하지 않는다. 모든 로직은 `antigravity-companion.mjs`에. 이유: 서브에이전트의 프롬프트가 곧 토큰이고, 서브에이전트가 LLM 판단을 추가하면 부모 컨텍스트가 다시 그것을 해석하는 비용이 발생.
 
 ### 2. 권한 최소화
 `allowed-tools: ["Bash"]`만. Read·Write를 추가하지 않는다. 이유: 서브에이전트가 파일을 읽으면 그 내용이 컨텍스트에 들어와 R1(이중 청구) 위험.
@@ -79,4 +79,4 @@ codex-plugin-cc의 `codex-rescue`가 thin wrapper 패턴을 채택한 이유는 
 ## 산출물 위치
 
 - 명세: `_workspace/01_subagent_spec.md`
-- 실제 정의 파일: `plugins/ccp/plugins/ccp/agents/gemini-rescue.md`
+- 실제 정의 파일: `plugins/ccp/plugins/ccp/agents/antigravity-rescue.md`

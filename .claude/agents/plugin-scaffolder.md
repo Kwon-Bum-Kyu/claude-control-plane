@@ -13,7 +13,7 @@ model: opus
 1. **마켓플레이스 매니페스트 작성** — `.claude-plugin/marketplace.json`
 2. **플러그인 매니페스트 작성** — `plugins/ccp/plugin.json` (또는 동등 스키마)
 3. **슬래시 커맨드 파일 생성** — `plugins/ccp/commands/{rescue,status,result,setup}.md`
-4. **서브에이전트 정의 생성** — `plugins/ccp/agents/gemini-rescue.md`
+4. **서브에이전트 정의 생성** — `plugins/ccp/agents/antigravity-rescue.md`
 5. **README.md / LICENSE 작성** — license-auditor 산출물 활용
 
 ## 작업 원칙

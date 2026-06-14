@@ -1,10 +1,10 @@
 # Claude Control Plane (CCP)
 
-공개 Claude Code 플러그인 — Claude를 메인 컨트롤 플레인으로 두고 Gemini(MVP), Codex(Phase 6+) CLI를 서브에이전트로 오케스트레이션한다. codex-plugin-cc 패턴을 미러링하여 사용자 학습 비용을 0으로 만들고, ecc 가드레일을 차용하여 토큰 회귀를 방지한다.
+공개 Claude Code 플러그인 — Claude를 메인 컨트롤 플레인으로 두고 Antigravity(MVP), Codex(Phase 6+) CLI를 서브에이전트로 오케스트레이션한다. codex-plugin-cc 패턴을 미러링하여 사용자 학습 비용을 0으로 만들고, ecc 가드레일을 차용하여 토큰 회귀를 방지한다.
 
 ## 하네스: Claude Control Plane (CCP) 플러그인 개발
 
-**목표:** Claude를 메인 컨트롤 플레인으로 두고 Gemini(MVP)·Codex(Phase 6+)를 CLI wrapper 서브에이전트로 오케스트레이션하는 공개 플러그인을 기획→검수→개발 3-Phase로 구축
+**목표:** Claude를 메인 컨트롤 플레인으로 두고 Antigravity(MVP)·Codex(Phase 6+)를 CLI wrapper 서브에이전트로 오케스트레이션하는 공개 플러그인을 기획→검수→개발 3-Phase로 구축
 
 **트리거:** CCP 플러그인 개발/기획/검수/개발/QA 관련 작업 요청 시 `ccp-orchestrator` 스킬을 사용하라. 단순 질문(예: "이 파일 무슨 의미야?")은 직접 응답 가능.
 

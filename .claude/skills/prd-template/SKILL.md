@@ -25,7 +25,7 @@ CCP 플러그인의 PRD 작성 시 따라야 할 섹션 구조와 작성 원칙.
 ux-designer가 작성한 시나리오를 인용. 최소 3개:
 - 신규 사용자: 설치 → 첫 호출
 - 숙련 사용자: 라우터 우회, 직접 슬래시
-- 실패 복구: OAuth 만료, Gemini CLI 미설치
+- 실패 복구: OAuth 만료, Antigravity CLI 미설치
 
 ### 5. 기능 요구사항
 슬래시별·서브에이전트별 동작 명세. 상세는 `01_command_spec.md`, `01_subagent_spec.md`로 분리하고 PRD는 요약만.

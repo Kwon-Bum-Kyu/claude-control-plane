@@ -17,14 +17,14 @@ plugin-root/
     └── ccp/
         ├── plugin.json           # 플러그인 매니페스트
         ├── agents/
-        │   └── gemini-rescue.md  # 서브에이전트 정의
+        │   └── antigravity-rescue.md  # 서브에이전트 정의
         ├── commands/
-        │   ├── rescue.md         # /ccp:rescue 또는 /gemini:rescue
+        │   ├── rescue.md         # /ccp:rescue 또는 /antigravity:rescue
         │   ├── status.md
         │   ├── result.md
         │   └── setup.md
         ├── scripts/
-        │   ├── gemini-companion.mjs
+        │   ├── antigravity-companion.mjs
         │   └── harness-audit.js
         ├── hooks/
         │   └── suggest-compact.js
@@ -71,8 +71,8 @@ allowed-tools: ["Bash", "Read"]
 frontmatter:
 ```yaml
 ---
-name: gemini-rescue
-description: "Gemini CLI 호출 전용 서브에이전트. Bash 화이트리스트만 허용."
+name: antigravity-rescue
+description: "Antigravity CLI 호출 전용 서브에이전트. Bash 화이트리스트만 허용."
 allowed-tools: ["Bash"]
 ---
 ```
@@ -83,7 +83,7 @@ allowed-tools: ["Bash"]
 
 - [ ] `marketplace.json` 존재, JSON 유효
 - [ ] `plugin.json` 존재, 필수 필드 모두 포함
-- [ ] 슬래시 네이밍 충돌 없음 (`gemini`, `ccp` 등 다른 플러그인과)
+- [ ] 슬래시 네이밍 충돌 없음 (`antigravity`, `ccp` 등 다른 플러그인과)
 - [ ] `permissions`에 명시된 도구만 허용 (over-permission 금지)
 - [ ] `engines.node` 버전 핀 명시
 - [ ] 비밀 정보(`*.env`, OAuth 캐시)는 `.gitignore`에 포함

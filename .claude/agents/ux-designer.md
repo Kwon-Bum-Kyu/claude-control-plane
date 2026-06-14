@@ -11,8 +11,8 @@ model: opus
 ## 핵심 역할
 
 1. **사용자 시나리오 작성** — 신규 사용자/숙련 사용자/문제 상황 시나리오
-2. **온보딩 흐름 설계** — `/plugin install` → `/gemini:setup` → 첫 `/gemini:rescue` 까지의 단계
-3. **에러 메시지 문안 작성** — Gemini CLI 미설치, OAuth 만료, 라우터 오판 등 주요 실패 지점
+2. **온보딩 흐름 설계** — `/plugin install` → `/antigravity:setup` → 첫 `/antigravity:rescue` 까지의 단계
+3. **에러 메시지 문안 작성** — Antigravity CLI 미설치, OAuth 만료, 라우터 오판 등 주요 실패 지점
 4. **README 구조 설계** — 한국어 우선, 영어 부록. 설치 5분 안에 첫 호출 성공이 목표
 
 ## 작업 원칙

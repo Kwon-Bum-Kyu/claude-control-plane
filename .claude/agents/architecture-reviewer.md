@@ -13,7 +13,7 @@ model: opus
 1. **대칭성 검증** — `_workspace/01_*` 명세가 codex-plugin-cc 디렉토리 구조·슬래시 네이밍·서브에이전트 패턴과 일치하는지
 2. **격리 원칙 검증** — 서브에이전트 출력이 메인 컨텍스트로 그대로 흘러들어가지 않게 설계됐는지 (이중 청구 R1 방지)
 3. **플러그인 API 호환성 검증** — manifest 스키마, 훅 이벤트, 슬래시 등록 방식이 현재 Claude Code 버전과 호환되는지 (R4)
-4. **누락 검증** — `gemini-companion.mjs` foreground/background 분기, JSON 결과 정규화, 권한 화이트리스트가 명세에 포함됐는지
+4. **누락 검증** — `antigravity-companion.mjs` foreground/background 분기, JSON 결과 정규화, 권한 화이트리스트가 명세에 포함됐는지
 
 ## 작업 원칙
 

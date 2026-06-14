@@ -29,17 +29,17 @@ harness-qa가 즉시 검증 시작
 - [ ] `commands/*.md`, `agents/*.md`, `hooks/*` 모두 매니페스트에 등록됨
 - [ ] `.gitignore`에 비밀 정보 패턴 포함
 
-### M2. gemini-companion.mjs 완료 시
-- [ ] foreground 모드: `node gemini-companion.mjs task -- "test"` 실행 → JSON envelope 반환
+### M2. antigravity-companion.mjs 완료 시
+- [ ] foreground 모드: `node antigravity-companion.mjs task -- "test"` 실행 → JSON envelope 반환
 - [ ] background 모드: `--background` 플래그 → job_id 반환, `.ccp/jobs/<id>.json` 생성 확인
-- [ ] OAuth 사전 검증: `gemini auth` 미실행 환경에서 호출 → `E_OAUTH_EXPIRED` envelope
+- [ ] 인증 사전 검증: `agy` 미인증(keyring 미설정) 환경에서 호출 → `E_OAUTH_EXPIRED` envelope
 - [ ] 출력 길이 가드: 큰 응답 강제 → 잘림 동작 확인
 - [ ] JSON envelope 스키마 일치 (companion-script-pattern 참조)
 
 ### M3. router 완료 시
 - [ ] 정답 라벨 데이터셋 (`_workspace/02_router_accuracy_spec.md`) 실행
 - [ ] 정확도 ≥ 80% (미달 시 즉시 차단 신호)
-- [ ] Fallback 동작: Gemini 실패 시뮬레이션 → Claude 복귀 확인
+- [ ] Fallback 동작: Antigravity 실패 시뮬레이션 → Claude 복귀 확인
 - [ ] 비용 로깅: `_workspace/_logs/router_fallback.jsonl` 생성 확인
 
 ### M4. ecc 가드레일 포팅 완료 시
@@ -49,10 +49,10 @@ harness-qa가 즉시 검증 시작
 - [ ] 모든 차용 코드: 원본 MIT 헤더 보존 확인
 
 ### M5. 슬래시 커맨드 동작 검증
-- [ ] `/gemini:rescue` 호출 → gemini-rescue 서브에이전트 스폰
-- [ ] `/gemini:status <id>` → 메타 파일 반환
-- [ ] `/gemini:result <id>` → result.md 반환
-- [ ] `/gemini:setup` → 환경 검증 출력
+- [ ] `/antigravity:rescue` 호출 → antigravity-rescue 서브에이전트 스폰
+- [ ] `/antigravity:status <id>` → 메타 파일 반환
+- [ ] `/antigravity:result <id>` → result.md 반환
+- [ ] `/antigravity:setup` → 환경 검증 출력
 - [ ] 명세(`01_command_spec.md`)와 실제 동작 100% 일치
 
 ## 경계면 교차 비교 (qa-agent-guide 원칙)
