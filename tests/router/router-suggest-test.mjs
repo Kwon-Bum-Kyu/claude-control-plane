@@ -66,9 +66,9 @@ function readAgentFrontmatter() {
 const CASES = [
   // === Recommendation baseline (S1~S6) ===
   {
-    id: 'S1-gemini-slash',
-    label: 'baseline: explicit /gemini:rescue → ROUTER-001 emit, no META-WARN',
-    run: () => runHook({ input: { prompt: '/gemini:rescue 이 디렉토리 전체 요약' } }),
+    id: 'S1-antigravity-slash',
+    label: 'baseline: explicit /antigravity:rescue → ROUTER-001 emit, no META-WARN',
+    run: () => runHook({ input: { prompt: '/antigravity:rescue 이 디렉토리 전체 요약' } }),
     expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
   },
   {
@@ -104,10 +104,10 @@ const CASES = [
 
   // === Headless heuristic (S7~S9) ===
   {
-    id: 'S7-headless-suspect-gemini',
-    label: 'headless: no slash + headless keyword + gemini decision → inject META-WARN',
+    id: 'S7-headless-suspect-antigravity',
+    label: 'headless: no slash + headless keyword + antigravity decision → inject META-WARN',
     run: () => runHook({ input: { prompt: '이 디렉토리 전체 요약 (headless 자동화 스크립트로 처리)' } }),
-    expect: (out) => /CCP-ROUTER-001/.test(out) && /CCP-META-WARN/.test(out) && /gemini-companion\.mjs/.test(out),
+    expect: (out) => /CCP-ROUTER-001/.test(out) && /CCP-META-WARN/.test(out) && /antigravity-companion\.mjs/.test(out),
   },
   {
     id: 'S8-headless-suspect-codex',
@@ -118,13 +118,13 @@ const CASES = [
   {
     id: 'S9-slash-overrides-headless',
     label: 'headless: explicit slash overrides headless keyword → no META-WARN',
-    run: () => runHook({ input: { prompt: '/gemini:rescue headless 자동화로 이 디렉토리 요약' } }),
+    run: () => runHook({ input: { prompt: '/antigravity:rescue headless 자동화로 이 디렉토리 요약' } }),
     expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
   },
 
   // === Hook ↔ router-agent split + envelope defense (S10~S19) ===
   {
-    id: 'S10-auto-routing-on-canonical-gemini',
+    id: 'S10-auto-routing-on-canonical-antigravity',
     label: 'split: auto_routing on + canonical → hook noop (router agent dispatches), router-decide auto_routed=true',
     run: () => {
       const root = makePluginRoot(true);
@@ -143,7 +143,7 @@ const CASES = [
         rmSync(root, { recursive: true, force: true });
       }
     },
-    expect: (r) => r.hook.trim() === '{}' && /"auto_routed":true/.test(r.decide) && /"decision":"gemini"/.test(r.decide),
+    expect: (r) => r.hook.trim() === '{}' && /"auto_routed":true/.test(r.decide) && /"decision":"antigravity"/.test(r.decide),
   },
   {
     id: 'S11-auto-routing-on-explicit-claude-noop',
@@ -188,12 +188,12 @@ const CASES = [
         // hook 측면: env 없음 + canonical → noop (router agent 가 처리)
         const hook = runHook({
           input: { prompt: '이 디렉토리 전체 요약 (headless 자동화 스크립트)' },
-          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '' },
+          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '', CLAUDE_CODE_ENTRYPOINT: '' },
         });
         // router-decide 측면: heuristic 만 있고 환경 신호 없음 → headless_confident=false, auto_routed=true
         const decide = runDecide({
           args: ['--prompt', '이 디렉토리 전체 요약 (headless 자동화 스크립트)'],
-          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '' },
+          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '', CLAUDE_CODE_ENTRYPOINT: '' },
         });
         return { hook, decide: decide.stdout };
       } finally {
@@ -247,7 +247,7 @@ const CASES = [
         const ENUM = new Set([
           'AXIS_A_SLASH', 'AXIS_A_OPTION', 'AXIS_A_FALLBACK_CLAUDE',
           'AXIS_B_OVERSIZED', 'AXIS_B_MID_REVIEW', 'AXIS_B_TOO_SMALL',
-          'AXIS_C_KW_GEMINI', 'AXIS_C_KW_CODEX', 'AXIS_C_KW_CLAUDE', 'AXIS_C_MAIN_CONTEXT_BIND',
+          'AXIS_C_KW_ANTIGRAVITY', 'AXIS_C_KW_CODEX', 'AXIS_C_KW_CLAUDE', 'AXIS_C_MAIN_CONTEXT_BIND',
           'AXIS_D_DEFAULT_CONSERVATIVE', 'OPT_OUT_NO_AUTO_ROUTE',
         ]);
         return ENUM.has(env?.details?.reason_code);
@@ -262,7 +262,7 @@ const CASES = [
       try {
         const decide = runDecide({
           args: ['--prompt', '이 자동화 스크립트 코드 리뷰해줘'],
-          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '' },
+          env: { CLAUDE_PLUGIN_ROOT: root, CI: '', CLAUDE_CODE_NONINTERACTIVE: '', CLAUDE_CODE_ENTRYPOINT: '' },
         });
         return decide.stdout;
       } finally {

@@ -1,5 +1,5 @@
 /**
- * Argument parser - normalizes the codex-side option signature to the same structure as gemini-companion.
+ * Argument parser - normalizes the codex-side option signature to the same structure as antigravity-companion.
  * Example usage: parseArgs(['rescue', '--background', '--timeout-ms', '300000', '--', 'prompt'])
  *
  * @param {string[]} argv  process.argv.slice(2) format

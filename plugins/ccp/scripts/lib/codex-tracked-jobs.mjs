@@ -24,7 +24,7 @@ export function filterJobsForCurrentSession(jobs, sessionId) {
  *
  * @param {string} jobsDir
  * @param {object} [opts]
- * @param {string} [opts.mode]      'codex' | 'gemini' | undefined (all)
+ * @param {string} [opts.mode]      'codex' | 'antigravity' | undefined (all)
  * @param {string} [opts.sessionId]
  * @returns {object|null}
  */

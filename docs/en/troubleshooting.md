@@ -2,18 +2,18 @@
 
 Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `action` telling you what to type next, and a `recovery` enum. This page lists the codes you will most likely see, grouped by surface.
 
-## Gemini-side errors
+## Antigravity-side errors
 
 | Code | Frequency | What to do |
 |---|:---:|---|
-| `CCP-OAUTH-001` | very high | Run `gemini` once to trigger OAuth (or set `GEMINI_API_KEY`), then re-run `/gemini:setup` |
-| `CCP-SETUP-001` | very high | `npm install -g @google/gemini-cli@latest` |
+| `CCP-OAUTH-001` | very high | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/antigravity:setup` |
+| `CCP-SETUP-001` | very high | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | high | Install Node.js 20+ (nvm recommended) |
-| `CCP-GEMINI-001` | high | Retry shortly, or use `/gemini:rescue --fallback-claude` |
+| `CCP-GEMINI-001` | high | Retry shortly, or use `/antigravity:rescue --fallback-claude` |
 | `CCP-CTX-001` | medium | `summary` exceeded 500 chars -- shrink the input |
 | `CCP-ROUTER-001` | medium | Run `/ccp:audit` to inspect the router's decision |
 | `CCP-COMPACT-001` | medium | Run `/compact` manually |
-| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/gemini:status <job_id>` to recheck job state |
+| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/antigravity:status <job_id>` to recheck job state |
 
 ## Codex-side errors
 
@@ -26,7 +26,7 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 | `CCP-CODEX-002` | medium | JSONL parse failure -- retry with `--verbose` and check stderr |
 | `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/ccp:codex-status <job_id>` to recheck |
 | `CCP-JOB-409` | low | Job is in a state that cannot be cancelled; check status and retry |
-| `CCP-INVALID-001` | low | A Codex-only flag (`--effort`, `--sandbox`, `--write`) was passed to `/gemini:rescue`. Use `/ccp:codex-rescue` instead. |
+| `CCP-INVALID-001` | low | A Codex-only flag (`--effort`, `--sandbox`, `--write`) was passed to `/antigravity:rescue`. Use `/ccp:codex-rescue` instead. |
 
 ## Shared errors
 
@@ -35,29 +35,29 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 | `CCP-TIMEOUT-001` | high | Retry, or run with `--background` (foreground default is 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | low | Adjust `--since` window or check the script log |
 
-The full catalog is the `ERROR_CATALOG` constant inside `plugins/ccp/scripts/gemini-companion.mjs` and `codex-companion.mjs`.
+The full catalog is the `ERROR_CATALOG` constant inside `plugins/ccp/scripts/antigravity-companion.mjs` and `codex-companion.mjs`.
 
 ## FAQ
 
 **What are the free-tier limits?**
-Gemini has two distinct authentication modes with different quotas:
-- **OAuth (Gemini Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models; default routing is Flash-class.
+Antigravity has two distinct authentication modes with different quotas:
+- **OAuth (Antigravity Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models; default routing is Flash-class.
 - **API key (AI Studio):** per-model independent limits — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD, etc.
 - As of 2026-04, the free tier covers Flash-class models only (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`); `gemini-2.5-pro` requires a paid Google AI Pro/Ultra subscription. Exact values follow Google's current policy.
 
 Codex: bound to your ChatGPT plan quota. Plus/Pro/Business/Enterprise include Codex; Free/Go include limited Codex Mini access (subject to change). Quotas have been token-based since 2026-04-02. Exact values follow OpenAI policy.
 
 **How long do OAuth tokens last?**
-Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Google Gemini OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` surface automatically.
+Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Google Antigravity OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` surface automatically.
 
 **`npm i -g` fails with permission errors.**
 Use nvm to manage Node, or prefix with `sudo`. nvm is recommended.
 
 **No browser available for login.**
-- Gemini: set `GEMINI_API_KEY` (https://aistudio.google.com/apikey).
+- Antigravity: set `ANTIGRAVITY_API_KEY` (https://aistudio.google.com/apikey).
 - Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
 
-**`--effort` is rejected by the Gemini side.**
+**`--effort` is rejected by the Antigravity side.**
 That is intentional. `--effort` is Codex-only. Use `/ccp:codex-rescue --effort high -- "<task>"`. See the [compatibility matrix](./slash-commands.md#three-way-compatibility).
 
 **Codex hangs reading stdin.**
@@ -71,16 +71,16 @@ Normal Codex CLI behavior. Harmless -- the companion absorbs it.
 Both setup commands are idempotent. Run them whenever you suspect environment drift:
 
 ```text
-/gemini:setup            # Node + Gemini CLI + OAuth
-/gemini:setup --renew    # also re-prompts for OAuth
+/antigravity:setup            # Node + Antigravity CLI + OAuth
+/antigravity:setup --renew    # also re-prompts for OAuth
 /ccp:codex-setup         # Node + Codex CLI + OAuth
 ```
 
-Each prints the version it detected; mismatches against the documented minimums (`Node >= 20`, `Gemini >= 0.38.0`, `Codex >= 0.122.0`) are flagged with a `CCP-SETUP-*` code.
+Each prints the version it detected; mismatches against the documented minimums (`Node >= 20`, `Antigravity >= 1.0.0`, `Codex >= 0.122.0`) are flagged with a `CCP-SETUP-*` code.
 
 ## When to file a bug
 
-If an error code is missing, the action does not match what the message says, or a `CCP-CODEX-*` / `CCP-GEMINI-*` repeats after retry, file a bug using the issue template. Include the envelope JSON and the output of `/gemini:setup` and `/ccp:codex-setup`.
+If an error code is missing, the action does not match what the message says, or a `CCP-CODEX-*` / `CCP-GEMINI-*` repeats after retry, file a bug using the issue template. Include the envelope JSON and the output of `/antigravity:setup` and `/ccp:codex-setup`.
 
 ## Related reading
 

@@ -1,10 +1,10 @@
 # Claude Control Plane (CCP)
 
-> A Claude Code plugin that keeps Claude as the main control plane and orchestrates Gemini CLI and Codex CLI as subagents.
+> A Claude Code plugin that keeps Claude as the main control plane and orchestrates Antigravity CLI and Codex CLI as subagents.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A520.0-339933)](https://nodejs.org)
-[![Gemini CLI](https://img.shields.io/badge/Gemini%20CLI-%E2%89%A50.38.0-4285F4)](https://github.com/google-gemini/gemini-cli)
+[![Antigravity CLI](https://img.shields.io/badge/Antigravity%20CLI-%E2%89%A51.0.0-4285F4)](https://github.com/google/antigravity)
 [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-%E2%89%A50.122.0-000000)](https://github.com/openai/codex)
 
 📚 **Docs**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md) · [README in Korean](./README.ko.md)
@@ -15,12 +15,12 @@
 
 ### The problem CCP solves
 
-Processing a large context (codebase, logs, documents) through Claude alone burns the main session's token budget quickly and exhausts your quota. CCP **delegates** that work to Gemini CLI or Codex CLI and returns only a 3-line summary plus a result-file path to the main session, **isolating Claude's token accumulation**.
+Processing a large context (codebase, logs, documents) through Claude alone burns the main session's token budget quickly and exhausts your quota. CCP **delegates** that work to Antigravity CLI or Codex CLI and returns only a 3-line summary plus a result-file path to the main session, **isolating Claude's token accumulation**.
 
 ### What it does
 
 - **Automatic routing**: Decides between Claude (main) and delegation based on a 4-axis priority — user-explicit, input size, keywords, and a conservative fallback.
-- **Isolated envelope**: Full Gemini/Codex output is written to disk; only a `summary` (≤ 500 chars) + `result_path` enters the main session.
+- **Isolated envelope**: Full Antigravity/Codex output is written to disk; only a `summary` (≤ 500 chars) + `result_path` enters the main session.
 - **Guardrails**: At 75% context utilisation, the user is *advised* (not forced) to run `/compact`. No automatic execution.
 - **Audit**: `/ccp:audit` periodically checks envelope violations, router misclassification, and secret-leak signals.
 
@@ -28,7 +28,7 @@ Processing a large context (codebase, logs, documents) through Claude alone burn
 
 - Ralph-loop automation
 - ML-based classifier (current router is rule-based)
-- Gemini Vision / multimodal input
+- Antigravity Vision / multimodal input
 
 ### Target user
 
@@ -42,7 +42,7 @@ Solo developers and small-team leaders who frequently exhaust their Claude quota
 
 - Claude Code v2.1+
 - Node.js ≥ 20.0
-- **For Gemini delegation**: Gemini CLI ≥ 0.38.0 + a Google account (auto-prompted)
+- **For Antigravity delegation**: Antigravity CLI ≥ 1.0.0 + a Google account (auto-prompted)
 - **For Codex delegation**: Codex CLI ≥ 0.122.0 + a ChatGPT account (auto-prompted)
 
 You only need the CLI for the side(s) you actually want to use.
@@ -53,17 +53,17 @@ You only need the CLI for the side(s) you actually want to use.
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
 /reload-plugins
-/gemini:setup        # Diagnose Gemini CLI · OAuth status
+/antigravity:setup        # Diagnose Antigravity CLI · OAuth status
 /ccp:codex-setup     # Diagnose Codex CLI · OAuth status
 ```
 
-`/gemini:setup` and `/ccp:codex-setup` automatically diagnose Node.js, the upstream CLI, and OAuth status. If anything is missing, they print the exact recovery command. Typical setup commands:
+`/antigravity:setup` and `/ccp:codex-setup` automatically diagnose Node.js, the upstream CLI, and OAuth status. If anything is missing, they print the exact recovery command. Typical setup commands:
 
 ```bash
-# Gemini
-npm install -g @google/gemini-cli@latest
-gemini                              # first interactive run → browser opens for Google OAuth
-# (alternative) export GEMINI_API_KEY="..."   # AI Studio key: https://aistudio.google.com/apikey
+# Antigravity
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy                              # first interactive run → browser opens for Google OAuth
+# (alternative) export ANTIGRAVITY_API_KEY="..."   # AI Studio key: https://aistudio.google.com/apikey
 
 # Codex
 npm install -g @openai/codex
@@ -76,7 +76,7 @@ codex login                         # browser-based ChatGPT auth
 ### Smoke test
 
 ```
-/gemini:rescue "Summarize this repository's README in 3 lines"
+/antigravity:rescue "Summarize this repository's README in 3 lines"
 ```
 
 If you see a 3-line summary + an estimated token saving + a `result_path` under `_workspace/_jobs/`, the plugin is healthy.
@@ -92,25 +92,25 @@ See the error-code table in [§6 Troubleshooting](#6-troubleshooting).
 ### Sample 1 — Small input (router warm-up)
 
 ```
-/gemini:rescue "Summarize this repository's README in 3 lines"
+/antigravity:rescue "Summarize this repository's README in 3 lines"
 ```
 
-The router inspects input size and keywords to decide between Claude and Gemini. Very small inputs typically stay on Claude.
+The router inspects input size and keywords to decide between Claude and Antigravity. Very small inputs typically stay on Claude.
 
 ### Sample 2 — Large log file (background job)
 
 ```
-/gemini:rescue --background "Extract the top 10 5xx errors from /var/log/app/error.log over the last 24 hours"
+/antigravity:rescue --background "Extract the top 10 5xx errors from /var/log/app/error.log over the last 24 hours"
 ```
 
 The companion immediately returns a `job_id`. Track and retrieve:
 
 ```
-/gemini:status <job_id>
-/gemini:result <job_id>
+/antigravity:status <job_id>
+/antigravity:result <job_id>
 ```
 
-The full Gemini output stays on disk; only a bounded summary is returned to Claude.
+The full Antigravity output stays on disk; only a bounded summary is returned to Claude.
 
 ### Sample 3 — Code review (Codex)
 
@@ -132,14 +132,14 @@ Outputs an 8-category score (`context_efficiency`, `cost_efficiency`, `router_ac
 
 ## 4. Slash command reference
 
-### 4.1 Gemini (large summarization · analysis)
+### 4.1 Antigravity (large summarization · analysis)
 
 | Command | Summary |
 |---|---|
-| `/gemini:rescue <prompt>` | Delegate heavy work to Gemini |
-| `/gemini:status <job_id>` | Check background job status |
-| `/gemini:result <job_id>` | Retrieve a completed job's summary + path |
-| `/gemini:setup [--renew]` | Diagnose Gemini CLI · OAuth |
+| `/antigravity:rescue <prompt>` | Delegate heavy work to Antigravity |
+| `/antigravity:status <job_id>` | Check background job status |
+| `/antigravity:result <job_id>` | Retrieve a completed job's summary + path |
+| `/antigravity:setup [--renew]` | Diagnose Antigravity CLI · OAuth |
 
 ### 4.2 Codex (code review · diff · bug investigation)
 
@@ -160,14 +160,14 @@ For detailed options see `plugins/ccp/commands/*.md`.
 
 ### 4.4 Key options
 
-| Option | gemini | codex | Description |
+| Option | antigravity | codex | Description |
 |---|:---:|:---:|---|
 | `--background` | ✅ | ✅ | Background execution; returns `job_id` immediately |
 | `--fallback-claude` | ✅ | ✅ | Ignore the routing decision; route to the main Claude |
 | `--timeout-ms N` | ✅ (default 600000) | ✅ (default 600000) | Foreground timeout |
 | `--poll-interval-ms N` | ✅ (2000) | ✅ (2000) | Background polling interval |
-| `--max-tokens N` | ✅ (default 4000) | ❌ | Gemini response token cap (translated into a prompt suffix) |
-| `--files <glob>` | ⚠️ MVP unimplemented | ❌ | Gemini attached files |
+| `--max-tokens N` | ✅ (default 4000) | ❌ | Antigravity response token cap (translated into a prompt suffix) |
+| `--files <glob>` | ⚠️ MVP unimplemented | ❌ | Antigravity attached files |
 | `--model NAME` | ❌ | ✅ | Codex model alias |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | Reasoning effort |
 | `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only / workspace-write / danger-full-access) | Codex sandbox |
@@ -176,9 +176,9 @@ For detailed options see `plugins/ccp/commands/*.md`.
 
 ### 4.5 Model compatibility matrix (3-way)
 
-How `/ccp:codex-rescue` (codex), `/gemini:rescue` (gemini), and the main Claude (claude) compare across options and features:
+How `/ccp:codex-rescue` (codex), `/antigravity:rescue` (antigravity), and the main Claude (claude) compare across options and features:
 
-| Option / feature | claude | gemini | codex | Notes |
+| Option / feature | claude | antigravity | codex | Notes |
 |---|:---:|:---:|:---:|---|
 | `--background` (async) | ❌ | ✅ | ✅ | claude is the main context, so n/a |
 | `--wait` (background polling) | n/a | ✅ | ✅ | Both companions identical |
@@ -189,45 +189,45 @@ How `/ccp:codex-rescue` (codex), `/gemini:rescue` (gemini), and the main Claude 
 | `--sandbox <mode>` | n/a (no execution) | ❌ | ✅ read-only / workspace-write / danger-full-access | codex only |
 | `--write` | n/a | ❌ | ✅ (= `--sandbox workspace-write`) | codex readability alias |
 | `--cwd DIR` | n/a (conversation turn) | ❌ | ✅ (`-C`) | codex only |
-| `--max-tokens N` | n/a | ✅ (prompt-suffix translation) | ❌ | gemini only |
-| `--files <glob>` | (conversation attachment) | ⚠️ MVP unimplemented | ❌ | gemini backlog |
+| `--max-tokens N` | n/a | ✅ (prompt-suffix translation) | ❌ | antigravity only |
+| `--files <glob>` | (conversation attachment) | ⚠️ MVP unimplemented | ❌ | antigravity backlog |
 | `--resume-last` | n/a | ⚠️ MVP unimplemented (meta-file imitation) | ✅ (`codex resume --last`) | codex CLI native; scoped to current cwd (use `codex resume --all` for other directories) |
-| OAuth probe | n/a | `gemini --version` + `~/.gemini/google_accounts.json` | `codex login status` | Both companions: 30 s timeout |
+| OAuth probe | n/a | `agy --version` + `keyring (agy silent-auth)` | `codex login status` | Both companions: 30 s timeout |
 
 **Legend:** ✅ supported / ❌ rejected with `CCP-INVALID-001` or `CCP-UNSUPPORTED-001` / ⚠️ partial mapping / n/a not applicable
 **Footnotes:**
 - ‡ Claude extended thinking: `Option+T` toggle, or `alwaysThinkingEnabled` in `~/.claude/settings.json`
 - † Claude `/model` slash: a Claude Code built-in command
-- A gemini ❌ option leaking into args is rejected inline as `CCP-INVALID-001` (companion guard)
+- A antigravity ❌ option leaking into args is rejected inline as `CCP-INVALID-001` (companion guard)
 
 ---
 
 ## 5. Router behavior (3-way)
 
-The CCP router uses a **4-axis priority** to choose one of three routes — Claude / Gemini / Codex.
+The CCP router uses a **4-axis priority** to choose one of three routes — Claude / Antigravity / Codex.
 
 ```
 user-explicit (axis A) → input size (axis B) → keywords (axis C) → fallback (axis D)
-   /gemini, /codex,        > 30K → Gemini    summary → gemini / review → codex    Claude (conservative)
+   /antigravity, /codex,        > 30K → Antigravity    summary → antigravity / review → codex    Claude (conservative)
    --effort, --sandbox     5K-30K + review → Codex
 ```
 
 ```
 [user prompt]
        ↓
-   [axis A]  /gemini:rescue · /ccp:codex-rescue · --fallback-claude · --effort · --sandbox
+   [axis A]  /antigravity:rescue · /ccp:codex-rescue · --fallback-claude · --effort · --sandbox
        ↓ (if absent)
-   [axis B]  estimated_tokens > 30,000 → Gemini  (if a review keyword is also present → Codex)
+   [axis B]  estimated_tokens > 30,000 → Antigravity  (if a review keyword is also present → Codex)
               5,000 ≤ tokens ≤ 30,000 + review keyword → Codex
        ↓ (otherwise)
    [axis C]  main-context-bind keywords (just now / above / ...) → forces Claude
-              other keywords by priority: codex (review/diff) > gemini (summary/large) > claude
+              other keywords by priority: codex (review/diff) > antigravity (summary/large) > claude
        ↓ (no match)
    [axis D]  fallback → Claude (conservative)
 ```
 
 - **Automated calibration**: 70-case offline regression dataset → **100% accuracy**, P/R ≥ 0.93 for every model.
-- **Transparency**: every call surfaces the decision in `details.mode` (`gemini` | `codex`).
+- **Transparency**: every call surfaces the decision in `details.mode` (`agy` | `codex`).
 - **Recommendation hook (v0.2)**: on `UserPromptSubmit`, the decision is injected as a `[CCP-ROUTER-001]` system reminder. Headless auto-delegation is **not** performed — the user invokes the slash command themselves.
 
 ### 5.1 Token-saving pattern (canonical, recommended)
@@ -235,7 +235,7 @@ user-explicit (axis A) → input size (axis B) → keywords (axis C) → fallbac
 CCP's token-saving effect is strongest in the **interactive, slash-direct trigger** pattern:
 
 ```
-✅ Recommended:  /gemini:rescue summarize the entire directory
+✅ Recommended:  /antigravity:rescue summarize the entire directory
 ✅ Recommended:  /ccp:codex-rescue review this PR diff
 ```
 
@@ -247,7 +247,7 @@ Under `claude -p` headless invocations, models tend to probe delegation entry po
 
 ```bash
 # ✅ Recommended: pre-script the slash
-claude -p "/gemini:rescue summarize the entire directory" -- ...
+claude -p "/antigravity:rescue summarize the entire directory" -- ...
 claude -p "/ccp:codex-rescue review this PR diff" -- ...
 
 # ❌ Forbidden: rescue --help / Skill→Agent traversal / repeated prompt variations
@@ -289,18 +289,18 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 
 ## 6. Troubleshooting
 
-### 6.1 Gemini-side error codes
+### 6.1 Antigravity-side error codes
 
 | Code | Frequency | Next action |
 |---|:---:|---|
-| `CCP-OAUTH-001` | ★★★ | Run `gemini` once to trigger OAuth (or set `GEMINI_API_KEY`), then re-run `/gemini:setup` |
-| `CCP-SETUP-001` | ★★★ | `npm install -g @google/gemini-cli@latest` |
+| `CCP-OAUTH-001` | ★★★ | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/antigravity:setup` |
+| `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Install Node.js 20+ (nvm recommended) |
-| `CCP-GEMINI-001` | ★★ | Retry, or `/gemini:rescue --fallback-claude` |
+| `CCP-GEMINI-001` | ★★ | Retry, or `/antigravity:rescue --fallback-claude` |
 | `CCP-CTX-001` | ★ | Summary length exceeded — shrink the input |
 | `CCP-ROUTER-001` | ★ | Run `/ccp:audit` to inspect routing decisions |
 | `CCP-COMPACT-001` | ★ | Run `/compact` manually |
-| `CCP-JOB-001~004` | ★ | Re-check job state via `/gemini:status` |
+| `CCP-JOB-001~004` | ★ | Re-check job state via `/antigravity:status` |
 
 ### 6.2 Codex-side error codes
 
@@ -313,7 +313,7 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 | `CCP-CODEX-002` | ★ | JSONL parse failure — retry with `--verbose` and inspect stderr |
 | `CCP-JOB-001~004` | ★ | Re-check job state via `/ccp:codex-status` |
 | `CCP-JOB-409` | ★ | Cannot cancel from current state — re-check and retry |
-| `CCP-INVALID-001` | ★ | Codex-only options (`--effort`/`--sandbox`/`--write`) used on the gemini side — switch slash command |
+| `CCP-INVALID-001` | ★ | Codex-only options (`--effort`/`--sandbox`/`--write`) used on the antigravity side — switch slash command |
 
 ### 6.3 Common
 
@@ -322,19 +322,19 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 | `CCP-TIMEOUT-001` | ★★ | Retry, or use `--background` (foreground default 600 s) |
 | `CCP-AUDIT-001~002` | ★ | Adjust `--since` range or inspect logs |
 
-For the full catalog see the `ERROR_CATALOG` constants in `plugins/ccp/scripts/gemini-companion.mjs` and `codex-companion.mjs`.
+For the full catalog see the `ERROR_CATALOG` constants in `plugins/ccp/scripts/antigravity-companion.mjs` and `codex-companion.mjs`.
 
 ### 6.4 FAQ
 
-- **What's the Gemini free-tier limit?** Two distinct authentication modes apply:
-  - **OAuth (Gemini Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models. Default routing is Flash-class.
+- **What's the Antigravity free-tier limit?** Two distinct authentication modes apply:
+  - **OAuth (Antigravity Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models. Default routing is Flash-class.
   - **API key (AI Studio):** per-model independent limits — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD, etc.
   - As of 2026-04, the free tier covers Flash-class models only (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`); `gemini-2.5-pro` requires a paid Google AI Pro/Ultra subscription. Exact values follow Google's current policy.
 - **What's the Codex free-tier limit?** Bound to your ChatGPT plan quota. Plus/Pro/Business/Enterprise include Codex; Free/Go include limited Codex Mini access (subject to change). Quotas have been token-based since 2026-04-02. Exact values follow OpenAI policy.
-- **OAuth expiry?** Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Gemini's Google OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically guide you.
+- **OAuth expiry?** Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Antigravity's Google OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` automatically guide you.
 - **Permission errors with `npm i -g`?** Use nvm or `sudo`. nvm is recommended.
-- **No browser available?** Gemini: set `GEMINI_API_KEY` (https://aistudio.google.com/apikey). Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
-- **`--effort` rejected on the gemini side?** Intentional — see compatibility matrix (§4.5). Use `/ccp:codex-rescue --effort high -- "<task>"` instead.
+- **No browser available?** Antigravity: set `ANTIGRAVITY_API_KEY` (https://aistudio.google.com/apikey). Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
+- **`--effort` rejected on the antigravity side?** Intentional — see compatibility matrix (§4.5). Use `/ccp:codex-rescue --effort high -- "<task>"` instead.
 - **codex hangs reading stdin?** The companion forces `stdio: ['ignore', ...]` automatically. If you call `codex exec` manually, append `</dev/null`.
 - **`Reading additional input from stdin...` in stderr?** Normal codex CLI output. Harmless — the companion absorbs it.
 
@@ -358,11 +358,11 @@ License texts: [`LICENSES/`](./LICENSES/)
 
 | Package | License | Bundled |
 |---|---|:---:|
-| `@google/gemini-cli` (≥ 0.38.0) | Apache-2.0 | external (user-installed) |
+| `Antigravity CLI` (≥ 1.0.0) | proprietary | external (user-installed) |
 | `@openai/codex` (≥ 0.122.0) | Apache-2.0 | external (user-installed) |
 | Node.js (≥ 20.0) | MIT | external |
 
-No bundled binaries. External API terms (Google Gemini, OpenAI Codex, Anthropic Claude) are each user's responsibility.
+No bundled binaries. External API terms (Google Antigravity, OpenAI Codex, Anthropic Claude) are each user's responsibility.
 
 ---
 
@@ -379,7 +379,7 @@ Completed in v0.2:
 Under review / backlog:
 
 - SessionEnd hook for background job meta cleanup (on user request)
-- Role-based model assignment schema (let users map domains to codex / gemini / claude)
+- Role-based model assignment schema (let users map domains to codex / antigravity / claude)
 - Single-slash unified flow (background job → poll → result auto-recovery)
 
 Release history: [GitHub Releases](https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases)
