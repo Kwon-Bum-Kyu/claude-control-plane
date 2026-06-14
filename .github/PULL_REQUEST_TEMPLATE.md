@@ -14,7 +14,7 @@
 - [ ] `node tests/router/router-eval.mjs` — 70/70 PASS (or unchanged baseline)
 - [ ] `node tests/router/router-suggest-test.mjs` — ≥18/19 PASS (95%)
 - [ ] `node plugins/ccp/scripts/harness-audit.js` — total ≥ 33/40
-- [ ] Manual smoke test for any affected slash command (`/gemini:*`, `/codex:*`, `/ccp:*`)
+- [ ] Manual smoke test for any affected slash command (`/antigravity:*`, `/codex:*`, `/ccp:*`)
 
 ## Borrowed-code checklist (skip if N/A)
 

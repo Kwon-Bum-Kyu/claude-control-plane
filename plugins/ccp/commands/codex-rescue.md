@@ -86,7 +86,7 @@ See the ERROR_CATALOG block in `plugins/ccp/scripts/codex-companion.mjs` for the
 
 ## Model Compatibility
 
-Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the compatibility matrix (README §Model Compatibility). Gemini rejects them (`CCP-UNSUPPORTED-001`).
+Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the compatibility matrix (README §Model Compatibility). Antigravity rejects them (`CCP-UNSUPPORTED-001`).
 
 ## Acceptance Criteria
 

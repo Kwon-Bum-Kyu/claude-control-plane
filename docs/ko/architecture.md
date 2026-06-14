@@ -25,7 +25,7 @@ CCP 가 반환하는 모든 에러는 `CCP-<카테고리>-<NNN>` 형식 (예: `C
     "total": 0
   },
   "exit_code": 0,
-  "details": { "mode": "gemini" }
+  "details": { "mode": "antigravity" }
 }
 ```
 
@@ -50,30 +50,30 @@ CCP 가 반환하는 모든 에러는 `CCP-<카테고리>-<NNN>` 형식 (예: `C
 
 훅은 Claude Code 가 제공하는 JSON stdin 계약을 사용합니다. exec 기반 셸 훅 사용 금지.
 
-### 6. 네임스페이스 이원화 (`/gemini:*` vs `/ccp:*`)
+### 6. 네임스페이스 이원화 (`/antigravity:*` vs `/ccp:*`)
 
-Gemini 커맨드는 자체 네임스페이스를 가집니다 — 사용자가 Gemini 를 무거운 요약 도구로 인식하는 멘탈 모델이 오래되어서. Codex 와 공통 커맨드는 `/ccp:*` — CCP 고유의 오케스트레이션이므로. 이 분리는 의도적이며 임의로 바뀌지 않습니다.
+Antigravity 커맨드는 자체 네임스페이스를 가집니다 — 사용자가 Antigravity 를 무거운 요약 도구로 인식하는 멘탈 모델이 오래되어서. Codex 와 공통 커맨드는 `/ccp:*` — CCP 고유의 오케스트레이션이므로. 이 분리는 의도적이며 임의로 바뀌지 않습니다.
 
 ### 7. 서브에이전트 격리 강제
 
-서브에이전트 (`gemini-rescue`, `codex-rescue`) 는 envelope 외 경로로는 메인 Claude 컨텍스트에 쓸 수 없습니다. CLI 의 verbose 출력도 결과 파일로 리다이렉션되며, 한정된 요약만 회귀합니다. 감사 카테고리 `double_billing` 과 `secret_leak` 이 이 격리 누출을 탐지합니다.
+서브에이전트 (`antigravity-rescue`, `codex-rescue`) 는 envelope 외 경로로는 메인 Claude 컨텍스트에 쓸 수 없습니다. CLI 의 verbose 출력도 결과 파일로 리다이렉션되며, 한정된 요약만 회귀합니다. 감사 카테고리 `double_billing` 과 `secret_leak` 이 이 격리 누출을 탐지합니다.
 
 ## 토큰 절감 패턴
 
 CCP 의 토큰 절감 효과는 **canonical** 트리거에서 가장 강하게 작동합니다.
 
 ```text
-✅  /gemini:rescue 이 디렉터리 요약
+✅  /antigravity:rescue 이 디렉터리 요약
 ✅  /ccp:codex-rescue 이 PR diff 검토
 ```
 
-이 패턴에서 envelope 캡 (≤500자) + `result_path` 영속화가 작동해 메인 Claude 컨텍스트의 Gemini 출력 누적을 차단합니다. 실측 (T5 fixture, N=2): 메인 846K + 오프로드 179K = 총 1,025K.
+이 패턴에서 envelope 캡 (≤500자) + `result_path` 영속화가 작동해 메인 Claude 컨텍스트의 Antigravity 출력 누적을 차단합니다. 실측 (T5 fixture, N=2): 메인 846K + 오프로드 179K = 총 1,025K.
 
 **헤드리스** 트리거 (`claude -p ...`, 스크립트 자동화) 에서는 모델이 위임 진입점을 탐색합니다 — `rescue --help` 호출, Skill → Agent → companion traversal, 변형 프롬프트 재시도 — 토큰이 오히려 2.1배 증가하는 사례가 있습니다. 헤드리스에서는 슬래시를 사전 스크립트화하세요.
 
 ```bash
 # 권장: 슬래시 사전 스크립트화
-claude -p "/gemini:rescue 이 디렉터리 요약"
+claude -p "/antigravity:rescue 이 디렉터리 요약"
 claude -p "/ccp:codex-rescue 이 PR diff 검토"
 
 # 금지: rescue --help 루프, Skill → Agent traversal, 동일 task 변형 재시도

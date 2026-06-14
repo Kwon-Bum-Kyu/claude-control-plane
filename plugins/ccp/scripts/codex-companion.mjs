@@ -25,7 +25,7 @@ import { findLatestResumableJob } from './lib/codex-tracked-jobs.mjs';
 import { assertEnvelope } from './lib/envelope-validate.mjs';
 
 // ---------------------------------------------------------------------------
-// Constants & paths (same pattern as gemini-companion)
+// Constants & paths (same pattern as antigravity-companion)
 // ---------------------------------------------------------------------------
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -43,8 +43,8 @@ const SUMMARY_MAX_CHARS = 500;
 const SUMMARY_TOKEN_CAP = 1500;
 const DEFAULT_TIMEOUT_MS = 240000; // codex_exec P95 ~7s × 2 + margin (measured)
 const DEFAULT_POLL_INTERVAL_MS = 2000;
-const PROBE_OAUTH_TIMEOUT_MS = 30000; // same as gemini (cold start buffer)
-const FOREGROUND_TIMEOUT_MS = 600000; // 10 min — mirrors gemini-companion foreground default
+const PROBE_OAUTH_TIMEOUT_MS = 30000; // same as antigravity (cold start buffer)
+const FOREGROUND_TIMEOUT_MS = 600000; // 10 min — mirrors antigravity-companion foreground default
 const MIN_NODE_MAJOR = 20;
 const MIN_CODEX_VERSION = '0.122.0';
 
@@ -72,7 +72,7 @@ function emitSuccess({ summary, result_path, tokens, details }) {
 }
 
 function emitBackground({ job_id, next_action, details }) {
-  // background queued response — simple schema-bypass format (same as gemini-companion)
+  // background queued response — simple schema-bypass format (same as antigravity-companion)
   const env = { job_id, status: 'queued', next_action };
   if (details && typeof details === 'object') env.details = sanitizeDetails(details);
   process.stdout.write(JSON.stringify(env) + '\n');
@@ -114,7 +114,7 @@ function clampSummary(text) {
 }
 
 function sanitizeDetails(details) {
-  // L6 — same policy as gemini-companion sanitizeDetails
+  // L6 — same policy as antigravity-companion sanitizeDetails
   const blocked = /token|secret|api[_-]?key|authorization|password/i;
   const out = {};
   for (const [k, v] of Object.entries(details)) {

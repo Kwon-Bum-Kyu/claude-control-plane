@@ -25,9 +25,9 @@ const REPO_ROOT = resolve(__dirname, '..', '..');
 const ROUTER_DECIDE = resolve(REPO_ROOT, 'plugins', 'ccp', 'scripts', 'lib', 'router-decide.mjs');
 
 const TASKS = [
-  { id: 'T1', label: 'large-context summarization (gemini)', prompt: '이 디렉토리 전체 요약' },
+  { id: 'T1', label: 'large-context summarization (antigravity)', prompt: '이 디렉토리 전체 요약' },
   { id: 'T2', label: 'code review (codex)', prompt: '이 PR 검토해줘' },
-  { id: 'T3', label: 'large-input forced (gemini)', prompt: 'review the entire codebase and summarize all the markdown files' },
+  { id: 'T3', label: 'large-input forced (antigravity)', prompt: 'review the entire codebase and summarize all the markdown files' },
 ];
 
 const N = 3;

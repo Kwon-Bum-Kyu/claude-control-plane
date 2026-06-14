@@ -1,8 +1,15 @@
 #!/usr/bin/env node
-// CCP — Gemini CLI companion script
+// CCP — Antigravity CLI (`agy`) companion script
 // Subcommands: rescue | status | result | setup | preflight | task-worker
 // Envelope contract: see plugins/ccp/schemas/envelope.schema.json
 // Error codes:        see README §6 (CCP error code registry).
+//
+// Key differences from the legacy gemini-companion:
+//   - `agy` does not expose `--output-format json`. stdout is the raw answer.
+//   - Conversation ID is grep-extracted from `--log-file` cli.log:
+//       I... server.go:747] Created conversation <UUIDv4>
+//   - Token counts are not surfaced. We compute character-based estimates
+//     (promptLength · Drip length × 0.25) and mark tokens.estimated = true.
 
 import { spawn, spawnSync } from 'node:child_process';
 import {
@@ -10,7 +17,6 @@ import {
   mkdirSync,
   readFileSync,
   writeFileSync,
-  statSync,
 } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve, isAbsolute } from 'node:path';
@@ -38,7 +44,26 @@ const SUMMARY_MAX_CHARS = 500;
 const SUMMARY_TOKEN_CAP = 1500;
 const DEFAULT_MAX_TOKENS = 4000;
 const MIN_NODE_MAJOR = 20;
-const MIN_GEMINI_VERSION = '0.38.0';
+const MIN_ANTIGRAVITY_VERSION = '1.0.0';
+
+// Conversion factor for char → token estimate.
+// Empirical: English averages ~4 chars/token; Korean ~2 chars/token. 0.25 sits
+// between them, matching the words×1.3 fallback used by ecc/CCP historically.
+const CHARS_PER_TOKEN_INVERSE = 0.25;
+
+// ---------------------------------------------------------------------------
+// agy binary resolution
+// ---------------------------------------------------------------------------
+
+function resolveAgyBin() {
+  const env = process.env.CCP_AGY_BIN;
+  if (env && env.length > 0 && existsSync(env)) return env;
+  const localBin = join(homedir(), '.local', 'bin', 'agy');
+  if (existsSync(localBin)) return localBin;
+  return 'agy';
+}
+
+const AGY_BIN = resolveAgyBin();
 
 // ---------------------------------------------------------------------------
 // Envelope helpers
@@ -52,7 +77,7 @@ function emitSuccess({ summary, result_path, tokens, details }) {
   const env = {
     summary: clampSummary(summary),
     result_path: result_path ?? null,
-    tokens: tokens ?? { input: 0, output: 0 },
+    tokens: tokens ?? { input: 0, output: 0, estimated: true },
     exit_code: 0,
   };
   if (details && typeof details === 'object') env.details = details;
@@ -104,8 +129,6 @@ function clampSummary(text) {
 }
 
 function sanitizeDetails(details) {
-  // Block secrets. IDE tokens and similar values are already blocked by upstream
-  // layers, but envelope details adds one more guard for defense-in-depth.
   const blocked = /token|secret|api[_-]?key|authorization|password/i;
   const out = {};
   for (const [k, v] of Object.entries(details)) {
@@ -125,38 +148,39 @@ const FALLBACK_HINT_KO =
 
 const ERROR_CATALOG = {
   'CCP-SETUP-001': {
-    message: 'Gemini CLI is not installed',
-    action: 'Run `npm install -g @google/gemini-cli`, then rerun `/gemini:setup`.',
+    message: 'Antigravity CLI (`agy`) is not installed',
+    action:
+      'Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`, ensure `~/.local/bin` is on PATH, then rerun `/antigravity:setup`.',
     recovery: 'abort',
   },
   'CCP-SETUP-002': {
     message: 'Your Node.js version is below the requirement',
-    action: 'Install Node.js 20 or later, then rerun `/gemini:setup`.',
+    action: 'Install Node.js 20 or later, then rerun `/antigravity:setup`.',
     recovery: 'abort',
   },
   'CCP-OAUTH-001': {
-    message: 'The Gemini OAuth token is expired or invalid',
+    message: 'Antigravity authentication is missing or invalid',
     action:
-      'Re-authenticate with `/gemini:setup --renew`, or handle it with `/gemini:rescue --fallback-claude "<original task>"`.' +
+      'Run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`. Then rerun `/antigravity:setup`, or fall back with `/antigravity:rescue --fallback-claude "<original task>"`.' +
       FALLBACK_HINT_KO,
     recovery: 'fallback',
   },
-  'CCP-GEMINI-001': {
-    message: 'Gemini CLI failed to run',
+  'CCP-AG-001': {
+    message: 'Antigravity CLI failed to run',
     action: 'Rerun with `--verbose` to inspect detailed logs, or retry with the main Claude agent.',
     recovery: 'retry',
   },
-  'CCP-GEMINI-002': {
-    message: 'The Gemini free-tier quota has been exceeded',
+  'CCP-AG-002': {
+    message: 'The Antigravity free-tier quota has been exceeded',
     action:
-      'Try again later, or handle it with `/gemini:rescue --fallback-claude "<original task>"`.' +
+      'Try again later, or handle it with `/antigravity:rescue --fallback-claude "<original task>"`.' +
       FALLBACK_HINT_KO,
     recovery: 'fallback',
   },
   'CCP-CTX-001': {
     message: 'The subagent response exceeded the summary threshold',
     action:
-      'Retrieve only the summary with `/gemini:result <job_id> --summary-only`.' +
+      'Retrieve only the summary with `/antigravity:result <job_id> --summary-only`.' +
       FALLBACK_HINT_KO,
     recovery: 'abort',
   },
@@ -167,7 +191,7 @@ const ERROR_CATALOG = {
   },
   'CCP-COMPACT-001': {
     message: 'Context usage has exceeded 75%',
-    action: 'Manually compact the session with `/compact`, or delegate large work to `/gemini:rescue`.',
+    action: 'Manually compact the session with `/compact`, or delegate large work to `/antigravity:rescue`.',
     recovery: 'abort',
   },
   'CCP-API-001': {
@@ -182,7 +206,7 @@ const ERROR_CATALOG = {
   },
   'CCP-JOB-002': {
     message: 'The job is not complete yet',
-    action: 'Check the status with `/gemini:status <job_id>`, then try again.',
+    action: 'Check the status with `/antigravity:status <job_id>`, then try again.',
     recovery: 'retry',
   },
   'CCP-JOB-003': {
@@ -192,7 +216,7 @@ const ERROR_CATALOG = {
   },
   'CCP-JOB-004': {
     message: 'The result file is missing',
-    action: 'Run it again with a new `/gemini:rescue` call.',
+    action: 'Run it again with a new `/antigravity:rescue` call.',
     recovery: 'abort',
   },
   'CCP-AUDIT-001': {
@@ -211,7 +235,7 @@ const ERROR_CATALOG = {
     recovery: 'abort',
   },
   'CCP-TIMEOUT-001': {
-    message: 'The Gemini response timed out',
+    message: 'The Antigravity response timed out',
     action: 'Retry, or run it asynchronously with `--background`.',
     recovery: 'retry',
   },
@@ -221,18 +245,18 @@ const ERROR_CATALOG = {
 // Argument parsing
 // ---------------------------------------------------------------------------
 
-// Reject immediately if Codex-only options leak into gemini-companion.
-// Kept consistent with the compatibility matrix (README §Model Compatibility).
-const GEMINI_UNSUPPORTED = new Set(['--effort', '--write', '--sandbox']);
+// agy supports `--sandbox`; only Codex-only flags need to be rejected here.
+const ANTIGRAVITY_UNSUPPORTED = new Set(['--effort', '--write']);
 
 function parseFlags(argv) {
   const out = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const tok = argv[i];
-    if (GEMINI_UNSUPPORTED.has(tok)) {
+    if (ANTIGRAVITY_UNSUPPORTED.has(tok)) {
       emitError('CCP-INVALID-001', {
-        message: `\`${tok}\` is not supported by Gemini`,
-        action: 'Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.',
+        message: `\`${tok}\` is not supported by Antigravity`,
+        action:
+          'Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.',
         details: { unsupported_flag: tok, suggested: '/ccp:codex-rescue' },
       });
     }
@@ -240,6 +264,7 @@ function parseFlags(argv) {
     else if (tok === '--fallback-claude') out.fallbackClaude = true;
     else if (tok === '--summary-only') out.summaryOnly = true;
     else if (tok === '--renew') out.renew = true;
+    else if (tok === '--sandbox') out.sandbox = true;
     else if (tok === '--max-tokens') out.maxTokens = parseInt(argv[++i], 10);
     else if (tok === '--timeout-ms') out.timeoutMs = parseInt(argv[++i], 10);
     else if (tok === '--poll-interval-ms') out.pollIntervalMs = parseInt(argv[++i], 10);
@@ -260,7 +285,6 @@ function parseFlags(argv) {
 
 function assertGlobInsidePluginRoot(glob) {
   if (!glob) return;
-  // Check only absolute paths. Relative globs are allowed as intended patterns from cwd.
   if (!isAbsolute(glob)) return;
   const resolved = resolve(glob);
   if (!resolved.startsWith(PLUGIN_ROOT) && !resolved.startsWith(REPO_ROOT)) {
@@ -273,17 +297,21 @@ function assertGlobInsidePluginRoot(glob) {
 }
 
 // ---------------------------------------------------------------------------
-// Output size guard — estimated as words × 1.3
+// Token estimation — char-based (Antigravity exposes no token counts)
 // ---------------------------------------------------------------------------
 
-function estimateTokens(text) {
-  if (!text) return 0;
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  return Math.ceil(words * 1.3);
+function estimateTokensFromChars(chars) {
+  if (!Number.isFinite(chars) || chars <= 0) return 0;
+  return Math.ceil(chars * CHARS_PER_TOKEN_INVERSE);
+}
+
+function estimateTokensFromText(text) {
+  if (!text || typeof text !== 'string') return 0;
+  return estimateTokensFromChars(text.length);
 }
 
 function enforceContextBudget(text) {
-  const est = estimateTokens(text);
+  const est = estimateTokensFromText(text);
   const summaryLen = (text || '').length;
   if (est > SUMMARY_TOKEN_CAP || summaryLen > SUMMARY_MAX_CHARS) {
     emitError('CCP-CTX-001', {
@@ -302,6 +330,10 @@ function enforceContextBudget(text) {
 
 function jobDir(jobId) {
   return join(JOBS_DIR, jobId);
+}
+
+function jobLogPath(jobId) {
+  return join(jobDir(jobId), 'agy.log');
 }
 
 function readMeta(jobId) {
@@ -324,11 +356,11 @@ function nowIso() {
 }
 
 // ---------------------------------------------------------------------------
-// Gemini CLI helpers
+// agy CLI helpers
 // ---------------------------------------------------------------------------
 
-function geminiVersion() {
-  const r = spawnSync('gemini', ['--version'], { encoding: 'utf8' });
+function agyVersion() {
+  const r = spawnSync(AGY_BIN, ['--version'], { encoding: 'utf8' });
   if (r.status === null || r.error) return null;
   if (r.status !== 0) return null;
   const m = (r.stdout || '').match(/(\d+\.\d+\.\d+)/);
@@ -351,94 +383,89 @@ function nodeMajor() {
 }
 
 function detectAuthMethod() {
-  if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.length > 0)
+  if (process.env.ANTIGRAVITY_API_KEY && process.env.ANTIGRAVITY_API_KEY.length > 0)
     return 'api_key';
-  const accountsPath = join(homedir(), '.gemini', 'google_accounts.json');
-  if (existsSync(accountsPath)) return 'oauth';
+  // keyring access is opaque; presence of agy config dir is a soft hint.
+  const cliDir = join(homedir(), '.gemini', 'antigravity-cli');
+  if (existsSync(cliDir)) return 'keyring';
   return null;
 }
 
-function probeOAuth() {
-  // `gemini auth status` is unsupported by the CLI. Decide via a probe call.
-  // timeout: measured spawnSync on macOS is 9.6 to 11.7s (cold start). 30s leaves headroom.
+function probeAuth() {
+  // Lightweight ping. agy resolves auth via keyring silent-auth or
+  // ANTIGRAVITY_API_KEY. Cold start measured ~11s, so 60s headroom.
   const r = spawnSync(
-    'gemini',
-    ['-p', 'ping', '-o', 'json'],
-    { encoding: 'utf8', timeout: 30000 }
+    AGY_BIN,
+    ['-p', 'ping'],
+    { encoding: 'utf8', timeout: 60000 }
   );
   if (r.error) return { ok: false, reason: 'spawn_error' };
   if (r.status === 0) return { ok: true };
   const stderr = r.stderr || '';
-  if (/\[ERROR\]/.test(stderr) || /auth|login|credential/i.test(stderr)) {
+  const stdout = r.stdout || '';
+  if (/not logged in|sign in|authoriz|credential|login/i.test(stderr + stdout)) {
     return { ok: false, reason: 'auth_error' };
   }
   return { ok: false, reason: `exit_${r.status}` };
 }
 
-// In some environments Gemini CLI mixes a non-JSON warning into the first stdout
-// line ("MCP issues detected.", etc.). Safely extract only the JSON body from the first `{` to the last `}`.
-function extractJsonBlob(stdout) {
-  const s = typeof stdout === 'string' ? stdout : '';
-  const start = s.indexOf('{');
-  const end = s.lastIndexOf('}');
-  if (start === -1 || end === -1 || end < start) return null;
-  return s.slice(start, end + 1);
-}
+// ---------------------------------------------------------------------------
+// Antigravity result parsing
+// ---------------------------------------------------------------------------
 
-function parseGeminiTokens(stdout) {
-  // On CLI 0.38.2+ `-o json` output, sum `stats.models[*].tokens`.
-  // On failure, fall back to a words × 1.3 estimate.
-  const blob = extractJsonBlob(stdout);
-  try {
-    const obj = blob ? JSON.parse(blob) : null;
-    const models = obj?.stats?.models;
-    if (models && typeof models === 'object') {
-      let input = 0,
-        output = 0,
-        total = 0,
-        thoughts = 0;
-      for (const v of Object.values(models)) {
-        const t = v?.tokens || {};
-        input += t.input || 0;
-        output += t.candidates || 0;
-        total += t.total || 0;
-        thoughts += t.thoughts || 0;
-      }
-      return {
-        input,
-        output,
-        total: total || null,
-        thoughts: thoughts || null,
-        estimated: false,
-        source: 'cli_stats',
-      };
-    }
-  } catch {
-    // fall through
-  }
-  const text = typeof stdout === 'string' ? stdout : '';
-  const est = estimateTokens(text);
-  return {
-    input: 0,
-    output: est,
-    total: null,
-    thoughts: null,
-    estimated: true,
-    source: 'words_x_1_3',
+function parseAgyLogMetrics(logFilePath) {
+  // Best-effort grep on the cli.log written via `agy --log-file`.
+  // Pattern source: empirically captured by Phase 7-A probe (see
+  // _workspace/_probe/antigravity/PROBE_RESULT.md §4).
+  const out = {
+    conversation_id: null,
+    input_chars: 0,
+    output_chars: 0,
   };
+  if (!logFilePath || !existsSync(logFilePath)) return out;
+  let text = '';
+  try {
+    text = readFileSync(logFilePath, 'utf8');
+  } catch {
+    return out;
+  }
+  const convMatch = text.match(/Created conversation ([0-9a-f-]{36})/);
+  if (convMatch && UUID_V4_RE.test(convMatch[1])) {
+    out.conversation_id = convMatch[1];
+  }
+  const promptMatches = [...text.matchAll(/promptLength=(\d+)/g)];
+  if (promptMatches.length > 0) {
+    // Sum across all print-mode invocations recorded in this log (typically 1).
+    out.input_chars = promptMatches.reduce((s, m) => s + (parseInt(m[1], 10) || 0), 0);
+  }
+  const dripMatches = [...text.matchAll(/Drip stopped:[^\n]*length=(\d+)/g)];
+  if (dripMatches.length > 0) {
+    // Each Drip line reports cumulative chars of one streamed step; the
+    // largest value is the closest to the final response length.
+    out.output_chars = dripMatches.reduce(
+      (m, x) => Math.max(m, parseInt(x[1], 10) || 0),
+      0
+    );
+  }
+  return out;
 }
 
-function extractGeminiBody(stdout) {
-  // In `-o json` mode, prefer the `response` field; on failure use raw stdout.
-  const blob = extractJsonBlob(stdout);
-  try {
-    const obj = blob ? JSON.parse(blob) : null;
-    if (typeof obj?.response === 'string') return obj.response;
-    if (typeof obj?.text === 'string') return obj.text;
-  } catch {
-    // keep plain text mode as-is
-  }
-  return stdout;
+function buildTokensFromMetrics(stdoutText, metrics) {
+  // Prefer log-derived char counts; fall back to text length when the log
+  // file is missing or empty (closed-source defense).
+  const inputChars =
+    metrics.input_chars > 0 ? metrics.input_chars : 0;
+  const outputChars =
+    metrics.output_chars > 0
+      ? metrics.output_chars
+      : typeof stdoutText === 'string'
+      ? stdoutText.length
+      : 0;
+  return {
+    input: estimateTokensFromChars(inputChars),
+    output: estimateTokensFromChars(outputChars),
+    estimated: true,
+  };
 }
 
 function makeSummary(body) {
@@ -460,62 +487,61 @@ function cmdSetup(_args) {
       details: { node_version: process.versions.node, required: `>=${MIN_NODE_MAJOR}` },
     });
   }
-  const ver = geminiVersion();
+  const ver = agyVersion();
   if (!ver) emitError('CCP-SETUP-001');
-  if (compareSemver(ver, MIN_GEMINI_VERSION) < 0) {
+  if (compareSemver(ver, MIN_ANTIGRAVITY_VERSION) < 0) {
     emitError('CCP-SETUP-001', {
-      message: `Gemini CLI is too old (current ${ver}, required ${MIN_GEMINI_VERSION}+)`,
-      action: 'Update it with `npm install -g @google/gemini-cli@latest`.',
-      details: { gemini_version: ver, required: `>=${MIN_GEMINI_VERSION}` },
+      message: `Antigravity CLI is too old (current ${ver}, required ${MIN_ANTIGRAVITY_VERSION}+)`,
+      action: 'Update it with `agy update`.',
+      details: { agy_version: ver, required: `>=${MIN_ANTIGRAVITY_VERSION}` },
     });
   }
   const authMethod = detectAuthMethod();
   if (!authMethod) {
     emitError('CCP-OAUTH-001', {
-      details: { gemini_version: ver, oauth_status: 'unknown', auth_method: null },
+      details: { agy_version: ver, auth_status: 'unknown', auth_method: null },
     });
   }
-  const probe = probeOAuth();
+  const probe = probeAuth();
   if (!probe.ok) {
     emitError('CCP-OAUTH-001', {
       details: {
-        gemini_version: ver,
-        oauth_status: 'expired',
+        agy_version: ver,
+        auth_status: probe.reason === 'auth_error' ? 'invalid' : 'unknown',
         auth_method: authMethod,
         probe_reason: probe.reason,
       },
     });
   }
   emitSuccess({
-    summary: 'Gemini CLI installation and auth are OK',
+    summary: 'Antigravity CLI installation and auth are OK',
     result_path: null,
-    tokens: { input: 0, output: 0 },
-    details: { gemini_version: ver, oauth_status: 'valid', auth_method: authMethod },
+    tokens: { input: 0, output: 0, estimated: true },
+    details: { agy_version: ver, auth_status: 'valid', auth_method: authMethod },
   });
 }
 
-// preflight = lightweight setup (no probe call). Internal pre-check for the companion.
 function cmdPreflight(_args) {
   if (nodeMajor() < MIN_NODE_MAJOR) {
     emitError('CCP-SETUP-002', {
       details: { node_version: process.versions.node, required: `>=${MIN_NODE_MAJOR}` },
     });
   }
-  const ver = geminiVersion();
+  const ver = agyVersion();
   if (!ver) emitError('CCP-SETUP-001');
-  if (compareSemver(ver, MIN_GEMINI_VERSION) < 0) {
+  if (compareSemver(ver, MIN_ANTIGRAVITY_VERSION) < 0) {
     emitError('CCP-SETUP-001', {
-      message: `Gemini CLI is too old (current ${ver}, required ${MIN_GEMINI_VERSION}+)`,
-      action: 'Update it with `npm install -g @google/gemini-cli@latest`.',
-      details: { gemini_version: ver, required: `>=${MIN_GEMINI_VERSION}` },
+      message: `Antigravity CLI is too old (current ${ver}, required ${MIN_ANTIGRAVITY_VERSION}+)`,
+      action: 'Update it with `agy update`.',
+      details: { agy_version: ver, required: `>=${MIN_ANTIGRAVITY_VERSION}` },
     });
   }
   const authMethod = detectAuthMethod();
   emitSuccess({
-    summary: `preflight ok — gemini ${ver}`,
+    summary: `preflight ok — agy ${ver}`,
     result_path: null,
-    tokens: { input: 0, output: 0 },
-    details: { gemini_version: ver, auth_method: authMethod },
+    tokens: { input: 0, output: 0, estimated: true },
+    details: { agy_version: ver, auth_method: authMethod },
   });
 }
 
@@ -528,7 +554,7 @@ function cmdStatus(args) {
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
       message: 'The `job_id` format is invalid (UUID v4 required)',
-      action: 'Use the `job_id` exactly as returned by `/gemini:rescue --background`.',
+      action: 'Use the `job_id` exactly as returned by `/antigravity:rescue --background`.',
     });
   }
   if (!existsSync(jobDir(jobId))) emitError('CCP-JOB-001');
@@ -537,7 +563,7 @@ function cmdStatus(args) {
   emitSuccess({
     summary: `job ${meta.status}`,
     result_path: null,
-    tokens: { input: 0, output: 0 },
+    tokens: { input: 0, output: 0, estimated: true },
     details: {
       job_id: meta.id,
       status: meta.status,
@@ -546,10 +572,10 @@ function cmdStatus(args) {
       completed_at: meta.completed_at ?? null,
       next_action:
         meta.status === 'completed'
-          ? `/gemini:result ${meta.id}`
+          ? `/antigravity:result ${meta.id}`
           : meta.status === 'failed'
           ? null
-          : `/gemini:status ${meta.id}`,
+          : `/antigravity:status ${meta.id}`,
     },
   });
 }
@@ -563,7 +589,7 @@ function cmdResult(args) {
   if (!jobId || !UUID_V4_RE.test(jobId)) {
     emitError('CCP-INVALID-001', {
       message: 'The `job_id` format is invalid (UUID v4 required)',
-      action: 'Use the `job_id` exactly as returned by `/gemini:status <job_id>`.',
+      action: 'Use the `job_id` exactly as returned by `/antigravity:status <job_id>`.',
     });
   }
   if (!existsSync(jobDir(jobId))) emitError('CCP-JOB-001');
@@ -577,9 +603,17 @@ function cmdResult(args) {
     summary: meta.summary_3lines || '(No summary)',
     result_path: meta.result_file_path,
     tokens: meta.token_usage
-      ? { input: meta.token_usage.input || 0, output: meta.token_usage.output || 0 }
-      : { input: 0, output: 0 },
-    details: { job_id: meta.id, gemini_session_id: meta.gemini_session_id ?? null },
+      ? {
+          input: meta.token_usage.input || 0,
+          output: meta.token_usage.output || 0,
+          estimated: meta.token_usage.estimated !== false,
+        }
+      : { input: 0, output: 0, estimated: true },
+    details: {
+      mode: 'antigravity',
+      job_id: meta.id,
+      antigravity_conversation_id: meta.antigravity_conversation_id ?? null,
+    },
   });
 }
 
@@ -587,21 +621,33 @@ function cmdResult(args) {
 // Subcommand: rescue — foreground & background dispatcher
 // ---------------------------------------------------------------------------
 
-function buildGeminiArgs(prompt, { maxTokens, files }) {
-  // Use only real Gemini CLI 0.38.x flags.
-  // - `--max-output-tokens`/`--all-files` do not exist, so omit them.
-  // - `maxTokens`: a soft hint in the prompt text; post-call `enforceContextBudget` is the hard cap.
-  // - `files`: unsupported in MVP (backlog: file-context injection mapping).
+function buildAgyArgs(prompt, { maxTokens, logFile, sandbox }) {
+  // agy CLI v1.0.x supported flags:
+  //   -p / --print / --prompt <string>
+  //   --log-file <path>
+  //   --print-timeout <duration>
+  //   --sandbox
+  //   --add-dir <path> (not used in MVP)
+  // `--max-tokens` is not a flag; embed as a soft hint in the prompt body.
   const cappedPrompt = maxTokens
     ? `${prompt}\n\n(Answer within ${maxTokens} tokens if possible)`
     : prompt;
-  return ['-p', cappedPrompt, '-o', 'json'];
+  const args = [];
+  if (logFile) {
+    args.push('--log-file', logFile);
+  }
+  if (sandbox) {
+    args.push('--sandbox');
+  }
+  args.push('-p', cappedPrompt);
+  return args;
 }
 
-const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000; // 10 min — allow large foreground tasks
+const FOREGROUND_DEFAULT_TIMEOUT_MS = 600000;
 
-function runGeminiSync(prompt, opts, timeoutMs) {
-  const r = spawnSync('gemini', buildGeminiArgs(prompt, opts), {
+function runAgySync(prompt, opts, timeoutMs) {
+  const args = buildAgyArgs(prompt, opts);
+  const r = spawnSync(AGY_BIN, args, {
     encoding: 'utf8',
     timeout: Number.isFinite(timeoutMs) && timeoutMs > 0 ? timeoutMs : FOREGROUND_DEFAULT_TIMEOUT_MS,
     env: process.env,
@@ -613,51 +659,60 @@ function cmdRescue(args) {
   const task = args.task ?? args._.join(' ').trim();
   if (!task) {
     emitError('CCP-INVALID-001', {
-      message: '/gemini:rescue requires a task argument',
-      action: 'Example: `/gemini:rescue "Summarize this directory"`',
+      message: '/antigravity:rescue requires a task argument',
+      action: 'Example: `/antigravity:rescue "Summarize this directory"`',
     });
   }
   assertGlobInsidePluginRoot(args.files);
 
-  // MVP: `--files` is unsupported (no Gemini CLI 0.38.x mapping yet).
+  // MVP: `--files` unsupported. agy's `--add-dir` mapping is on the roadmap.
   if (args.files) {
     emitError('CCP-INVALID-001', {
       message: '`--files` is not supported in the MVP',
-      action: 'Include file contents directly in the task body, or use the main Claude agent with `--fallback-claude`. File-context injection is on the roadmap.',
+      action:
+        'Include file contents directly in the task body, or use the main Claude agent with `--fallback-claude`. `--add-dir` mapping is on the roadmap.',
     });
   }
 
   if (args.fallbackClaude) {
-    // Skip the companion call and return only a `mode=fallback_claude` envelope.
     emitSuccess({
       summary: 'Main Claude fallback path — companion call skipped',
       result_path: null,
-      tokens: { input: 0, output: 0 },
+      tokens: { input: 0, output: 0, estimated: true },
       details: { mode: 'fallback_claude', task },
     });
   }
 
   const maxTokens = Number.isFinite(args.maxTokens) ? args.maxTokens : DEFAULT_MAX_TOKENS;
 
-  // Background branch — launch a detached child and return an envelope immediately
   if (args.background) {
-    return rescueBackground({ task, maxTokens, files: args.files, timeoutMs: args.timeoutMs });
+    return rescueBackground({
+      task,
+      maxTokens,
+      files: args.files,
+      sandbox: args.sandbox,
+      timeoutMs: args.timeoutMs,
+    });
   }
-
-  // Foreground branch
-  return rescueForeground({ task, maxTokens, files: args.files, timeoutMs: args.timeoutMs });
+  return rescueForeground({
+    task,
+    maxTokens,
+    files: args.files,
+    sandbox: args.sandbox,
+    timeoutMs: args.timeoutMs,
+  });
 }
 
-function rescueForeground({ task, maxTokens, files, timeoutMs }) {
-  // OAuth pre-check is lighter than full setup — only inspect env/credential files.
+function rescueForeground({ task, maxTokens, files, sandbox, timeoutMs }) {
   if (!detectAuthMethod()) emitError('CCP-OAUTH-001');
 
-  const ver = geminiVersion();
+  const ver = agyVersion();
   if (!ver) emitError('CCP-SETUP-001');
 
   const jobId = randomUUID();
   const dir = jobDir(jobId);
   mkdirSync(dir, { recursive: true });
+  const logFile = jobLogPath(jobId);
 
   const meta = {
     id: jobId,
@@ -667,10 +722,11 @@ function rescueForeground({ task, maxTokens, files, timeoutMs }) {
     created_at: nowIso(),
     started_at: nowIso(),
     completed_at: null,
-    gemini_session_id: null,
-    gemini_cli_version: ver,
+    antigravity_conversation_id: null,
+    agy_version: ver,
     max_tokens: maxTokens,
     files: files ?? null,
+    sandbox: !!sandbox,
     token_usage: null,
     result_file_path: null,
     summary_3lines: null,
@@ -678,7 +734,7 @@ function rescueForeground({ task, maxTokens, files, timeoutMs }) {
   };
   writeMeta(jobId, meta);
 
-  const r = runGeminiSync(task, { maxTokens, files }, timeoutMs);
+  const r = runAgySync(task, { maxTokens, logFile, sandbox }, timeoutMs);
   if (r.error || r.status === null) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
@@ -688,71 +744,62 @@ function rescueForeground({ task, maxTokens, files, timeoutMs }) {
   }
 
   const stderrText = r.stderr || '';
+  const stdoutText = r.stdout || '';
   if (r.status !== 0) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
     writeMeta(jobId, meta);
-    if (/quota|429|rate limit/i.test(stderrText)) {
-      emitError('CCP-GEMINI-002', { details: { job_id: jobId, exit_code: r.status } });
+    if (/quota|429|rate limit/i.test(stderrText + stdoutText)) {
+      emitError('CCP-AG-002', { details: { job_id: jobId, exit_code: r.status } });
     }
-    if (/auth|login|credential|oauth/i.test(stderrText)) {
+    if (/not logged in|sign in|authoriz|credential|login/i.test(stderrText + stdoutText)) {
       emitError('CCP-OAUTH-001', { details: { job_id: jobId, exit_code: r.status } });
     }
-    emitError('CCP-GEMINI-001', { details: { job_id: jobId, exit_code: r.status } });
+    emitError('CCP-AG-001', { details: { job_id: jobId, exit_code: r.status } });
   }
 
-  const stdoutText = r.stdout || '';
-  const body = extractGeminiBody(stdoutText);
-  const tokens = parseGeminiTokens(stdoutText);
+  const body = stdoutText;
+  const metrics = parseAgyLogMetrics(logFile);
+  const tokens = buildTokensFromMetrics(stdoutText, metrics);
 
-  // If the result body itself exceeds 1500 tokens, do not place it directly
-  // in the envelope. Save it to `result.md` and return only a summary.
-  // If the summary itself exceeds the limit, block it.
   const resultRel = `_workspace/_jobs/${jobId}/result.md`;
   writeFileSync(resolve(REPO_ROOT, resultRel), body);
 
   const summary = makeSummary(body);
   enforceContextBudget(summary);
 
-  // Try to extract `session_id` (`-o json` mode)
-  let sessionId = null;
-  try {
-    const blob = extractJsonBlob(stdoutText);
-    const obj = blob ? JSON.parse(blob) : null;
-    if (obj?.session_id && /^[0-9a-f-]{36}$/i.test(obj.session_id)) sessionId = obj.session_id;
-  } catch {
-    /* ignore */
-  }
-
   meta.status = 'completed';
   meta.completed_at = nowIso();
   meta.token_usage = tokens;
   meta.result_file_path = resultRel;
   meta.summary_3lines = summary;
-  meta.gemini_session_id = sessionId;
+  meta.antigravity_conversation_id = metrics.conversation_id;
   writeMeta(jobId, meta);
 
   emitSuccess({
     summary,
     result_path: resultRel,
-    tokens: { input: tokens.input || 0, output: tokens.output || 0 },
-    details: { mode: 'gemini', job_id: jobId, gemini_session_id: sessionId },
+    tokens,
+    details: {
+      mode: 'antigravity',
+      job_id: jobId,
+      antigravity_conversation_id: metrics.conversation_id,
+    },
   });
 }
 
-function rescueBackground({ task, maxTokens, files, timeoutMs }) {
+function rescueBackground({ task, maxTokens, files, sandbox, timeoutMs }) {
   const jobId = randomUUID();
   const dir = jobDir(jobId);
   mkdirSync(dir, { recursive: true });
 
-  // If OAuth is expired, block background mode immediately too
   const authMethod = detectAuthMethod();
   if (!authMethod) {
     emitError('CCP-OAUTH-001', {
       details: {
         retryHint: {
-          renew: '/gemini:setup --renew',
-          fallback: `/gemini:rescue --fallback-claude "${task.replace(/"/g, '\\"')}"`,
+          renew: '/antigravity:setup --renew',
+          fallback: `/antigravity:rescue --fallback-claude "${task.replace(/"/g, '\\"')}"`,
         },
       },
     });
@@ -766,11 +813,12 @@ function rescueBackground({ task, maxTokens, files, timeoutMs }) {
     created_at: nowIso(),
     started_at: null,
     completed_at: null,
-    gemini_session_id: null,
-    gemini_cli_version: geminiVersion(),
+    antigravity_conversation_id: null,
+    agy_version: agyVersion(),
     max_tokens: maxTokens,
     timeout_ms: Number.isFinite(timeoutMs) ? timeoutMs : null,
     files: files ?? null,
+    sandbox: !!sandbox,
     token_usage: null,
     result_file_path: null,
     summary_3lines: null,
@@ -778,7 +826,6 @@ function rescueBackground({ task, maxTokens, files, timeoutMs }) {
   };
   writeMeta(jobId, meta);
 
-  // Detached child — task-worker entrypoint
   const workerArgs = [fileURLToPath(import.meta.url), 'task-worker', '--job-id', jobId];
   const child = spawn(process.execPath, workerArgs, {
     detached: true,
@@ -790,7 +837,7 @@ function rescueBackground({ task, maxTokens, files, timeoutMs }) {
 
   emitBackground({
     job_id: jobId,
-    next_action: `/gemini:status ${jobId}`,
+    next_action: `/antigravity:status ${jobId}`,
     details: { mode: 'background', pid: child.pid },
   });
 }
@@ -802,7 +849,6 @@ function rescueBackground({ task, maxTokens, files, timeoutMs }) {
 function cmdTaskWorker(args) {
   const jobId = args.jobId;
   if (!jobId || !UUID_V4_RE.test(jobId)) {
-    // The worker does not return an envelope via stdout. Record only in `meta.json`.
     process.exit(2);
   }
   const meta = readMeta(jobId);
@@ -811,7 +857,12 @@ function cmdTaskWorker(args) {
   meta.started_at = nowIso();
   writeMeta(jobId, meta);
 
-  const r = runGeminiSync(meta.prompt, { maxTokens: meta.max_tokens, files: meta.files }, meta.timeout_ms);
+  const logFile = jobLogPath(jobId);
+  const r = runAgySync(
+    meta.prompt,
+    { maxTokens: meta.max_tokens, logFile, sandbox: meta.sandbox },
+    meta.timeout_ms
+  );
   if (r.error || r.status === null) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
@@ -821,14 +872,15 @@ function cmdTaskWorker(args) {
   }
 
   const stderrText = r.stderr || '';
+  const stdoutText = r.stdout || '';
   if (r.status !== 0) {
     meta.status = 'failed';
     meta.completed_at = nowIso();
-    let code = 'CCP-GEMINI-001';
-    if (/quota|429|rate limit/i.test(stderrText)) code = 'CCP-GEMINI-002';
-    else if (/auth|login|credential|oauth/i.test(stderrText)) code = 'CCP-OAUTH-001';
+    let code = 'CCP-AG-001';
+    if (/quota|429|rate limit/i.test(stderrText + stdoutText)) code = 'CCP-AG-002';
+    else if (/not logged in|sign in|authoriz|credential|login/i.test(stderrText + stdoutText))
+      code = 'CCP-OAUTH-001';
     meta.error = { code };
-    // Store raw stderr only in `stderr.log`; keep only the code in meta.
     try {
       writeFileSync(join(jobDir(jobId), 'stderr.log'), stderrText);
     } catch {
@@ -838,27 +890,18 @@ function cmdTaskWorker(args) {
     return;
   }
 
-  const stdoutText = r.stdout || '';
-  const body = extractGeminiBody(stdoutText);
-  const tokens = parseGeminiTokens(stdoutText);
+  const body = stdoutText;
+  const metrics = parseAgyLogMetrics(logFile);
+  const tokens = buildTokensFromMetrics(stdoutText, metrics);
   const resultRel = `_workspace/_jobs/${jobId}/result.md`;
   writeFileSync(resolve(REPO_ROOT, resultRel), body);
-
-  let sessionId = null;
-  try {
-    const blob = extractJsonBlob(stdoutText);
-    const obj = blob ? JSON.parse(blob) : null;
-    if (obj?.session_id && /^[0-9a-f-]{36}$/i.test(obj.session_id)) sessionId = obj.session_id;
-  } catch {
-    /* ignore */
-  }
 
   meta.status = 'completed';
   meta.completed_at = nowIso();
   meta.token_usage = tokens;
   meta.result_file_path = resultRel;
   meta.summary_3lines = makeSummary(body);
-  meta.gemini_session_id = sessionId;
+  meta.antigravity_conversation_id = metrics.conversation_id;
   writeMeta(jobId, meta);
 }
 
@@ -885,11 +928,19 @@ function main() {
     default:
       emitError('CCP-INVALID-001', {
         message: `Unknown subcommand: ${sub ?? '(none)'}`,
-        action: 'Usage: gemini-companion.mjs <rescue|status|result|setup|preflight> ...',
+        action: 'Usage: antigravity-companion.mjs <rescue|status|result|setup|preflight> ...',
       });
   }
 }
 
 main();
 
-export { ERROR_CATALOG, parseFlags, estimateTokens, makeSummary };
+export {
+  ERROR_CATALOG,
+  parseFlags,
+  estimateTokensFromChars,
+  estimateTokensFromText,
+  makeSummary,
+  parseAgyLogMetrics,
+  buildTokensFromMetrics,
+};

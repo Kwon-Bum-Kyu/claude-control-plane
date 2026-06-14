@@ -13,7 +13,7 @@ import { spawnDetachedWorker, killPid, isAlive } from './codex-process.mjs';
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
- * @param {string} opts.mode             "codex" | "gemini"
+ * @param {string} opts.mode             "codex" | "antigravity"
  * @param {string} opts.workerScriptPath  task-worker entry script (codex-companion itself)
  * @param {string} opts.prompt
  * @param {object} [opts.params]

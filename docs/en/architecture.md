@@ -25,7 +25,7 @@ Every slash command and subagent emits exactly one JSON object on stdout, valida
     "total": 0
   },
   "exit_code": 0,
-  "details": { "mode": "gemini" }
+  "details": { "mode": "antigravity" }
 }
 ```
 
@@ -50,30 +50,30 @@ Hooks reinforce, never replace, the slash commands.
 
 Hooks use the Claude Code-supplied JSON stdin contract; no exec-based shell hooks.
 
-### 6. Namespace split (`/gemini:*` vs `/ccp:*`)
+### 6. Namespace split (`/antigravity:*` vs `/ccp:*`)
 
-Gemini commands sit under their own namespace because users have a long-standing mental model of Gemini as a heavy-summary tool. Codex and shared commands sit under `/ccp:*` because they are CCP-specific orchestration. This split is deliberate and not subject to ad-hoc renaming.
+Antigravity commands sit under their own namespace because users have a long-standing mental model of Antigravity as a heavy-summary tool. Codex and shared commands sit under `/ccp:*` because they are CCP-specific orchestration. This split is deliberate and not subject to ad-hoc renaming.
 
 ### 7. Subagent isolation is enforced
 
-Subagents (`gemini-rescue`, `codex-rescue`) cannot write into the main Claude context except through the envelope. Even verbose CLI output is redirected to the result file; only the bounded summary travels back. Audit categories `double_billing` and `secret_leak` are dedicated to detecting leaks of this isolation.
+Subagents (`antigravity-rescue`, `codex-rescue`) cannot write into the main Claude context except through the envelope. Even verbose CLI output is redirected to the result file; only the bounded summary travels back. Audit categories `double_billing` and `secret_leak` are dedicated to detecting leaks of this isolation.
 
 ## Token-saving patterns
 
 CCP's token saving works strongest in **canonical** triggers:
 
 ```text
-✅  /gemini:rescue summarize this directory
+✅  /antigravity:rescue summarize this directory
 ✅  /ccp:codex-rescue review this PR diff
 ```
 
-In this pattern the envelope cap (<= 500 chars) plus `result_path` persistence prevents Claude's main context from accumulating Gemini's full output. Field measurement (T5 fixture, N=2): main 846K + offload 179K = 1,025K total.
+In this pattern the envelope cap (<= 500 chars) plus `result_path` persistence prevents Claude's main context from accumulating Antigravity's full output. Field measurement (T5 fixture, N=2): main 846K + offload 179K = 1,025K total.
 
 In **headless** triggers (`claude -p ...`, scripted automation), models tend to probe delegation entry points -- calling `rescue --help`, traversing Skill -> Agent -> companion, retrying with prompt variations -- and tokens can grow 2.1x instead of shrinking. For headless use, pre-script the slash command:
 
 ```bash
 # Recommended: pre-scripted slash
-claude -p "/gemini:rescue summarize this directory"
+claude -p "/antigravity:rescue summarize this directory"
 claude -p "/ccp:codex-rescue review the PR diff"
 
 # Forbidden: rescue --help loops, Skill -> Agent traversal, repeated prompt variations

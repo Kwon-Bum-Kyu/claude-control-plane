@@ -1,4 +1,4 @@
-// CCP Router — 3-way routing decision logic (Claude / Gemini / Codex)
+// CCP Router — 3-way routing decision logic (Claude / Antigravity / Codex)
 // Spec: plugins/ccp/skills/router/SKILL.md §"4-axis decision algorithm"
 //
 // hooks/router-suggest.js imports this module to inject a recommendation as
@@ -11,6 +11,8 @@
 //     * removeCodeBlocks: skip keywords inside ``` ... ``` and `...` blocks
 //     * hasActionableTrigger: word-boundary matching + informational intent skip
 //   - KW_MAIN_CONTEXT_BIND extended with English variants
+//   - Legacy `@gemini` magic keywords are accepted as aliases for `@antigravity`
+//     to preserve backward-compatible muscle memory after the EOL migration.
 
 import {
   removeCodeBlocks,
@@ -19,7 +21,7 @@ import {
 } from './magic-keywords.mjs';
 
 // English-primary dictionaries (Korean kept as auxiliary for 1st persona).
-const KW_GEMINI = [
+const KW_ANTIGRAVITY = [
   // English (primary) — large-context summarization & directory-wide analysis
   'summarize', 'summary', 'review codebase', 'review the entire',
   'whole directory', 'whole codebase', 'whole repo', 'whole project',
@@ -70,7 +72,14 @@ const KW_MAIN_CONTEXT_BIND = [
 // Korean-first design with English duals. omc magic-keywords pattern: prefix
 // + alias forms. Use removeCodeBlocks-stripped text for matching to avoid
 // false positives inside code fences.
-const KW_MAGIC_GEMINI = ['@gemini', '@젬', '@제미니'];
+//
+// `@gemini` / `@젬` / `@제미니` are retained as backward-compat aliases for
+// `@antigravity` after the upstream Gemini CLI EOL — they all route to the
+// Antigravity backend now.
+const KW_MAGIC_ANTIGRAVITY = [
+  '@antigravity', '@ag', '@안티',
+  '@gemini', '@젬', '@제미니', // legacy aliases
+];
 const KW_MAGIC_CODEX = ['@codex', '@코덱', '@코덱스'];
 const KW_MAGIC_CLAUDE = ['@claude', '@클', '@클로드'];
 const KW_MAGIC_AUTO = ['@auto', '@자동']; // not a target — triggers default 4-axis classification
@@ -82,7 +91,7 @@ function findMagicKeyword(text, dict) {
   return null;
 }
 
-const TARGETS = Object.freeze(['claude', 'gemini', 'codex']);
+const TARGETS = Object.freeze(['claude', 'antigravity', 'codex']);
 
 function estimateTokens(text) {
   return Math.ceil(String(text || '').trim().split(/\s+/).filter(Boolean).length * 1.3);
@@ -96,8 +105,8 @@ function classify(input, opts = {}) {
   if (/\/ccp:codex-rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
     return { target: 'codex', axis: 'A', reason: 'user_explicit_codex' };
   }
-  if (/\/gemini:rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
-    return { target: 'gemini', axis: 'A', reason: 'user_explicit_gemini' };
+  if (/\/antigravity:rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
+    return { target: 'antigravity', axis: 'A', reason: 'user_explicit_antigravity' };
   }
   if (/--fallback-claude\b/.test(text) || /--force-claude\b/.test(text)) {
     return { target: 'claude', axis: 'A', reason: 'user_explicit_claude' };
@@ -116,9 +125,9 @@ function classify(input, opts = {}) {
   // ignored (false positive guard, identical to keyword-axis behavior).
   // `@auto` is a marker — it does not force a target, but signals user intent
   // to use the 4-axis classifier (B/C/D). It does not override anything.
-  const magicGemini = findMagicKeyword(stripped, KW_MAGIC_GEMINI);
-  if (magicGemini) {
-    return { target: 'gemini', axis: 'A', reason: 'user_explicit_gemini_magic', matched: [magicGemini] };
+  const magicAntigravity = findMagicKeyword(stripped, KW_MAGIC_ANTIGRAVITY);
+  if (magicAntigravity) {
+    return { target: 'antigravity', axis: 'A', reason: 'user_explicit_antigravity_magic', matched: [magicAntigravity] };
   }
   const magicCodex = findMagicKeyword(stripped, KW_MAGIC_CODEX);
   if (magicCodex) {
@@ -138,7 +147,7 @@ function classify(input, opts = {}) {
     if (matchedX.length > 0) {
       return { target: 'codex', axis: 'B', reason: 'mid_review_codex_oversized', tokens, matched: matchedX };
     }
-    return { target: 'gemini', axis: 'B', reason: 'too_large', tokens };
+    return { target: 'antigravity', axis: 'B', reason: 'too_large', tokens };
   }
   if (tokens >= 5000 && tokens <= 30000) {
     const matchedX = matchKeywords(stripped, KW_CODEX);
@@ -178,12 +187,12 @@ function isAsciiTrigger(s) {
 }
 
 function classifyByKeyword(text, tokens) {
-  const matchedG = matchKeywords(text, KW_GEMINI);
+  const matchedG = matchKeywords(text, KW_ANTIGRAVITY);
   const matchedX = matchKeywords(text, KW_CODEX);
   const matchedC = matchKeywords(text, KW_CLAUDE);
   const matchedBind = matchKeywords(text, KW_MAIN_CONTEXT_BIND);
   const hits = {
-    gemini: matchedG.length,
+    antigravity: matchedG.length,
     codex: matchedX.length,
     claude: matchedC.length,
     bind: matchedBind.length,
@@ -197,18 +206,18 @@ function classifyByKeyword(text, tokens) {
     return { target: 'codex', axis: 'C', reason: 'keyword_codex', matched: matchedX };
   }
   if (matchedG.length > 0 && matchedX.length === 0 && matchedC.length === 0) {
-    return { target: 'gemini', axis: 'C', reason: 'keyword_gemini', matched: matchedG };
+    return { target: 'antigravity', axis: 'C', reason: 'keyword_antigravity', matched: matchedG };
   }
   if (matchedC.length > 0 && matchedX.length === 0 && matchedG.length === 0) {
     return { target: 'claude', axis: 'C', reason: 'keyword_claude', matched: matchedC };
   }
 
-  // Multiple matches — priority codex > gemini > claude
+  // Multiple matches — priority codex > antigravity > claude
   if (matchedX.length > 0) {
     return { target: 'codex', axis: 'C', reason: 'keyword_codex_priority', hits };
   }
   if (matchedG.length > 0) {
-    return { target: 'gemini', axis: 'C', reason: 'keyword_gemini_priority', hits };
+    return { target: 'antigravity', axis: 'C', reason: 'keyword_antigravity_priority', hits };
   }
   if (matchedC.length > 0) {
     return { target: 'claude', axis: 'C', reason: 'keyword_claude_priority', hits };
@@ -223,6 +232,6 @@ export {
   classify,
   estimateTokens,
   TARGETS,
-  KW_GEMINI, KW_CODEX, KW_CLAUDE, KW_MAIN_CONTEXT_BIND,
-  KW_MAGIC_GEMINI, KW_MAGIC_CODEX, KW_MAGIC_CLAUDE, KW_MAGIC_AUTO,
+  KW_ANTIGRAVITY, KW_CODEX, KW_CLAUDE, KW_MAIN_CONTEXT_BIND,
+  KW_MAGIC_ANTIGRAVITY, KW_MAGIC_CODEX, KW_MAGIC_CLAUDE, KW_MAGIC_AUTO,
 };

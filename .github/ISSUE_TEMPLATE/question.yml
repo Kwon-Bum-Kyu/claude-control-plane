@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        For installation or OAuth issues, please run `/gemini:setup` and `/codex:setup` first
+        For installation or OAuth issues, please run `/antigravity:setup` and `/codex:setup` first
         and include their output below. Most install-time failures surface there.
 
   - type: textarea

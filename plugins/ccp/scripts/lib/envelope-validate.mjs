@@ -1,19 +1,19 @@
 // CCP — envelope 6-key self-validator
 // Enforces the core constraints from schemas/envelope.schema.json with zero deps.
-// Both companions (gemini / codex) call this just before stdout emit; SSOT
+// Both companions (antigravity / codex) call this just before stdout emit; SSOT
 // violations cause a stderr warning (or throw under CCP_ENVELOPE_STRICT=1).
 //
 // Checks (cross-checkable by audit):
 //   - oneOf success | error
 //   - success: summary ≤ 500 chars, exit_code === 0, tokens {input, output} required
 //   - error: code matches ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
-//   - details.mode enum [gemini, codex, router] (when present)
+//   - details.mode enum [antigravity, codex, router] (when present)
 //   - auto_routed (when present): boolean only — auto-delegation consistency check
 //   - details.reason_code (when mode=router): enum only — runtime defense
 
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
-const MODE_ENUM = new Set(['gemini', 'codex', 'router']);
+const MODE_ENUM = new Set(['antigravity', 'codex', 'router']);
 const ROUTER_REASON_CODE_ENUM = new Set([
   'AXIS_A_SLASH',
   'AXIS_A_OPTION',
@@ -21,14 +21,14 @@ const ROUTER_REASON_CODE_ENUM = new Set([
   'AXIS_B_OVERSIZED',
   'AXIS_B_MID_REVIEW',
   'AXIS_B_TOO_SMALL',
-  'AXIS_C_KW_GEMINI',
+  'AXIS_C_KW_ANTIGRAVITY',
   'AXIS_C_KW_CODEX',
   'AXIS_C_KW_CLAUDE',
   'AXIS_C_MAIN_CONTEXT_BIND',
   'AXIS_D_DEFAULT_CONSERVATIVE',
   'OPT_OUT_NO_AUTO_ROUTE',
 ]);
-const ROUTER_DECISION_ENUM = new Set(['claude', 'gemini', 'codex']);
+const ROUTER_DECISION_ENUM = new Set(['claude', 'antigravity', 'codex']);
 const ROUTER_AXIS_ENUM = new Set(['A', 'B', 'C', 'D']);
 const SUMMARY_MAX = 500;
 
@@ -69,6 +69,9 @@ export function validateEnvelope(env) {
           errors.push(`tokens.${k} must be non-negative number when present`);
         }
       }
+      if (env.tokens.estimated !== undefined && typeof env.tokens.estimated !== 'boolean') {
+        errors.push('tokens.estimated must be boolean when present');
+      }
     }
   }
 
@@ -102,11 +105,11 @@ export function validateEnvelope(env) {
     if (!env.details || typeof env.details !== 'object') {
       errors.push('details must be object when present');
     } else if (env.details.mode !== undefined && !MODE_ENUM.has(env.details.mode)) {
-      errors.push(`details.mode "${env.details.mode}" not in [gemini, codex, router]`);
+      errors.push(`details.mode "${env.details.mode}" not in [antigravity, codex, router]`);
     } else if (env.details.mode === 'router') {
       // Router branch — enum-only, no free text (runtime defense).
       if (env.details.decision !== undefined && !ROUTER_DECISION_ENUM.has(env.details.decision)) {
-        errors.push(`details.decision "${env.details.decision}" not in [claude, gemini, codex]`);
+        errors.push(`details.decision "${env.details.decision}" not in [claude, antigravity, codex]`);
       }
       if (env.details.axis !== undefined && !ROUTER_AXIS_ENUM.has(env.details.axis)) {
         errors.push(`details.axis "${env.details.axis}" not in [A, B, C, D]`);

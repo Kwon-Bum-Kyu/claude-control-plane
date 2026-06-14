@@ -51,15 +51,15 @@ export function ensureJobDir(jobsDir, jobId) {
  *
  * @param {object} opts
  * @param {string} opts.jobsDir
- * @param {string} opts.mode      "codex" | "gemini"
+ * @param {string} opts.mode      "codex" | "antigravity"
  * @param {string} opts.prompt
  * @param {object} [opts.params]  model/effort/sandbox, etc.
  * @param {string} [opts.claudeSessionId]
  * @returns {{ jobId: string, dir: string, meta: object }}
  */
 export function enqueueBackgroundJob({ jobsDir, mode, prompt, params = {}, claudeSessionId }) {
-  if (!mode || (mode !== 'codex' && mode !== 'gemini')) {
-    throw new Error(`enqueueBackgroundJob: mode must be 'codex' or 'gemini', got ${mode}`);
+  if (!mode || (mode !== 'codex' && mode !== 'antigravity')) {
+    throw new Error(`enqueueBackgroundJob: mode must be 'codex' or 'antigravity', got ${mode}`);
   }
   const jobId = randomUUID();
   const dir = ensureJobDir(jobsDir, jobId);

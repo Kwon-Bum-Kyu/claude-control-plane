@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for filing a bug. CCP wraps several external CLIs (Claude Code, Gemini CLI, Codex CLI),
+        Thanks for filing a bug. CCP wraps several external CLIs (Claude Code, Antigravity CLI, Codex CLI),
         so accurate environment information is required for triage.
 
   - type: textarea
@@ -14,7 +14,7 @@ body:
     attributes:
       label: Summary
       description: One-sentence description of the defect.
-      placeholder: "/gemini:rescue returns ENOENT when the prompt contains a Korean code block"
+      placeholder: "/antigravity:rescue returns ENOENT when the prompt contains a Korean code block"
     validations:
       required: true
 
@@ -24,7 +24,7 @@ body:
       label: Reproduction steps
       description: Minimal steps. Include the exact slash command or shell invocation.
       placeholder: |
-        1. `/gemini:rescue --background "summarize this 50KB log"`
+        1. `/antigravity:rescue --background "summarize this 50KB log"`
         2. Wait until status transitions to `running`
         3. Observe envelope.exit_code == 1
     validations:
@@ -66,11 +66,11 @@ body:
       required: true
 
   - type: input
-    id: gemini_cli
+    id: antigravity_cli
     attributes:
-      label: Gemini CLI version
-      description: Output of `gemini --version`. Leave empty if not used.
-      placeholder: 0.38.x
+      label: Antigravity CLI version
+      description: Output of `agy --version`. Leave empty if not used.
+      placeholder: 1.0.x
 
   - type: input
     id: codex_cli
@@ -91,7 +91,7 @@ body:
     attributes:
       label: Pre-flight
       options:
-        - label: I ran `/gemini:setup` (and `/codex:setup` if applicable) and OAuth is healthy
+        - label: I ran `/antigravity:setup` (and `/codex:setup` if applicable) and OAuth is healthy
           required: true
         - label: I confirmed the issue still reproduces on the latest `main`
           required: true

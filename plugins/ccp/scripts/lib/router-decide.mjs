@@ -116,19 +116,19 @@ function readAutoRoutingConfig() {
 
 const REASON_CODE_MAP = {
   user_explicit_codex: 'AXIS_A_SLASH',
-  user_explicit_gemini: 'AXIS_A_SLASH',
+  user_explicit_antigravity: 'AXIS_A_SLASH',
   user_explicit_claude: 'AXIS_A_FALLBACK_CLAUDE',
   user_explicit_codex_option: 'AXIS_A_OPTION',
   // Magic keywords share AXIS_A_SLASH (axis A user-explicit, same priority).
-  user_explicit_gemini_magic: 'AXIS_A_SLASH',
+  user_explicit_antigravity_magic: 'AXIS_A_SLASH',
   user_explicit_codex_magic: 'AXIS_A_SLASH',
   user_explicit_claude_magic: 'AXIS_A_SLASH',
   too_large: 'AXIS_B_OVERSIZED',
   mid_review_codex: 'AXIS_B_MID_REVIEW',
   mid_review_codex_oversized: 'AXIS_B_MID_REVIEW',
   too_small: 'AXIS_B_TOO_SMALL',
-  keyword_gemini: 'AXIS_C_KW_GEMINI',
-  keyword_gemini_priority: 'AXIS_C_KW_GEMINI',
+  keyword_antigravity: 'AXIS_C_KW_ANTIGRAVITY',
+  keyword_antigravity_priority: 'AXIS_C_KW_ANTIGRAVITY',
   keyword_codex: 'AXIS_C_KW_CODEX',
   keyword_codex_priority: 'AXIS_C_KW_CODEX',
   keyword_claude: 'AXIS_C_KW_CLAUDE',
@@ -142,7 +142,7 @@ function mapReasonCode(decision) {
 }
 
 const SLASH_HINT = {
-  gemini: '/gemini:rescue',
+  antigravity: '/antigravity:rescue',
   codex: '/ccp:codex-rescue',
   claude: null,
 };
