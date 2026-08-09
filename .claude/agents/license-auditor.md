@@ -44,15 +44,11 @@ model: opus
   - `_workspace/02_dependency_manifest.md` — 외부 의존성 목록 (이름, 버전, 라이선스, 용도)
   - `_workspace/02_attribution_template.md` — README/LICENSE 귀속 표기 템플릿
 
-## 팀 통신 프로토콜 (review-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - architecture-reviewer: 신규 외부 의존성 추가 결정 → 라이선스 검증
-  - token-economist: Antigravity API 키(ANTIGRAVITY_API_KEY) vs keyring 결정 → 비용/라이선스 영향 평가
-- 메시지 발신:
-  - architecture-reviewer: 라이선스 충돌로 아키텍처 변경 필요 시 통보
-  - token-economist: 의존성 변경이 토큰 측정에 영향 시 통보
-- 작업 요청: 신규 차용 코드 발견 시 TaskCreate
+- 검수 3인은 병렬로 독립 실행된다 — 직접 통신 없음
+- 라이선스 충돌이 아키텍처 결정에 영향을 주는 발견은 `02_license_audit.md`의 `## 교차 검토 필요` 섹션에 기록 — 오케스트레이터가 architecture-reviewer 재개 호출로 회부
+- 신규 차용 코드 발견 시 `02_license_audit.md`에 항목 추가 후 판정
 
 ## 에러 핸들링
 

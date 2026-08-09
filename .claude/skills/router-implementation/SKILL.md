@@ -107,4 +107,4 @@ token-economist의 `_workspace/02_router_accuracy_spec.md` 데이터셋을 사�
 ## 산출물 위치
 
 - 구현: `plugins/ccp/plugins/ccp/scripts/router.mjs` (또는 스킬 형태로 가이드 분리)
-- 진행 보고: `_workspace/03_implementation_progress.md`
+- 진행 보고: `_workspace/04_implementation_progress.md`

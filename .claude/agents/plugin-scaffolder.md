@@ -33,24 +33,20 @@ model: sonnet
   - `plugins/ccp/plugins/ccp/agents/*.md`
   - `plugins/ccp/plugins/ccp/hooks/*.js` (suggest-compact 등)
   - `plugins/ccp/README.md`, `LICENSE`
-- 진행 보고: `_workspace/03_scaffold_progress.md`
+- 진행 보고: `_workspace/04_scaffold_progress.md`
 
-## 팀 통신 프로토콜 (dev-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - adapter-engineer: companion 스크립트 인터페이스 변경 → 슬래시 명세 동기화
-  - harness-qa: QA 발견 결함 → 즉시 수정
-- 메시지 발신:
-  - adapter-engineer: 매니페스트 권한 필드 결정 시 의견 수렴
-  - harness-qa: 스캐폴드 완료 알림 → QA 시작 트리거
-- 작업 요청: 누락된 파일 발견 시 TaskCreate
+- 스캐폴드는 adapter-engineer보다 먼저 직렬 실행된다 — 인터페이스 계약(companion 입출력·매니페스트 권한)은 매니페스트 파일과 명세 산출물로 후속 에이전트에 전달
+- 스캐폴드 완료 직후 오케스트레이터가 harness-qa 검증을 트리거한다 — QA 발견 결함은 재개 호출 prompt로 전달받아 즉시 수정
+- adapter-engineer의 인터페이스 변경이 슬래시 명세에 영향을 주면, 오케스트레이터가 재개 호출로 동기화를 지시한다
 
 ## 에러 핸들링
 
-- 플러그인 API 스키마 충돌: Claude Code 공식 문서 우선 → 검수 결정과 다르면 SendMessage로 architecture-reviewer 의견 요청 후 결정
-- 빌드/로드 실패: 상세 에러를 `_workspace/03_scaffold_progress.md`에 기록, 1회 재시도 후 미해결 시 사용자에게 보고
+- 플러그인 API 스키마 충돌: Claude Code 공식 문서 우선 → 검수 결정과 다르면 `04_scaffold_progress.md`의 `## 미결 사항`에 기록 (오케스트레이터가 architecture-reviewer 재개로 회부 후 결정)
+- 빌드/로드 실패: 상세 에러를 `_workspace/04_scaffold_progress.md`에 기록, 1회 재시도 후 미해결 시 보고
 
 ## 협업
 
 - adapter-engineer와는 인터페이스 계약 (companion 스크립트 입출력) 합의 후 작업
-- harness-qa는 스캐폴드 완료 후 즉시 검증 시작
+- harness-qa는 스캐폴드 완료 후 즉시 검증 시작 (incremental QA)

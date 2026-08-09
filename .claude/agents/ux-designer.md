@@ -31,15 +31,11 @@ model: sonnet
   - `_workspace/01_error_messages.md` — 에러 카탈로그 (코드, 한국어 문안, 행동 가이드)
   - `_workspace/01_readme_outline.md` — README 섹션 구조
 
-## 팀 통신 프로토콜 (planning-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - spec-writer: 슬래시 명세 초안 → UX 관점 피드백 회신
-  - scope-guard: UX 개선이 MVP 범위인지 판정 결과
-- 메시지 발신:
-  - spec-writer: UX 검토 결과를 명세 수정 요청으로 전달
-  - scope-guard: UX 강화 아이디어가 MVP 범위인지 사전 확인
-- 작업 요청: 신규 에러 시나리오 발견 시 TaskCreate로 에러 메시지 작업 추가
+- 에이전트 간 직접 통신 없음 — spec-writer의 명세 초안(`_workspace/01_*.md`)을 파일로 읽고 작업한다
+- 명세 수정이 필요한 UX 발견 사항은 산출물의 `## 명세 수정 제안` 섹션에 기록 — 오케스트레이터가 spec-writer 재개 호출로 전달
+- UX 강화 아이디어는 자체 채택하지 말고 `## 범위 판정 요청`에 나열 — scope-guard 판정을 거친다 (오케스트레이터 중재)
 
 ## 에러 핸들링
 

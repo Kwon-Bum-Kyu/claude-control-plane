@@ -10,15 +10,15 @@ CCP의 QA는 전체 완성 후 1회가 아니라 **모듈이 완성될 때마다
 ## 검증 사이클
 
 ```
-adapter-engineer가 모듈 완성
-   ↓ SendMessage("module X completed")
+adapter-engineer가 모듈 묶음 완성 (진행 보고 기록)
+   ↓ 오케스트레이터가 harness-qa 재개(SendMessage) 호출
 harness-qa가 즉시 검증 시작
    ↓
 모듈별 체크리스트 실행
    ↓
-결과 보고 (_workspace/03_qa_report.md 추가)
+결과 보고 (_workspace/05_qa_report.md 추가)
    ↓
-회귀 발견 시 즉시 SendMessage로 차단
+회귀 발견 시 오케스트레이터가 adapter-engineer 재개로 수정 중재 (다음 묶음 진입 차단)
 ```
 
 ## 모듈별 체크리스트
@@ -65,13 +65,13 @@ QA의 핵심은 "존재 확인"이 아니라 **두 인터페이스를 동시에 
 | companion 출력 ↔ 라우터 입력 | JSON envelope 키 vs 라우터가 읽는 키 |
 | 매니페스트 권한 ↔ 실제 도구 호출 | `permissions` 필드 vs 코드의 `Bash` 호출 |
 | 에러 코드 표준 ↔ 실제 에러 | `companion-script-pattern` 표준 vs companion이 발생시킨 에러 |
-| 시나리오 합격 기준 ↔ 측정 결과 | `02_token_scenarios.md` vs `03_token_measurement.md` |
+| 시나리오 합격 기준 ↔ 측정 결과 | `02_token_scenarios.md` vs `05_token_measurement.md` |
 
 ## 회귀 발견 시 즉시 차단
 
 회귀가 발견되면:
-1. SendMessage로 adapter-engineer/plugin-scaffolder에게 즉시 통보
-2. `_workspace/03_qa_report.md`에 회귀 ID와 재현 절차 기록
+1. 오케스트레이터에게 결함 좌표(파일:라인)와 함께 즉시 보고 — 오케스트레이터가 adapter-engineer/plugin-scaffolder 재개 호출로 수정을 중재
+2. `_workspace/05_qa_report.md`에 회귀 ID와 재현 절차 기록
 3. 수정 후 재검증 사이클 반복
 
 회귀 발견 시 다음 단계 작업 차단 권한 있음 (오케스트레이터에 보고).
@@ -84,12 +84,12 @@ QA의 핵심은 "존재 확인"이 아니라 **두 인터페이스를 동시에 
 1. baseline 측정 (Claude 단독, 동일 워크로드)
 2. CCP 적용 측정 (Claude + 라우터)
 3. 비교: B의 input_tokens ≤ A의 input_tokens × 0.85 ?
-4. 결과를 _workspace/03_token_measurement.md에 기록
+4. 결과를 _workspace/05_token_measurement.md에 기록
 ```
 
 ## MVP 합격 판정
 
-`_workspace/03_mvp_verdict.md`에 다음 형식:
+`_workspace/05_verdict.md`에 다음 형식 (휴먼 승인 게이트 G2 상정 자료):
 
 ```markdown
 ## MVP 합격 판정
@@ -116,11 +116,11 @@ QA의 핵심은 "존재 확인"이 아니라 **두 인터페이스를 동시에 
 - 수정 후 다른 모듈 영향 재검증 필요 (회귀 누적)
 - 일정 후반에 결함 발견 → 일정 폭발
 
-incremental QA는 모듈 단위에서 결함을 가둠. adapter-engineer가 모듈 완성 즉시 SendMessage하는 사이클이 핵심이다.
+incremental QA는 모듈 단위에서 결함을 가둠. 모듈 묶음 완성 즉시 검증이 트리거되는 사이클이 핵심이다.
 
 ## 산출물 위치
 
-- QA 리포트: `_workspace/03_qa_report.md`
-- 토큰 측정: `_workspace/03_token_measurement.md`
-- 라우터 정확도: `_workspace/03_router_accuracy.md`
-- MVP 판정: `_workspace/03_mvp_verdict.md`
+- QA 리포트: `_workspace/05_qa_report.md`
+- 토큰 측정: `_workspace/05_token_measurement.md`
+- 라우터 정확도: `_workspace/05_router_accuracy.md`
+- 합격 판정: `_workspace/05_verdict.md`

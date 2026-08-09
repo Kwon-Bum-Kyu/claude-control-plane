@@ -53,24 +53,21 @@ model: sonnet
   - `plugins/ccp/plugins/ccp/hooks/suggest-compact.js`
   - `plugins/ccp/plugins/ccp/skills/context-budget/SKILL.md`
   - `plugins/ccp/plugins/ccp/scripts/harness-audit.js`
-- 진행 보고: `_workspace/03_implementation_progress.md`
+- 진행 보고: `_workspace/04_implementation_progress.md`
 
-## 팀 통신 프로토콜 (dev-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - plugin-scaffolder: 매니페스트 권한 필드 결정 → 구현 인터페이스 조정
-  - harness-qa: 측정 시나리오 실행 결과 → 회귀 발견 시 즉시 수정
-- 메시지 발신:
-  - plugin-scaffolder: companion 인터페이스 변경 시 슬래시 명세 동기화 요청
-  - harness-qa: 단위 모듈 완성 시 즉시 QA 요청 (incremental QA)
-- 작업 요청: 라우터 분류 케이스 추가 발견 시 TaskCreate
+- 구현은 모듈 묶음 단위 직렬 사이클로 진행된다 — 오케스트레이터가 묶음별로 호출(첫 회) 또는 재개(이후)하며, 각 묶음 완료를 보고하면 harness-qa incremental 검증이 트리거된다
+- QA 발견 결함·회귀는 재개 호출 prompt로 전달받아 즉시 수정 후 재검증을 거쳐 다음 묶음으로 진행
+- 매니페스트 권한 필드는 plugin-scaffolder의 산출물(매니페스트 파일)을 읽고 인터페이스를 맞춘다. companion 인터페이스 변경이 슬래시 명세에 영향을 주면 `04_implementation_progress.md`에 기록 — 오케스트레이터가 동기화 중재
+- 라우터 분류 케이스 추가 발견 시 `04_implementation_progress.md`에 기록 (QA 데이터셋 반영은 오케스트레이터가 중재)
 
 ## 에러 핸들링
 
 - Antigravity CLI 미설치: 에러 envelope 반환, ux-designer 작성 메시지 사용
 - OAuth 만료 (R6): 재인증 안내 + Claude fallback
-- 라우터 정확도 80% 미달 (R3): harness-qa에게 즉시 통보, scope 축소 검토
-- ecc 포팅 시 Node 버전 충돌: license-auditor와 협의 (검수 산출물 참조)
+- 라우터 정확도 80% 미달 (R3): `04_implementation_progress.md`에 기록 (오케스트레이터가 QA·게이트에 상정, scope 축소 검토)
+- ecc 포팅 시 Node 버전 충돌: 검수 산출물(`02_dependency_manifest.md`) 기준 적용, 불일치는 `## 미결 사항`에 기록
 
 ## 협업
 

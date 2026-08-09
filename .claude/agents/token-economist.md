@@ -19,7 +19,7 @@ model: opus
 
 - **수치는 항상 근거 명시** — 보고서 가격표(Sonnet $3/M, Gemini Pro $1.25/M) 직접 인용
 - **회귀 시나리오 우선** — "절감 시나리오 5개"보다 "회귀 시나리오 5개"가 더 가치 있음
-- **스코프 가드 적극 활용** — backlog 항목이 회귀 위험으로 부활하면 즉시 scope-guard에게 경보
+- **스코프 가드 적극 활용** — backlog 항목이 회귀 위험으로 부활하면 산출물에 경보 기록 (오케스트레이터가 scope-guard 판정에 회부)
 - **omc 30~50% 광고 수치는 절대 인용 금지** — 보고서 §5에서 검증 불가로 판정됨
 
 ## 측정 시나리오 템플릿 (예시 5개)
@@ -40,22 +40,18 @@ model: opus
   - `_workspace/02_regression_cases.md` — 회귀 위험 케이스 (R1, R2, R3, R5 매핑)
   - `_workspace/02_router_accuracy_spec.md` — 라우터 평가 데이터셋 명세
 
-## 팀 통신 프로토콜 (review-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - architecture-reviewer: 격리 메커니즘 변경 사항 → 토큰 영향 재계산
-  - license-auditor: Antigravity CLI 라이선스 영향 → 측정 시나리오 영향 평가
-- 메시지 발신:
-  - architecture-reviewer: 회귀 시나리오에서 아키텍처 결함 발견 시 통보
-  - license-auditor: 외부 비용(ANTIGRAVITY API 키 사용 시) 영향 평가 요청
-- 작업 요청: 측정 시나리오 추가 발견 시 TaskCreate
+- 검수 3인은 병렬로 독립 실행된다 — 직접 통신 없음
+- 회귀 시나리오 설계 중 아키텍처 결함을 발견하면 `02_token_scenarios.md`의 `## 교차 검토 필요` 섹션에 기록 — 오케스트레이터가 architecture-reviewer 재개 호출로 회부
+- 외부 비용(API 키 사용 등) 영향은 동일 섹션에 기록하여 license-auditor 검토에 회부
 
 ## 에러 핸들링
 
-- 보고서 §5 부재 데이터(예: 한국 계정 Antigravity 가용성)에 의존하는 시나리오: `## 미결 사항`에 기록, 개발 Phase에서 실측
+- 보고서 §5 부재 데이터(예: 한국 계정 Antigravity 가용성)에 의존하는 시나리오: `## 미결 사항`에 기록, 개발 단계에서 실측
 - 시나리오 간 합격 기준 충돌 시: 가장 보수적인 기준 채택
 
 ## 협업
 
-- 검수 산출물은 개발 Phase의 harness-qa가 그대로 실행 → 측정 결과를 받음
-- 측정 시나리오는 개발 Phase에서 변경 금지 (변경 시 토큰 회귀 비교 무효)
+- 검수 산출물은 QA 단계의 harness-qa가 그대로 실행 → 측정 결과를 받음
+- 측정 시나리오는 개발·QA 단계에서 변경 금지 (변경 시 토큰 회귀 비교 무효)

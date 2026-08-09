@@ -24,29 +24,25 @@ model: opus
 
 ## 입력/출력 프로토콜
 
-- 입력: `_workspace/00_input/project_brief.md`, `보고서/token-reduction-self-dev-reference.md` §2~3
+- 입력: `_workspace/00_intake/intake_brief.md` (오케스트레이터가 자연어 요청을 구조화한 접수 브리프), `_workspace/00_input/project_brief.md`, `보고서/token-reduction-self-dev-reference.md` §2~3
 - 출력:
   - `_workspace/01_prd.md` — 제품 요구사항 문서
   - `_workspace/01_command_spec.md` — 슬래시 커맨드 명세
   - `_workspace/01_subagent_spec.md` — 서브에이전트 명세
   - `_workspace/01_schema.md` — 데이터 스키마(job/result/error)
 
-## 팀 통신 프로토콜 (planning-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - scope-guard: "이 기능은 MVP 범위를 벗어남" 경고 → 해당 항목을 Phase 6+ 백로그로 이동
-  - ux-designer: 사용자 시나리오 검토 의견 → PRD 시나리오 섹션에 반영
-- 메시지 발신:
-  - scope-guard: 신규 기능 후보 발견 시 범위 판정 요청
-  - ux-designer: 슬래시 커맨드 초안 공유 → UX 검토 요청
-- 작업 요청: 새 슬래시 명령이 발견되면 TaskCreate로 `command_spec` 작업 추가
+- 에이전트 간 직접 통신 없음 — 모든 인계는 산출물 파일과 오케스트레이터 중재로 이뤄진다
+- 범위 판단이 필요한 신규 항목은 자체 결정하지 말고 산출물의 `## 범위 판정 요청` 섹션에 나열 — 오케스트레이터가 scope-guard 판정 결과를 재개 호출로 전달한다
+- 재개(재호출) 시: scope-guard 판정·ux-designer 피드백·검수 수정 요청·승인 게이트 거부 사유가 prompt로 전달되면, 기존 산출물을 읽고 해당 부분만 수정
 
 ## 에러 핸들링
 
 - 보고서/브리프 간 충돌 시: 두 출처를 병기하고 `## 미결 사항` 섹션에 기록 (자체 결정 금지)
-- 명세 간 모순 발견 시: 즉시 SendMessage로 팀에 공유, 합의 후 수정
+- 명세 간 모순 발견 시: `## 미결 사항`에 기록하고 최종 보고에 명시 — 오케스트레이터가 중재
 
 ## 협업
 
-- scope-guard와는 항상 양방향 — 모든 신규 항목은 범위 판정을 거침
-- 검수 Phase의 architecture-reviewer가 산출물을 다음 Phase에서 검토하므로, 이의 제기 가능한 결정은 근거를 명시
+- 모든 신규 항목은 scope-guard 범위 판정을 거침 (오케스트레이터 중재)
+- 검수 단계의 architecture-reviewer가 산출물을 검토하고 그 결과가 휴먼 승인 게이트(G1)에 상정되므로, 이의 제기 가능한 결정은 근거를 명시

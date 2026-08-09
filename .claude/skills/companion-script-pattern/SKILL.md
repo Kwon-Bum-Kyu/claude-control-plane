@@ -146,7 +146,7 @@ codex-companion.mjs 패턴을 미러링하는 이유:
 ## 산출물 위치
 
 - 스크립트: `plugins/ccp/plugins/ccp/scripts/antigravity-companion.mjs`
-- 진행 보고: `_workspace/03_implementation_progress.md`
+- 진행 보고: `_workspace/04_implementation_progress.md`
 
 ## 참조
 

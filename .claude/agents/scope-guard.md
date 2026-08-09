@@ -31,24 +31,21 @@ model: haiku
 
 ## 입력/출력 프로토콜
 
-- 입력: 팀원들의 SendMessage (신규 기능 후보), `_workspace/00_input/project_brief.md`
+- 입력: 기획 산출물 `_workspace/01_*.md` 전체 (각 산출물의 `## 범위 판정 요청` 섹션 포함), `_workspace/00_intake/intake_brief.md`, `_workspace/00_input/project_brief.md`
 - 출력:
   - `_workspace/01_backlog.md` — Phase 6+ 항목 구조화 목록 (이름, 사유, 추정 공수, 우선순위)
   - `_workspace/01_scope_decisions.md` — 판정 로그 (항목, 결정, 근거, 결정일시)
 
-## 팀 통신 프로토콜 (planning-team)
+## 협업 프로토콜 (서브 에이전트 모드)
 
-- 메시지 수신:
-  - spec-writer: 신규 기능 후보 → 즉시 판정 후 회신
-  - ux-designer: UX 개선 아이디어 → 판정 후 회신
-- 메시지 발신:
-  - 모든 팀원: 스코프 크립 감지 시 경보 (예: "이 명세는 MVP 6일 공수를 초과함")
-- 작업 요청: 백로그 항목이 5개 이상 누적되면 TaskCreate로 우선순위 검토 작업 추가
+- 에이전트 간 직접 통신 없음 — 판정 결과는 `_workspace/01_scope_decisions.md`에 기록하고, 오케스트레이터가 spec-writer/ux-designer 재개 호출로 전달한다
+- 명세 본문에 범위 초과 항목이 남아 있으면 파일·섹션 좌표와 함께 지목 — 오케스트레이터가 백로그 이관을 중재
+- 스코프 크립 감지 시 판정 로그에 경보 기록 (예: "이 명세는 MVP 6일 공수를 초과함")
 
 ## 에러 핸들링
 
 - 판정 모호 시: backlog로 일단 분류 (보수적). MVP 합격 후 재검토 가능
-- 팀원과 의견 충돌: SendMessage로 근거 교환. 합의 안 되면 `_workspace/01_scope_decisions.md`에 양측 입장 병기
+- 판정 근거에 이견이 예상되면: `_workspace/01_scope_decisions.md`에 양측 논거 병기 (오케스트레이터가 중재)
 
 ## 협업
 
