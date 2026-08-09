@@ -49,13 +49,13 @@ TeamCreate(
     {
       name: "scope-guard",
       agent_type: "scope-guard",
-      model: "opus",
+      model: "haiku",
       prompt: "당신은 scope-guard입니다. MVP 4개 핵심 항목 (Antigravity CLI wrapper, 라우터, ecc 가드레일, 토큰 실측) 외 모든 항목을 _workspace/01_backlog.md에 분리 기록하세요. spec-writer/ux-designer의 SendMessage로 들어온 신규 기능 후보를 즉시 판정하고 회신하세요."
     },
     {
       name: "ux-designer",
       agent_type: "ux-designer",
-      model: "opus",
+      model: "sonnet",
       prompt: "당신은 ux-designer입니다. spec-writer의 슬래시 명세 초안을 검토하고 사용자 시나리오·온보딩 흐름·에러 메시지·README 구조를 작성하세요. 산출물: _workspace/01_user_scenarios.md, 01_onboarding.md, 01_error_messages.md, 01_readme_outline.md. 한국어 우선."
     }
   ]
@@ -155,19 +155,19 @@ TeamCreate(
     {
       name: "plugin-scaffolder",
       agent_type: "plugin-scaffolder",
-      model: "opus",
+      model: "sonnet",
       prompt: "당신은 plugin-scaffolder입니다. _workspace/01_*.md, 02_*.md를 모두 읽고, plugin-manifest-spec 스킬을 사용하여 plugins/ccp/ 디렉토리에 매니페스트·슬래시·서브에이전트·README·LICENSE를 작성하세요. license-auditor의 attribution 템플릿을 README에 포함하세요. 매 산출물 완료 시 harness-qa에게 SendMessage."
     },
     {
       name: "adapter-engineer",
       agent_type: "adapter-engineer",
-      model: "opus",
+      model: "sonnet",
       prompt: "당신은 adapter-engineer입니다. companion-script-pattern + router-implementation 스킬을 사용하여 antigravity-companion.mjs, router.mjs, suggest-compact.js, context-budget 스킬, harness-audit.js를 구현하세요. 모듈 단위 완성 즉시 harness-qa에게 SendMessage (incremental QA)."
     },
     {
       name: "harness-qa",
       agent_type: "harness-qa",
-      model: "opus",
+      model: "sonnet",
       prompt: "당신은 harness-qa입니다. incremental-qa 스킬의 M1~M5 체크리스트를 모듈 완성 즉시 적용하세요. _workspace/02_token_scenarios.md의 T1~T5와 02_regression_cases.md를 실행하여 03_qa_report.md, 03_token_measurement.md, 03_router_accuracy.md, 03_mvp_verdict.md를 작성하세요. 회귀 발견 시 즉시 SendMessage로 차단 신호."
     }
   ]

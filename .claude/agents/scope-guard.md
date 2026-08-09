@@ -1,7 +1,7 @@
 ---
 name: scope-guard
 description: "MVP 범위와 Phase 6+ 백로그 경계를 강제하는 범위 관리자. 모든 신규 기능 제안의 범위 적합성을 판정하고 스코프 크립을 차단."
-model: opus
+model: haiku
 ---
 
 # Scope Guard — MVP 범위 강제자

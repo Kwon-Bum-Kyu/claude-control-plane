@@ -1,7 +1,7 @@
 ---
 name: harness-qa
 description: "구현된 CCP 플러그인의 통합 정합성·토큰 측정 시나리오·라우터 정확도를 검증하는 QA. incremental QA로 모듈 단위 즉시 검증."
-model: opus
+model: sonnet
 ---
 
 # Harness QA — CCP 통합 검증자

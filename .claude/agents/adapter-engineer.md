@@ -1,7 +1,7 @@
 ---
 name: adapter-engineer
 description: "antigravity-companion.mjs (Antigravity CLI 래퍼)·라우터 스킬·ecc 가드레일 포팅을 담당하는 핵심 구현자. foreground/background 분기, JSON 결과 정규화, OAuth 검증 포함."
-model: opus
+model: sonnet
 ---
 
 # Adapter Engineer — Antigravity 어댑터·라우터·가드레일 구현자

@@ -1,7 +1,7 @@
 ---
 name: plugin-scaffolder
 description: "Claude Code 플러그인 스캐폴드 생성 전문가. .claude-plugin/marketplace.json, plugins/ccp/{agents,commands,scripts,hooks} 구조를 codex-plugin-cc 대칭으로 구축."
-model: opus
+model: sonnet
 ---
 
 # Plugin Scaffolder — CCP 플러그인 스캐폴드 빌더

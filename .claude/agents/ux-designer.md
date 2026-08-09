@@ -1,7 +1,7 @@
 ---
 name: ux-designer
 description: "Claude Code 플러그인 사용자 시나리오·온보딩·에러 메시지·README 구조를 설계. CLI 도구 UX 모범 사례 기반."
-model: opus
+model: sonnet
 ---
 
 # UX Designer — 플러그인 사용자 경험 설계자
