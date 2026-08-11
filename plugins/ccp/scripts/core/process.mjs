@@ -1,16 +1,22 @@
+// Portions adapted from openai/codex-plugin-cc (plugins/codex/scripts/lib/process.mjs)
+// Upstream commit 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
+// Licensed under the Apache License 2.0 — see LICENSES/codex-plugin-cc-Apache-2.0.txt
+// Modified by CCP contributors: forced file-fd stdio and closed stdin; renamed the
+// runner to be CLI-neutral so any adapter can drive it.
+
 import { spawn, spawnSync } from 'node:child_process';
 import { openSync, closeSync } from 'node:fs';
 
 /**
- * Run the codex CLI synchronously in the foreground. Forces stdin closed.
+ * Run a CLI synchronously in the foreground. Forces stdin closed.
  * @param {object} opts
- * @param {string} opts.bin    "codex" or an absolute path
+ * @param {string} opts.bin    binary name or an absolute path
  * @param {string[]} opts.args
  * @param {string} [opts.cwd]
  * @param {number} opts.timeoutMs
  * @returns {{ status: number|null, stdout: string, stderr: string, signal: string|null, error: Error|null }}
  */
-export function runCodexSync({ bin, args, cwd, timeoutMs }) {
+export function runSync({ bin, args, cwd, timeoutMs }) {
   const r = spawnSync(bin, args, {
     cwd: cwd || process.cwd(),
     timeout: timeoutMs,
@@ -29,8 +35,8 @@ export function runCodexSync({ bin, args, cwd, timeoutMs }) {
 /**
  * Detached spawn - use file-fd stdio so the child survives even if the parent exits immediately.
  *
- * Key safeguards (validated empirically against codex CLI 0.122.x):
- *   1) stdio[0] = 'ignore'  -> prevents codex from hanging in a stdin wait loop
+ * Key safeguards (validated empirically against a real background-capable CLI):
+ *   1) stdio[0] = 'ignore'  -> prevents the CLI from hanging in a stdin wait loop
  *   2) stdio[1], stdio[2] = file fd  -> avoids immediate child death from SIGPIPE when using pipes
  *   3) child.unref()       -> the parent event loop does not wait for the child
  *
