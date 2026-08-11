@@ -1,0 +1,67 @@
+#!/usr/bin/env node
+// Golden-capture stub for the Codex CLI (`codex`).
+// Behavior is selected via CCP_GOLDEN_CODEX_MODE, mirroring the `agy` stub
+// in this same directory so both companions can be captured deterministically
+// without any CLI actually installed on the capture host.
+//
+// Modes:
+//   not_installed — --version fails
+//   old_version    — --version prints a version below MIN_CODEX_VERSION
+//   ok             — --version prints a supported version; `login status`
+//                    succeeds; `exec --json ...` prints a valid JSONL event
+//                    stream (unlike antigravity, the codex companion writes
+//                    result files under CCP_JOBS_DIR, so a real success
+//                    path is safe to simulate here)
+
+const mode = process.env.CCP_GOLDEN_CODEX_MODE || 'ok';
+const argv = process.argv.slice(2);
+
+function out(text) {
+  process.stdout.write(text);
+}
+
+if (argv.includes('--version')) {
+  if (mode === 'not_installed') {
+    process.exit(1);
+  }
+  if (mode === 'old_version') {
+    out('codex-cli 0.50.0\n');
+    process.exit(0);
+  }
+  out('codex-cli 0.130.0\n');
+  process.exit(0);
+}
+
+if (argv[0] === 'login' && argv[1] === 'status') {
+  if (mode !== 'ok') {
+    process.stderr.write('Not logged in\n');
+    process.exit(1);
+  }
+  process.stderr.write('Logged in using ChatGPT\n');
+  process.exit(0);
+}
+
+if (argv[0] === 'exec') {
+  if (mode !== 'ok') {
+    process.stderr.write('golden stub: exec unavailable in this mode\n');
+    process.exit(1);
+  }
+  const threadId = '11111111-1111-4111-8111-111111111111';
+  const events = [
+    { type: 'thread.started', thread_id: threadId },
+    { type: 'turn.started' },
+    {
+      type: 'item.completed',
+      item: { type: 'agent_message', text: 'golden stub response line 1' },
+    },
+    {
+      type: 'turn.completed',
+      usage: { input_tokens: 120, cached_input_tokens: 20, output_tokens: 40 },
+    },
+  ];
+  for (const ev of events) out(JSON.stringify(ev) + '\n');
+  process.exit(0);
+}
+
+process.stderr.write(`golden stub codex: unhandled args ${JSON.stringify(argv)}\n`);
+process.exit(1);

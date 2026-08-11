@@ -1,0 +1,728 @@
+{
+  "captured_at": "2026-08-10T15:32:40.066Z",
+  "base_commit": "ac693abf185b0b9c884432c48a9d0e0d92afb46f",
+  "real_jobs_before": 41,
+  "real_jobs_after": 41,
+  "contamination": false,
+  "scenario_count": 17,
+  "run_count": 29,
+  "failure_count": 0,
+  "scenarios": [
+    {
+      "id": "rescue-task-missing",
+      "title": "rescue (task argument missing)",
+      "cli": "antigravity",
+      "args": [
+        "rescue"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"/antigravity:rescue requires a task argument\",\"action\":\"Example: `/antigravity:rescue \\\"Summarize this directory\\\"`\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "/antigravity:rescue requires a task argument",
+          "action": "Example: `/antigravity:rescue \"Summarize this directory\"`",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-task-missing",
+      "title": "rescue (task argument missing)",
+      "cli": "codex",
+      "args": [
+        "rescue"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"rescue requires a PROMPT argument\",\"action\":\"Call it as `/ccp:codex-rescue \\\"<task>\\\"`.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "rescue requires a PROMPT argument",
+          "action": "Call it as `/ccp:codex-rescue \"<task>\"`.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-effort-rejected",
+      "title": "rescue --effort high (antigravity) — codex-only flag rejected globally",
+      "cli": "antigravity",
+      "args": [
+        "rescue",
+        "--effort",
+        "high",
+        "golden task"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"`--effort` is not supported by Antigravity\",\"action\":\"Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.\",\"recovery\":\"abort\",\"details\":{\"unsupported_flag\":\"--effort\",\"suggested\":\"/ccp:codex-rescue\"}},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "`--effort` is not supported by Antigravity",
+          "action": "Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.",
+          "recovery": "abort",
+          "details": {
+            "unsupported_flag": "--effort",
+            "suggested": "/ccp:codex-rescue"
+          }
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-fallback-claude",
+      "title": "rescue --fallback-claude \"x\" — skip companion, hand back to main Claude",
+      "cli": "antigravity",
+      "args": [
+        "rescue",
+        "--fallback-claude",
+        "x"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"Main Claude fallback path — companion call skipped\",\"result_path\":null,\"tokens\":{\"input\":0,\"output\":0,\"estimated\":true},\"exit_code\":0,\"details\":{\"mode\":\"fallback_claude\",\"task\":\"x\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "Main Claude fallback path — companion call skipped",
+        "result_path": null,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "estimated": true
+        },
+        "exit_code": 0,
+        "details": {
+          "mode": "fallback_claude",
+          "task": "x"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-fallback-claude",
+      "title": "rescue --fallback-claude \"x\" — skip companion, hand back to main Claude",
+      "cli": "codex",
+      "args": [
+        "rescue",
+        "--fallback-claude",
+        "--",
+        "x"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"fallback-claude: This task should be handled by main Claude.\",\"result_path\":null,\"tokens\":{\"input\":0,\"cached\":0,\"output\":0,\"total\":0},\"exit_code\":0,\"details\":{\"mode\":\"codex\",\"fallback\":true}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "fallback-claude: This task should be handled by main Claude.",
+        "result_path": null,
+        "tokens": {
+          "input": 0,
+          "cached": 0,
+          "output": 0,
+          "total": 0
+        },
+        "exit_code": 0,
+        "details": {
+          "mode": "codex",
+          "fallback": true
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "status-invalid-job-id",
+      "title": "status <non-UUID job id>",
+      "cli": "antigravity",
+      "args": [
+        "status",
+        "not-a-real-uuid"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"The `job_id` format is invalid (UUID v4 required)\",\"action\":\"Use the `job_id` exactly as returned by `/antigravity:rescue --background`.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "The `job_id` format is invalid (UUID v4 required)",
+          "action": "Use the `job_id` exactly as returned by `/antigravity:rescue --background`.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "status-invalid-job-id",
+      "title": "status <non-UUID job id>",
+      "cli": "codex",
+      "args": [
+        "status",
+        "not-a-real-uuid"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-001\",\"message\":\"Could not find that job\",\"action\":\"Check the job_id and try again.\",\"recovery\":\"abort\"},\"exit_code\":1,\"details\":{\"job_id\":\"not-a-real-uuid\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-001",
+          "message": "Could not find that job",
+          "action": "Check the job_id and try again.",
+          "recovery": "abort"
+        },
+        "exit_code": 1,
+        "details": {
+          "job_id": "not-a-real-uuid"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "status-unknown-job",
+      "title": "status <well-formed but unseeded job id>",
+      "cli": "antigravity",
+      "args": [
+        "status",
+        "00000000-0000-4000-8000-000000000001"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-001\",\"message\":\"That job could not be found\",\"action\":\"Check the `job_id` again.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-001",
+          "message": "That job could not be found",
+          "action": "Check the `job_id` again.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "status-unknown-job",
+      "title": "status <well-formed but unseeded job id>",
+      "cli": "codex",
+      "args": [
+        "status",
+        "00000000-0000-4000-8000-000000000001"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-001\",\"message\":\"Could not find that job\",\"action\":\"Check the job_id and try again.\",\"recovery\":\"abort\"},\"exit_code\":1,\"details\":{\"job_id\":\"00000000-0000-4000-8000-000000000001\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-001",
+          "message": "Could not find that job",
+          "action": "Check the job_id and try again.",
+          "recovery": "abort"
+        },
+        "exit_code": 1,
+        "details": {
+          "job_id": "00000000-0000-4000-8000-000000000001"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-completed",
+      "title": "result <completed job meta seed>",
+      "cli": "antigravity",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"golden stub line 1\\ngolden stub line 2\\ngolden stub line 3\",\"result_path\":\"_workspace/_jobs/00000000-0000-4000-8000-000000000002/result.md\",\"tokens\":{\"input\":250,\"output\":500,\"estimated\":true},\"exit_code\":0,\"details\":{\"mode\":\"antigravity\",\"job_id\":\"00000000-0000-4000-8000-000000000002\",\"antigravity_conversation_id\":\"22222222-2222-4222-8222-222222222222\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "golden stub line 1\ngolden stub line 2\ngolden stub line 3",
+        "result_path": "_workspace/_jobs/00000000-0000-4000-8000-000000000002/result.md",
+        "tokens": {
+          "input": 250,
+          "output": 500,
+          "estimated": true
+        },
+        "exit_code": 0,
+        "details": {
+          "mode": "antigravity",
+          "job_id": "00000000-0000-4000-8000-000000000002",
+          "antigravity_conversation_id": "22222222-2222-4222-8222-222222222222"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-completed",
+      "title": "result <completed job meta seed>",
+      "cli": "codex",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000002"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"golden stub line 1\\ngolden stub line 2\\ngolden stub line 3\",\"result_path\":\"/var/folders/cp/fmrn1kd95y9__4df9h4p7krw0000gn/T/ccp-golden-codex-hfo5nM/00000000-0000-4000-8000-000000000002/result.txt\",\"tokens\":{\"input\":120,\"cached\":20,\"output\":40,\"total\":140},\"exit_code\":0,\"details\":{\"mode\":\"codex\",\"job_id\":\"00000000-0000-4000-8000-000000000002\",\"codex_thread_id\":\"11111111-1111-4111-8111-111111111111\",\"duration_ms\":1234}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "golden stub line 1\ngolden stub line 2\ngolden stub line 3",
+        "result_path": "/var/folders/cp/fmrn1kd95y9__4df9h4p7krw0000gn/T/ccp-golden-codex-hfo5nM/00000000-0000-4000-8000-000000000002/result.txt",
+        "tokens": {
+          "input": 120,
+          "cached": 20,
+          "output": 40,
+          "total": 140
+        },
+        "exit_code": 0,
+        "details": {
+          "mode": "codex",
+          "job_id": "00000000-0000-4000-8000-000000000002",
+          "codex_thread_id": "11111111-1111-4111-8111-111111111111",
+          "duration_ms": 1234
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-running",
+      "title": "result <in-progress job meta seed>",
+      "cli": "antigravity",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-002\",\"message\":\"The job is not complete yet\",\"action\":\"Check the status with `/antigravity:status <job_id>`, then try again.\",\"recovery\":\"retry\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-002",
+          "message": "The job is not complete yet",
+          "action": "Check the status with `/antigravity:status <job_id>`, then try again.",
+          "recovery": "retry"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-running",
+      "title": "result <in-progress job meta seed>",
+      "cli": "codex",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-002\",\"message\":\"The job has not finished yet\",\"action\":\"Check `/ccp:codex-status <job_id>` and try again.\",\"recovery\":\"retry\"},\"exit_code\":1,\"details\":{\"job_id\":\"00000000-0000-4000-8000-000000000003\",\"state\":\"running\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-002",
+          "message": "The job has not finished yet",
+          "action": "Check `/ccp:codex-status <job_id>` and try again.",
+          "recovery": "retry"
+        },
+        "exit_code": 1,
+        "details": {
+          "job_id": "00000000-0000-4000-8000-000000000003",
+          "state": "running"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-corrupted-meta",
+      "title": "result <meta.json fails to parse>",
+      "cli": "antigravity",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000004"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-003\",\"message\":\"The job metadata is corrupted\",\"action\":\"Delete the job directory and create a new job.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-003",
+          "message": "The job metadata is corrupted",
+          "action": "Delete the job directory and create a new job.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-corrupted-meta",
+      "title": "result <meta.json fails to parse>",
+      "cli": "codex",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000004"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-001\",\"message\":\"Could not find that job\",\"action\":\"Check the job_id and try again.\",\"recovery\":\"abort\"},\"exit_code\":1,\"details\":{\"job_id\":\"00000000-0000-4000-8000-000000000004\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-001",
+          "message": "Could not find that job",
+          "action": "Check the job_id and try again.",
+          "recovery": "abort"
+        },
+        "exit_code": 1,
+        "details": {
+          "job_id": "00000000-0000-4000-8000-000000000004"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "setup-not-installed",
+      "title": "setup — stub binary reports not installed",
+      "cli": "antigravity",
+      "args": [
+        "setup"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-SETUP-001\",\"message\":\"Antigravity CLI (`agy`) is not installed\",\"action\":\"Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`, ensure `~/.local/bin` is on PATH, then rerun `/antigravity:setup`.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-SETUP-001",
+          "message": "Antigravity CLI (`agy`) is not installed",
+          "action": "Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`, ensure `~/.local/bin` is on PATH, then rerun `/antigravity:setup`.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "setup-not-installed",
+      "title": "setup — stub binary reports not installed",
+      "cli": "codex",
+      "args": [
+        "setup"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-SETUP-101\",\"message\":\"Codex CLI is not installed\",\"action\":\"Run `brew install codex` or `npm install -g @openai/codex`, then rerun `/ccp:codex-setup`.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-SETUP-101",
+          "message": "Codex CLI is not installed",
+          "action": "Run `brew install codex` or `npm install -g @openai/codex`, then rerun `/ccp:codex-setup`.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "setup-outdated-version",
+      "title": "setup — stub binary reports a version below the minimum requirement",
+      "cli": "antigravity",
+      "args": [
+        "setup"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-SETUP-001\",\"message\":\"Antigravity CLI is too old (current 0.5.0, required 1.0.0+)\",\"action\":\"Update it with `agy update`.\",\"recovery\":\"abort\",\"details\":{\"agy_version\":\"0.5.0\",\"required\":\">=1.0.0\"}},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-SETUP-001",
+          "message": "Antigravity CLI is too old (current 0.5.0, required 1.0.0+)",
+          "action": "Update it with `agy update`.",
+          "recovery": "abort",
+          "details": {
+            "agy_version": "0.5.0",
+            "required": ">=1.0.0"
+          }
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "setup-outdated-version",
+      "title": "setup — stub binary reports a version below the minimum requirement",
+      "cli": "codex",
+      "args": [
+        "setup"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-SETUP-102\",\"message\":\"Codex CLI version is below the requirement (>=0.122.0)\",\"action\":\"Update Codex CLI, then rerun `/ccp:codex-setup`.\",\"recovery\":\"abort\"},\"exit_code\":1,\"details\":{\"codex_version\":\"0.50.0\",\"required\":\">=0.122.0\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-SETUP-102",
+          "message": "Codex CLI version is below the requirement (>=0.122.0)",
+          "action": "Update Codex CLI, then rerun `/ccp:codex-setup`.",
+          "recovery": "abort"
+        },
+        "exit_code": 1,
+        "details": {
+          "codex_version": "0.50.0",
+          "required": ">=0.122.0"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-background-dispatch",
+      "title": "rescue --background \"x\" — stub binary reports an installed/authenticated CLI",
+      "cli": "antigravity",
+      "args": [
+        "rescue",
+        "--background",
+        "x"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"job_id\":\"03bd9d07-caed-43c1-a60d-a2d0eb446d82\",\"status\":\"queued\",\"next_action\":\"/antigravity:status 03bd9d07-caed-43c1-a60d-a2d0eb446d82\",\"details\":{\"mode\":\"background\",\"pid\":47537}}\n",
+      "stderr": "",
+      "envelope": {
+        "job_id": "03bd9d07-caed-43c1-a60d-a2d0eb446d82",
+        "status": "queued",
+        "next_action": "/antigravity:status 03bd9d07-caed-43c1-a60d-a2d0eb446d82",
+        "details": {
+          "mode": "background",
+          "pid": 47537
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-background-dispatch",
+      "title": "rescue --background \"x\" — stub binary reports an installed/authenticated CLI",
+      "cli": "codex",
+      "args": [
+        "rescue",
+        "--background",
+        "--",
+        "x"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"job_id\":\"5e16f1d3-69f4-49c5-b2bd-e8be7d425181\",\"status\":\"queued\",\"next_action\":\"Use /ccp:codex-status 5e16f1d3-69f4-49c5-b2bd-e8be7d425181 to check progress, then /ccp:codex-result 5e16f1d3-69f4-49c5-b2bd-e8be7d425181 when ready.\",\"details\":{\"mode\":\"codex\",\"pid\":47551}}\n",
+      "stderr": "",
+      "envelope": {
+        "job_id": "5e16f1d3-69f4-49c5-b2bd-e8be7d425181",
+        "status": "queued",
+        "next_action": "Use /ccp:codex-status 5e16f1d3-69f4-49c5-b2bd-e8be7d425181 to check progress, then /ccp:codex-result 5e16f1d3-69f4-49c5-b2bd-e8be7d425181 when ready.",
+        "details": {
+          "mode": "codex",
+          "pid": 47551
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "preflight-or-cancel",
+      "title": "preflight (antigravity) / cancel (codex) — CLI-specific subcommand",
+      "cli": "antigravity",
+      "args": [
+        "preflight"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"preflight ok — agy 1.2.0\",\"result_path\":null,\"tokens\":{\"input\":0,\"output\":0,\"estimated\":true},\"exit_code\":0,\"details\":{\"agy_version\":\"1.2.0\",\"auth_method\":\"api_key\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "preflight ok — agy 1.2.0",
+        "result_path": null,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "estimated": true
+        },
+        "exit_code": 0,
+        "details": {
+          "agy_version": "1.2.0",
+          "auth_method": "api_key"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "preflight-or-cancel",
+      "title": "preflight (antigravity) / cancel (codex) — CLI-specific subcommand",
+      "cli": "codex",
+      "args": [
+        "cancel",
+        "00000000-0000-4000-8000-000000000005"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"summary\":\"job 00000000-0000-4000-8000-000000000005 cancelled\",\"result_path\":null,\"tokens\":{\"input\":0,\"cached\":0,\"output\":0,\"total\":0},\"exit_code\":0,\"details\":{\"mode\":\"codex\",\"job_id\":\"00000000-0000-4000-8000-000000000005\",\"state\":\"cancelled\"}}\n",
+      "stderr": "",
+      "envelope": {
+        "summary": "job 00000000-0000-4000-8000-000000000005 cancelled",
+        "result_path": null,
+        "tokens": {
+          "input": 0,
+          "cached": 0,
+          "output": 0,
+          "total": 0
+        },
+        "exit_code": 0,
+        "details": {
+          "mode": "codex",
+          "job_id": "00000000-0000-4000-8000-000000000005",
+          "state": "cancelled"
+        }
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "unsupported-subcommand",
+      "title": "call with a subcommand neither companion implements",
+      "cli": "antigravity",
+      "args": [
+        "bogus-cmd"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"Unknown subcommand: bogus-cmd\",\"action\":\"Usage: antigravity-companion.mjs <rescue|status|result|setup|preflight> ...\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "Unknown subcommand: bogus-cmd",
+          "action": "Usage: antigravity-companion.mjs <rescue|status|result|setup|preflight> ...",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "unsupported-subcommand",
+      "title": "call with a subcommand neither companion implements",
+      "cli": "codex",
+      "args": [
+        "bogus-cmd"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"Unknown subcommand: bogus-cmd\",\"action\":\"Use one of: setup | rescue | status | result | cancel.\",\"recovery\":\"abort\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "Unknown subcommand: bogus-cmd",
+          "action": "Use one of: setup | rescue | status | result | cancel.",
+          "recovery": "abort"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "status-effort-rejected",
+      "title": "status --effort high (antigravity) — global reject flag holds outside rescue too",
+      "cli": "antigravity",
+      "args": [
+        "status",
+        "--effort",
+        "high",
+        "00000000-0000-4000-8000-000000000001"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"`--effort` is not supported by Antigravity\",\"action\":\"Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.\",\"recovery\":\"abort\",\"details\":{\"unsupported_flag\":\"--effort\",\"suggested\":\"/ccp:codex-rescue\"}},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "`--effort` is not supported by Antigravity",
+          "action": "Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.",
+          "recovery": "abort",
+          "details": {
+            "unsupported_flag": "--effort",
+            "suggested": "/ccp:codex-rescue"
+          }
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "rescue-files-path-traversal",
+      "title": "rescue --files /etc/passwd (antigravity) — absolute path outside plugin root rejected",
+      "cli": "antigravity",
+      "args": [
+        "rescue",
+        "--files",
+        "/etc/passwd",
+        "golden task"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-INVALID-001\",\"message\":\"The `--files` absolute path is outside the plugin root\",\"action\":\"Use a path inside the plugin root or a relative glob.\",\"recovery\":\"abort\",\"details\":{\"glob_input\":\"/etc/passwd\",\"plugin_root\":\"/Users/gwonbeomgyu/Desktop/projectFile/claude-control-plane/plugins/ccp\"}},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-INVALID-001",
+          "message": "The `--files` absolute path is outside the plugin root",
+          "action": "Use a path inside the plugin root or a relative glob.",
+          "recovery": "abort",
+          "details": {
+            "glob_input": "/etc/passwd",
+            "plugin_root": "/Users/gwonbeomgyu/Desktop/projectFile/claude-control-plane/plugins/ccp"
+          }
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "result-failed-state",
+      "title": "result <job meta seeded as failed> (antigravity) — collapses to CCP-JOB-002, not a separate \"incomplete\" code",
+      "cli": "antigravity",
+      "args": [
+        "result",
+        "00000000-0000-4000-8000-000000000006"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-JOB-002\",\"message\":\"The job is not complete yet\",\"action\":\"Check the status with `/antigravity:status <job_id>`, then try again.\",\"recovery\":\"retry\"},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-JOB-002",
+          "message": "The job is not complete yet",
+          "action": "Check the status with `/antigravity:status <job_id>`, then try again.",
+          "recovery": "retry"
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    },
+    {
+      "id": "setup-auth-invalid-probe",
+      "title": "setup — stub binary reports installed + a content-classifiable \"not logged in\" probe failure (antigravity)",
+      "cli": "antigravity",
+      "args": [
+        "setup"
+      ],
+      "exit_code": 1,
+      "stdout": "{\"error\":{\"code\":\"CCP-OAUTH-001\",\"message\":\"Antigravity authentication is missing or invalid\",\"action\":\"Run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`. Then rerun `/antigravity:setup`, or fall back with `/antigravity:rescue --fallback-claude \\\"<original task>\\\"`. To retry with the main Claude agent, re-enter the original prompt.\",\"recovery\":\"fallback\",\"details\":{\"agy_version\":\"1.2.0\",\"auth_status\":\"invalid\",\"auth_method\":\"api_key\",\"probe_reason\":\"auth_error\"}},\"exit_code\":1}\n",
+      "stderr": "",
+      "envelope": {
+        "error": {
+          "code": "CCP-OAUTH-001",
+          "message": "Antigravity authentication is missing or invalid",
+          "action": "Run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`. Then rerun `/antigravity:setup`, or fall back with `/antigravity:rescue --fallback-claude \"<original task>\"`. To retry with the main Claude agent, re-enter the original prompt.",
+          "recovery": "fallback",
+          "details": {
+            "agy_version": "1.2.0",
+            "auth_status": "invalid",
+            "auth_method": "api_key",
+            "probe_reason": "auth_error"
+          }
+        },
+        "exit_code": 1
+      },
+      "spawn_error": null
+    }
+  ]
+}
