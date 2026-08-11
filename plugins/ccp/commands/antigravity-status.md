@@ -65,5 +65,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" status <job_id>
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/antigravity-companion.mjs:cmdStatus`
+- `plugins/ccp/scripts/core/runtime.mjs:handleStatus`
+- `plugins/ccp/scripts/core/jobs.mjs` (job-meta read/write)
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

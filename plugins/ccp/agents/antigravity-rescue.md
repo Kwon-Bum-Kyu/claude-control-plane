@@ -86,5 +86,6 @@ The Bash command pattern must be whitelisted in the project's `.claude/settings.
 ## Spec SSOT
 
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract — `details.mode: antigravity`)
-- `plugins/ccp/scripts/antigravity-companion.mjs` ERROR_CATALOG (error code SSOT)
+- `plugins/ccp/scripts/adapters/antigravity.mjs` `errors` (error code SSOT, merged with `core/errors.mjs`'s shared catalog)
+- `plugins/ccp/scripts/core/runtime.mjs:handleRescue` (dispatch logic shared across CLIs)
 - README §4 (subagent isolation principle — no automatic fallback)

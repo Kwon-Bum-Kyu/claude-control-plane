@@ -18,7 +18,7 @@ Retrieves the result of a job started with `/antigravity:rescue --background`. *
 | Argument | Description |
 |------|------|
 | `<job_id>` | UUID v4 of the completed job (required) |
-| `--summary-only` | Return only the summary without opening the result file (to avoid `CCP-CTX-001`) |
+| `--summary-only` | Accepted but currently a no-op — the envelope already never includes raw result content (see Behavior below); reserved for a future stricter mode |
 
 ## Behavior
 
@@ -63,5 +63,6 @@ Main Claude should pass `result_path` to the user, but **must not open it with a
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/antigravity-companion.mjs:cmdResult`
+- `plugins/ccp/scripts/core/runtime.mjs:handleResult`
+- `plugins/ccp/scripts/adapters/antigravity.mjs` `result` / `supports.resultIncompleteCode` (CLI-specific result path + incomplete-state error mapping)
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

@@ -49,5 +49,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" result <job_id>
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/codex-companion.mjs:handleResult`
+- `plugins/ccp/scripts/core/runtime.mjs:handleResult`
+- `plugins/ccp/scripts/adapters/codex.mjs` `result` / `supports.resultIncompleteCode` (CLI-specific result path + incomplete-state error mapping)
 - `plugins/ccp/schemas/envelope.schema.json`

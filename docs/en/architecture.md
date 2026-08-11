@@ -67,7 +67,7 @@ CCP's token saving works strongest in **canonical** triggers:
 ✅  /ccp:codex-rescue review this PR diff
 ```
 
-In this pattern the envelope cap (<= 500 chars) plus `result_path` persistence prevents Claude's main context from accumulating Antigravity's full output. Field measurement (T5 fixture, N=2): main 846K + offload 179K = 1,025K total.
+In this pattern the envelope cap (<= 500 chars) plus `result_path` persistence prevents Claude's main context from accumulating Antigravity's full output. Field measurement (canonical-trigger fixture, N=2): main 846K + offload 179K = 1,025K total.
 
 In **headless** triggers (`claude -p ...`, scripted automation), models tend to probe delegation entry points -- calling `rescue --help`, traversing Skill -> Agent -> companion, retrying with prompt variations -- and tokens can grow 2.1x instead of shrinking. For headless use, pre-script the slash command:
 
@@ -83,13 +83,21 @@ The router-suggest hook auto-injects a `[CCP-META-WARN]` advisory when it detect
 
 ## Borrowed code
 
-CCP borrows code from upstream projects under their original licenses. Full license texts are preserved in the `LICENSES/` directory. The harness audit's `borrowed_code_documented` category enforces, at every PR, that each upstream license text is present in `LICENSES/`.
+CCP borrows and **modifies** code from upstream projects. Full license texts are preserved in
+the `LICENSES/` directory, and every file that carries adapted Apache-2.0 code declares its
+upstream origin and the changes made in a header comment.
 
-- **everything-claude-code (ecc)** -- MIT -- `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
-- **codex-plugin-cc** -- Apache-2.0 -- `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
+- **everything-claude-code (ecc)** -- MIT -- `hooks/suggest-compact.js`,
+  `skills/context-budget/SKILL.md` (upstream `skills/strategic-compact/SKILL.md`),
+  `scripts/harness-audit.js`
+- **codex-plugin-cc** -- Apache-2.0 -- `scripts/core/args.mjs`, `scripts/core/jobs.mjs`,
+  `scripts/core/process.mjs`, `scripts/core/runtime.mjs`, `scripts/adapters/codex.mjs`
+  (previously `scripts/lib/codex-{args,state,tracked-jobs,process,job-control}.mjs`)
 - **oh-my-claudecode (omc)** -- MIT -- `scripts/lib/magic-keywords.mjs`
 
-License texts: `LICENSES/`.
+Files listed under codex-plugin-cc contain adapted Apache-2.0 code alongside CCP's own work;
+each one states the upstream file, the upstream commit, and the modifications at the top of
+the file. License texts: `LICENSES/`.
 
 ## Related reading
 

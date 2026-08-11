@@ -35,7 +35,7 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 | `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` (foreground default 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | ★ | `--since` 윈도 조정 또는 스크립트 로그 확인 |
 
-전체 카탈로그는 `plugins/ccp/scripts/antigravity-companion.mjs` 와 `codex-companion.mjs` 의 `ERROR_CATALOG` 상수에 있습니다.
+전체 카탈로그는 `plugins/ccp/scripts/adapters/antigravity.mjs` 와 `adapters/codex.mjs` 의 `errors` 블록에 있습니다 (`core/errors.mjs` 의 공용 코드와 병합됨).
 
 ## 자주 묻는 질문
 

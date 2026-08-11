@@ -50,5 +50,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" status <job_id>
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/lib/codex-state.mjs`
+- `plugins/ccp/scripts/core/runtime.mjs:handleStatus`
+- `plugins/ccp/scripts/core/jobs.mjs` (job-meta read/write)
 - `plugins/ccp/schemas/envelope.schema.json`

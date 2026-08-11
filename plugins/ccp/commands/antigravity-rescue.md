@@ -73,7 +73,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<t
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 
-See the ERROR_CATALOG block in `plugins/ccp/scripts/antigravity-companion.mjs` for the full catalog.
+See the `errors` block in `plugins/ccp/scripts/adapters/antigravity.mjs` for the full catalog.
 
 ## Acceptance Criteria
 
@@ -86,4 +86,5 @@ See the ERROR_CATALOG block in `plugins/ccp/scripts/antigravity-companion.mjs` f
 ## Spec SSOT
 
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract — `details.mode === "antigravity"`)
-- `plugins/ccp/scripts/antigravity-companion.mjs` ERROR_CATALOG (error code SSOT)
+- `plugins/ccp/scripts/adapters/antigravity.mjs` `errors` (error code SSOT, merged with `core/errors.mjs`'s shared catalog)
+- `plugins/ccp/scripts/core/runtime.mjs:handleRescue` (dispatch logic shared across CLIs)

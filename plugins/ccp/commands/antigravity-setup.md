@@ -70,5 +70,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" setup
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/antigravity-companion.mjs:cmdSetup`
+- `plugins/ccp/scripts/core/runtime.mjs:handleSetup`
+- `plugins/ccp/scripts/adapters/antigravity.mjs` `bin` / `version` (CLI discovery + version-check config)
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

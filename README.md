@@ -296,7 +296,7 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 | `CCP-OAUTH-001` | ★★★ | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/antigravity:setup` |
 | `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Install Node.js 20+ (nvm recommended) |
-| `CCP-GEMINI-001` | ★★ | Retry, or `/antigravity:rescue --fallback-claude` |
+| `CCP-AG-001` | ★★ | Retry, or `/antigravity:rescue --fallback-claude` |
 | `CCP-CTX-001` | ★ | Summary length exceeded — shrink the input |
 | `CCP-ROUTER-001` | ★ | Run `/ccp:audit` to inspect routing decisions |
 | `CCP-COMPACT-001` | ★ | Run `/compact` manually |
@@ -322,7 +322,7 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 | `CCP-TIMEOUT-001` | ★★ | Retry, or use `--background` (foreground default 600 s) |
 | `CCP-AUDIT-001~002` | ★ | Adjust `--since` range or inspect logs |
 
-For the full catalog see the `ERROR_CATALOG` constants in `plugins/ccp/scripts/antigravity-companion.mjs` and `codex-companion.mjs`.
+For the full catalog see the `errors` block in `plugins/ccp/scripts/adapters/antigravity.mjs` and `adapters/codex.mjs` (merged with the shared codes in `core/errors.mjs`).
 
 ### 6.4 FAQ
 

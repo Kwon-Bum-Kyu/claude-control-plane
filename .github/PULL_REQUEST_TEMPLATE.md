@@ -18,9 +18,14 @@
 
 ## Borrowed-code checklist (skip if N/A)
 
-<!-- Required when touching borrowed files (`plugins/ccp/scripts/lib/codex-*.mjs`, `lib/magic-keywords.mjs`, etc.). -->
+<!-- Required when touching files that carry adapted upstream code. Those files declare
+     their origin in a header comment; `docs/en/architecture.md` lists them all. -->
 
 - [ ] License text added to `LICENSES/` if a new upstream project is introduced
+- [ ] If an adapted file moved or was renamed, `docs/en/architecture.md` and
+      `docs/ko/architecture.md` were updated in the same commit
+- [ ] If an adapted Apache-2.0 file changed, its header comment still describes the
+      upstream origin and the modifications accurately
 
 ## DCO sign-off
 

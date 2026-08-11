@@ -31,7 +31,7 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 1. If `--fallback-claude` is present, return a fallback envelope immediately and skip companion invocation.
 2. Preflight: run `codex login status` (30s timeout). Emit `CCP-OAUTH-101` if not authenticated.
 3. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed). Parse 4 JSONL events into summary, tokens, and thread_id.
-4. Background: spawn a detached worker through `lib/codex-job-control.dispatchBackgroundJob` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
+4. Background: spawn a detached worker through `core/runtime.mjs:runBackground` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
 
 ## Invocation Pattern
 
@@ -82,7 +82,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 
-See the ERROR_CATALOG block in `plugins/ccp/scripts/codex-companion.mjs` for the full catalog.
+See the `errors` block in `plugins/ccp/scripts/adapters/codex.mjs` for the full catalog.
 
 ## Model Compatibility
 
@@ -98,4 +98,5 @@ Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the
 ## Spec SSOT
 
 - `plugins/ccp/schemas/envelope.schema.json`
-- `plugins/ccp/scripts/codex-companion.mjs` ERROR_CATALOG
+- `plugins/ccp/scripts/adapters/codex.mjs` `errors` (error code SSOT, merged with `core/errors.mjs`'s shared catalog)
+- `plugins/ccp/scripts/core/runtime.mjs:handleRescue` (dispatch logic shared across CLIs)

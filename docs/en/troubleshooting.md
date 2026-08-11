@@ -35,7 +35,7 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 | `CCP-TIMEOUT-001` | high | Retry, or run with `--background` (foreground default is 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | low | Adjust `--since` window or check the script log |
 
-The full catalog is the `ERROR_CATALOG` constant inside `plugins/ccp/scripts/antigravity-companion.mjs` and `codex-companion.mjs`.
+The full catalog is the `errors` block inside `plugins/ccp/scripts/adapters/antigravity.mjs` and `adapters/codex.mjs` (merged with the shared codes in `core/errors.mjs`).
 
 ## FAQ
 

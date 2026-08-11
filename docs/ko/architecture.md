@@ -67,7 +67,7 @@ CCP 의 토큰 절감 효과는 **canonical** 트리거에서 가장 강하게 �
 ✅  /ccp:codex-rescue 이 PR diff 검토
 ```
 
-이 패턴에서 envelope 캡 (≤500자) + `result_path` 영속화가 작동해 메인 Claude 컨텍스트의 Antigravity 출력 누적을 차단합니다. 실측 (T5 fixture, N=2): 메인 846K + 오프로드 179K = 총 1,025K.
+이 패턴에서 envelope 캡 (≤500자) + `result_path` 영속화가 작동해 메인 Claude 컨텍스트의 Antigravity 출력 누적을 차단합니다. 실측 (canonical 트리거 fixture, N=2): 메인 846K + 오프로드 179K = 총 1,025K.
 
 **헤드리스** 트리거 (`claude -p ...`, 스크립트 자동화) 에서는 모델이 위임 진입점을 탐색합니다 — `rescue --help` 호출, Skill → Agent → companion traversal, 변형 프롬프트 재시도 — 토큰이 오히려 2.1배 증가하는 사례가 있습니다. 헤드리스에서는 슬래시를 사전 스크립트화하세요.
 
@@ -83,13 +83,20 @@ router-suggest 훅이 헤드리스 의심 시 `[CCP-META-WARN]` 안내를 자동
 
 ## 차용 코드
 
-CCP 는 상위 프로젝트의 코드를 원본 라이선스 그대로 차용합니다. 라이선스 원문은 `LICENSES/` 디렉터리에 보존됩니다. harness audit 의 `borrowed_code_documented` 카테고리가 PR 마다 `LICENSES/` 의 라이선스 원문 존재 여부를 강제 검사합니다.
+CCP 는 상위 프로젝트의 코드를 차용하고 **수정하여** 사용합니다. 라이선스 원문은 `LICENSES/`
+디렉터리에 보존되며, Apache-2.0 차용 코드가 들어간 모든 파일은 상류 출처와 수정 내역을
+파일 선두 주석으로 선언합니다.
 
-- **everything-claude-code (ecc)** — MIT — `hooks/suggest-compact.js`, `skills/context-budget/SKILL.md`, `scripts/harness-audit.js`
-- **codex-plugin-cc** — Apache-2.0 — `scripts/lib/codex-{state,tracked-jobs,process,args,job-control}.mjs`
+- **everything-claude-code (ecc)** — MIT — `hooks/suggest-compact.js`,
+  `skills/context-budget/SKILL.md` (상류 `skills/strategic-compact/SKILL.md`),
+  `scripts/harness-audit.js`
+- **codex-plugin-cc** — Apache-2.0 — `scripts/core/args.mjs`, `scripts/core/jobs.mjs`,
+  `scripts/core/process.mjs`, `scripts/core/runtime.mjs`, `scripts/adapters/codex.mjs`
+  (구 `scripts/lib/codex-{args,state,tracked-jobs,process,job-control}.mjs`)
 - **oh-my-claudecode (omc)** — MIT — `scripts/lib/magic-keywords.mjs`
 
-라이선스 원문: `LICENSES/`.
+codex-plugin-cc 항목의 파일들은 Apache-2.0 차용 코드와 CCP 자체 코드를 함께 담고 있으며,
+각 파일 선두에 상류 파일·상류 커밋·수정 내역이 명시되어 있습니다. 라이선스 원문: `LICENSES/`.
 
 ## 관련 문서
 

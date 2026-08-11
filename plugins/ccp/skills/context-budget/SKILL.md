@@ -49,7 +49,7 @@ Automatic compaction is intentionally not in scope for v0.x.
 ## Integration points
 
 - `plugins/ccp/hooks/suggest-compact.js` — UserPromptSubmit / PreCompact hook consumes the threshold matrix above
-- `plugins/ccp/scripts/antigravity-companion.mjs` — companion output guard (`enforceContextBudget`) applies the same 1,500-token / 500-character cap
+- `plugins/ccp/scripts/core/budget.mjs` — companion output guard (`checkContextBudget`, shared by every CLI adapter) applies the same 1,500-token / 500-character cap
 
 ## Acceptance criteria
 
@@ -60,6 +60,6 @@ Automatic compaction is intentionally not in scope for v0.x.
 ## Spec SSOT
 
 - `plugins/ccp/hooks/suggest-compact.js` (hook implementation)
-- `plugins/ccp/scripts/antigravity-companion.mjs:enforceContextBudget` (companion output guard)
+- `plugins/ccp/scripts/core/budget.mjs:checkContextBudget` (companion output guard, shared by every CLI adapter)
 - README §4 (subagent isolation principle — no automatic fallback)
 - `.claude/skills/token-budget-check/SKILL.md` (meta-skill)

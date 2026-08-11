@@ -289,7 +289,7 @@ claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 | `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/antigravity:setup` 재실행 |
 | `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
-| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/antigravity:rescue --fallback-claude` |
+| `CCP-AG-001` | ★★ | 잠시 후 재시도 또는 `/antigravity:rescue --fallback-claude` |
 | `CCP-CTX-001` | ★ | summary 길이 초과 — 입력 축소 |
 | `CCP-ROUTER-001` | ★ | `/ccp:audit` 으로 라우터 결정 검토 |
 | `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
@@ -315,7 +315,7 @@ claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 | `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` 권장 (foreground default 600s) |
 | `CCP-AUDIT-001~002` | ★ | `--since` 범위 조정 또는 로그 확인 |
 
-전체 카탈로그는 `plugins/ccp/scripts/antigravity-companion.mjs`·`codex-companion.mjs` 의 `ERROR_CATALOG` 를 참조하세요.
+전체 카탈로그는 `plugins/ccp/scripts/adapters/antigravity.mjs`·`adapters/codex.mjs` 의 `errors` 블록을 참조하세요 (`core/errors.mjs` 의 공용 코드와 병합됨).
 
 ### 6.4 자주 묻는 질문
 
