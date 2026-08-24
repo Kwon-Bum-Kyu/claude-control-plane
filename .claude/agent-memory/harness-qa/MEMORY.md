@@ -3,3 +3,4 @@
 - [헤더 주석 vs 실제 코드 순서 대조 필요](feedback_header_comment_drift.md) — install.sh 사례, 주석이 코드보다 위험하면 치명 결함
 - [자동 검증기의 "0 violations"를 곧이곧대로 믿지 말 것](feedback_validator_coverage_gap.md) — validate-evidence.mjs가 4종 확장자만 스캔해 validate-strict.txt의 마스킹 누락을 놓친 사례
 - [격리 루트 안 원본 로그는 teardown 전 evidence/로 보존됐는지 확인](feedback_evidence_survival_before_teardown.md) — D-010(S1) agy.log가 $E2E_ROOT 안에만 있어 teardown 시 영구 소실 위험
+- [모호한 actor 필드의 세션 개입은 데이터 진위와 절차 투명성을 분리 판정](feedback_unlogged_session_audit_gap.md) — "Phase A-1" 미기록 harness-qa 세션이 D-010 증적을 보존했으나 dispatch 근거 없음
