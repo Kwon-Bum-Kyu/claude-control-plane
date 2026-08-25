@@ -1,6 +1,6 @@
 # 라우터 동작
 
-CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) · Antigravity (`/antigravity:rescue`) · Codex (`/ccp:codex-rescue`) 중 어느 경로로 보낼지 결정합니다. 4축 우선순위로 동작하며, 상위 축에서 결정이 나면 하위 축은 평가하지 않습니다.
+CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) · Antigravity (`/ccp:antigravity-rescue`) · Codex (`/ccp:codex-rescue`) 중 어느 경로로 보낼지 결정합니다. 4축 우선순위로 동작하며, 상위 축에서 결정이 나면 하위 축은 평가하지 않습니다.
 
 라우터 결정 로직은 단일 모듈에 구현되어 있고 추천 훅·회귀 데이터셋·라우터 에이전트가 동일 모듈을 공유합니다. 본 문서의 동작과 런타임 동작이 일치합니다.
 
@@ -24,7 +24,7 @@ CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) �
 
 | 신호 | 결정 |
 |---|---|
-| `/antigravity:rescue ...` | Antigravity |
+| `/ccp:antigravity-rescue ...` | Antigravity |
 | `/ccp:codex-rescue ...` | Codex |
 | `--fallback-claude` | Claude (하위 축 무시) |
 | `--effort` / `--sandbox` / `--write` / `--cwd` | Codex (Codex 전용 플래그) |
@@ -63,7 +63,7 @@ CCP 라우터는 사용자 프롬프트를 Claude (메인 컨트롤 플레인) �
 
 | 의도 | 방법 |
 |---|---|
-| 크기 무관하게 Antigravity 강제 | `/antigravity:rescue` |
+| 크기 무관하게 Antigravity 강제 | `/ccp:antigravity-rescue` |
 | 크기 무관하게 Codex 강제 | `/ccp:codex-rescue` |
 | 키워드 무관하게 Claude 강제 | `--fallback-claude` 추가 |
 | 라우터 결정 확인 | envelope `details.mode` 또는 `/ccp:audit` |
@@ -77,7 +77,7 @@ router-suggest 훅은 `UserPromptSubmit` 시 동작합니다. 동일한 결정�
 ## Anti-pattern
 
 - **프롬프트를 사소하게 변형해 반복** — 위임 진입점을 "찾으려는" 시도. 라우터는 결정적이므로 두 번째 시도도 같은 결정을 합니다.
-- **헤드리스 스크립트에서 `/antigravity:rescue --help` 호출** — help 출력을 한 번 캐시하고 재사용하세요. 매 실행마다 비용을 지불할 이유가 없습니다.
+- **헤드리스 스크립트에서 `/ccp:antigravity-rescue --help` 호출** — help 출력을 한 번 캐시하고 재사용하세요. 매 실행마다 비용을 지불할 이유가 없습니다.
 - **review 키워드 없는 작은 리팩토링에 Codex 강제** (`< 5K` 토큰). 크기 임계가 있는 이유는 작은 편집에 Codex 의 추론 오버헤드가 낭비되기 때문입니다.
 
 ## 관련 문서

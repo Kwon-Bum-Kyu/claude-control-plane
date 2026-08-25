@@ -50,9 +50,9 @@ CCP 가 반환하는 모든 에러는 `CCP-<카테고리>-<NNN>` 형식 (예: `C
 
 훅은 Claude Code 가 제공하는 JSON stdin 계약을 사용합니다. exec 기반 셸 훅 사용 금지.
 
-### 6. 네임스페이스 이원화 (`/antigravity:*` vs `/ccp:*`)
+### 6. 커맨드 네임스페이스
 
-Antigravity 커맨드는 자체 네임스페이스를 가집니다 — 사용자가 Antigravity 를 무거운 요약 도구로 인식하는 멘탈 모델이 오래되어서. Codex 와 공통 커맨드는 `/ccp:*` — CCP 고유의 오케스트레이션이므로. 이 분리는 의도적이며 임의로 바뀌지 않습니다.
+모든 커맨드는 단일 `/ccp:*` 네임스페이스 아래에 있습니다. 대상 CLI 구분은 별도 네임스페이스가 아니라 커맨드명 자체의 접두사로 표현됩니다 — Antigravity 는 `/ccp:antigravity-*`, Codex 는 `/ccp:codex-*`.
 
 ### 7. 서브에이전트 격리 강제
 
@@ -63,7 +63,7 @@ Antigravity 커맨드는 자체 네임스페이스를 가집니다 — 사용자
 CCP 의 토큰 절감 효과는 **canonical** 트리거에서 가장 강하게 작동합니다.
 
 ```text
-✅  /antigravity:rescue 이 디렉터리 요약
+✅  /ccp:antigravity-rescue 이 디렉터리 요약
 ✅  /ccp:codex-rescue 이 PR diff 검토
 ```
 
@@ -73,7 +73,7 @@ CCP 의 토큰 절감 효과는 **canonical** 트리거에서 가장 강하게 �
 
 ```bash
 # 권장: 슬래시 사전 스크립트화
-claude -p "/antigravity:rescue 이 디렉터리 요약"
+claude -p "/ccp:antigravity-rescue 이 디렉터리 요약"
 claude -p "/ccp:codex-rescue 이 PR diff 검토"
 
 # 금지: rescue --help 루프, Skill → Agent traversal, 동일 task 변형 재시도

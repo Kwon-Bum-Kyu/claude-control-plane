@@ -6,10 +6,10 @@ CCP exposes nine slash commands across three groups: Antigravity delegation, Cod
 
 | Command | Purpose |
 |---|---|
-| `/antigravity:rescue <prompt>` | Delegate a heavy task to Antigravity |
-| `/antigravity:status <job_id>` | Check a background job's status |
-| `/antigravity:result <job_id>` | Retrieve a completed job's summary and `result_path` |
-| `/antigravity:setup [--renew]` | Diagnose Antigravity CLI and OAuth state |
+| `/ccp:antigravity-rescue <prompt>` | Delegate a heavy task to Antigravity |
+| `/ccp:antigravity-status <job_id>` | Check a background job's status |
+| `/ccp:antigravity-result <job_id>` | Retrieve a completed job's summary and `result_path` |
+| `/ccp:antigravity-setup [--renew]` | Diagnose Antigravity CLI and OAuth state |
 
 ## Codex (code review, diff, bug investigation)
 
@@ -44,7 +44,7 @@ The full markdown specs (description, examples, exit codes) live in `plugins/ccp
 | `--cwd DIR` | no | yes | Codex working directory |
 | `--renew` | yes | (use `codex login` directly) | Re-auth guidance |
 
-If you pass a Codex-only flag to `/antigravity:rescue` (or vice versa), the companion rejects it inline with `CCP-INVALID-001`. This is intentional: it surfaces the wrong slash command early instead of silently dropping the flag.
+If you pass a Codex-only flag to `/ccp:antigravity-rescue` (or vice versa), the companion rejects it inline with `CCP-INVALID-001`. This is intentional: it surfaces the wrong slash command early instead of silently dropping the flag.
 
 ## Three-way compatibility
 
@@ -65,10 +65,10 @@ If you pass a Codex-only flag to `/antigravity:rescue` (or vice versa), the comp
 ### Background job lifecycle
 
 ```text
-/antigravity:rescue --background "summarize the last 24h of /var/log/app/error.log"
+/ccp:antigravity-rescue --background "summarize the last 24h of /var/log/app/error.log"
 # -> envelope.summary contains job_id
-/antigravity:status <job_id>     # queued / running / completed / failed
-/antigravity:result <job_id>     # summary + result_path
+/ccp:antigravity-status <job_id>     # queued / running / completed / failed
+/ccp:antigravity-result <job_id>     # summary + result_path
 ```
 
 ### Codex with explicit effort and sandbox

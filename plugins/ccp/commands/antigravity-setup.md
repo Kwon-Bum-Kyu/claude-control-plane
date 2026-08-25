@@ -5,14 +5,14 @@ allowed-tools:
   - Bash
 ---
 
-# /antigravity:setup
+# /ccp:antigravity-setup
 
 Verifies Antigravity CLI installation and authentication status. On failure, it shows install or re-auth guidance (target: first successful invocation within 5 minutes for ≥ 90% of new users).
 
 ## Usage
 
 ```
-/antigravity:setup [--renew]
+/ccp:antigravity-setup [--renew]
 ```
 
 | Argument | Description |
@@ -60,7 +60,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" setup
 |------|------|:---:|----------|
 | `CCP-SETUP-001` | Antigravity CLI missing or < 1.0.0 | abort | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`, ensure `~/.local/bin` is on PATH |
 | `CCP-SETUP-002` | Node.js < v20 | abort | use nvm or install Node from the official distribution |
-| `CCP-OAUTH-001` | Authentication missing or invalid | fallback | run `agy` once interactively (keyring sign-in) or set `ANTIGRAVITY_API_KEY`, then rerun `/antigravity:setup` |
+| `CCP-OAUTH-001` | Authentication missing or invalid | fallback | run `agy` once interactively (keyring sign-in) or set `ANTIGRAVITY_API_KEY`, then rerun `/ccp:antigravity-setup` |
 
 ## Acceptance Criteria
 

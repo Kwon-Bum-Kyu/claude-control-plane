@@ -53,11 +53,11 @@ You only need the CLI for the side(s) you actually want to use.
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
 /reload-plugins
-/antigravity:setup        # Diagnose Antigravity CLI · OAuth status
+/ccp:antigravity-setup        # Diagnose Antigravity CLI · OAuth status
 /ccp:codex-setup     # Diagnose Codex CLI · OAuth status
 ```
 
-`/antigravity:setup` and `/ccp:codex-setup` automatically diagnose Node.js, the upstream CLI, and OAuth status. If anything is missing, they print the exact recovery command. Typical setup commands:
+`/ccp:antigravity-setup` and `/ccp:codex-setup` automatically diagnose Node.js, the upstream CLI, and OAuth status. If anything is missing, they print the exact recovery command. Typical setup commands:
 
 ```bash
 # Antigravity
@@ -76,7 +76,7 @@ codex login                         # browser-based ChatGPT auth
 ### Smoke test
 
 ```
-/antigravity:rescue "Summarize this repository's README in 3 lines"
+/ccp:antigravity-rescue "Summarize this repository's README in 3 lines"
 ```
 
 If you see a 3-line summary + an estimated token saving + a `result_path` under `_workspace/_jobs/`, the plugin is healthy.
@@ -92,7 +92,7 @@ See the error-code table in [§6 Troubleshooting](#6-troubleshooting).
 ### Sample 1 — Small input (router warm-up)
 
 ```
-/antigravity:rescue "Summarize this repository's README in 3 lines"
+/ccp:antigravity-rescue "Summarize this repository's README in 3 lines"
 ```
 
 The router inspects input size and keywords to decide between Claude and Antigravity. Very small inputs typically stay on Claude.
@@ -100,14 +100,14 @@ The router inspects input size and keywords to decide between Claude and Antigra
 ### Sample 2 — Large log file (background job)
 
 ```
-/antigravity:rescue --background "Extract the top 10 5xx errors from /var/log/app/error.log over the last 24 hours"
+/ccp:antigravity-rescue --background "Extract the top 10 5xx errors from /var/log/app/error.log over the last 24 hours"
 ```
 
 The companion immediately returns a `job_id`. Track and retrieve:
 
 ```
-/antigravity:status <job_id>
-/antigravity:result <job_id>
+/ccp:antigravity-status <job_id>
+/ccp:antigravity-result <job_id>
 ```
 
 The full Antigravity output stays on disk; only a bounded summary is returned to Claude.
@@ -136,10 +136,10 @@ Outputs an 8-category score (`context_efficiency`, `cost_efficiency`, `router_ac
 
 | Command | Summary |
 |---|---|
-| `/antigravity:rescue <prompt>` | Delegate heavy work to Antigravity |
-| `/antigravity:status <job_id>` | Check background job status |
-| `/antigravity:result <job_id>` | Retrieve a completed job's summary + path |
-| `/antigravity:setup [--renew]` | Diagnose Antigravity CLI · OAuth |
+| `/ccp:antigravity-rescue <prompt>` | Delegate heavy work to Antigravity |
+| `/ccp:antigravity-status <job_id>` | Check background job status |
+| `/ccp:antigravity-result <job_id>` | Retrieve a completed job's summary + path |
+| `/ccp:antigravity-setup [--renew]` | Diagnose Antigravity CLI · OAuth |
 
 ### 4.2 Codex (code review · diff · bug investigation)
 
@@ -170,13 +170,13 @@ For detailed options see `plugins/ccp/commands/*.md`.
 | `--files <glob>` | ⚠️ MVP unimplemented | ❌ | Antigravity attached files |
 | `--model NAME` | ❌ | ✅ | Codex model alias |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | Reasoning effort |
-| `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only / workspace-write / danger-full-access) | Codex sandbox |
+| `--sandbox MODE` | ✅ (boolean toggle, no mode value) | ✅ (read-only / workspace-write / danger-full-access) | Codex sandbox |
 | `--cwd DIR` | ❌ | ✅ | Codex working directory |
 | `--renew` | ✅ | (n/a — use `codex login` directly) | OAuth re-auth flow |
 
 ### 4.5 Model compatibility matrix (3-way)
 
-How `/ccp:codex-rescue` (codex), `/antigravity:rescue` (antigravity), and the main Claude (claude) compare across options and features:
+How `/ccp:codex-rescue` (codex), `/ccp:antigravity-rescue` (antigravity), and the main Claude (claude) compare across options and features:
 
 | Option / feature | claude | antigravity | codex | Notes |
 |---|:---:|:---:|:---:|---|
@@ -186,7 +186,7 @@ How `/ccp:codex-rescue` (codex), `/antigravity:rescue` (antigravity), and the ma
 | `--poll-interval-ms N` | n/a | ✅ (2000) | ✅ (2000) | Polling interval |
 | `--model NAME` | †`/model` slash | ✅ | ✅ | claude uses Claude Code's `/model` slash |
 | `--effort low\|medium\|high` | ‡extended thinking | ❌ `CCP-INVALID-001` | ✅ `-c model_reasoning_effort=<level>` | claude uses Option+T (extended-thinking toggle) |
-| `--sandbox <mode>` | n/a (no execution) | ❌ | ✅ read-only / workspace-write / danger-full-access | codex only |
+| `--sandbox <mode>` | n/a (no execution) | ✅ (boolean toggle only) | ✅ read-only / workspace-write / danger-full-access | antigravity: bare boolean; codex: named modes |
 | `--write` | n/a | ❌ | ✅ (= `--sandbox workspace-write`) | codex readability alias |
 | `--cwd DIR` | n/a (conversation turn) | ❌ | ✅ (`-C`) | codex only |
 | `--max-tokens N` | n/a | ✅ (prompt-suffix translation) | ❌ | antigravity only |
@@ -194,7 +194,7 @@ How `/ccp:codex-rescue` (codex), `/antigravity:rescue` (antigravity), and the ma
 | `--resume-last` | n/a | ⚠️ MVP unimplemented (meta-file imitation) | ✅ (`codex resume --last`) | codex CLI native; scoped to current cwd (use `codex resume --all` for other directories) |
 | OAuth probe | n/a | `agy --version` + `keyring (agy silent-auth)` | `codex login status` | Both companions: 30 s timeout |
 
-**Legend:** ✅ supported / ❌ rejected with `CCP-INVALID-001` or `CCP-UNSUPPORTED-001` / ⚠️ partial mapping / n/a not applicable
+**Legend:** ✅ supported / ❌ rejected with `CCP-INVALID-001` / ⚠️ partial mapping / n/a not applicable
 **Footnotes:**
 - ‡ Claude extended thinking: `Option+T` toggle, or `alwaysThinkingEnabled` in `~/.claude/settings.json`
 - † Claude `/model` slash: a Claude Code built-in command
@@ -215,7 +215,7 @@ user-explicit (axis A) → input size (axis B) → keywords (axis C) → fallbac
 ```
 [user prompt]
        ↓
-   [axis A]  /antigravity:rescue · /ccp:codex-rescue · --fallback-claude · --effort · --sandbox
+   [axis A]  /ccp:antigravity-rescue · /ccp:codex-rescue · --fallback-claude · --effort · --sandbox
        ↓ (if absent)
    [axis B]  estimated_tokens > 30,000 → Antigravity  (if a review keyword is also present → Codex)
               5,000 ≤ tokens ≤ 30,000 + review keyword → Codex
@@ -235,7 +235,7 @@ user-explicit (axis A) → input size (axis B) → keywords (axis C) → fallbac
 CCP's token-saving effect is strongest in the **interactive, slash-direct trigger** pattern:
 
 ```
-✅ Recommended:  /antigravity:rescue summarize the entire directory
+✅ Recommended:  /ccp:antigravity-rescue summarize the entire directory
 ✅ Recommended:  /ccp:codex-rescue review this PR diff
 ```
 
@@ -247,7 +247,7 @@ Under `claude -p` headless invocations, models tend to probe delegation entry po
 
 ```bash
 # ✅ Recommended: pre-script the slash
-claude -p "/antigravity:rescue summarize the entire directory" -- ...
+claude -p "/ccp:antigravity-rescue summarize the entire directory" -- ...
 claude -p "/ccp:codex-rescue review this PR diff" -- ...
 
 # ❌ Forbidden: rescue --help / Skill→Agent traversal / repeated prompt variations
@@ -293,14 +293,13 @@ Double-billing defenses — `auto_routed: true` in the envelope + the router age
 
 | Code | Frequency | Next action |
 |---|:---:|---|
-| `CCP-OAUTH-001` | ★★★ | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/antigravity:setup` |
+| `CCP-OAUTH-001` | ★★★ | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/ccp:antigravity-setup` |
 | `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Install Node.js 20+ (nvm recommended) |
-| `CCP-AG-001` | ★★ | Retry, or `/antigravity:rescue --fallback-claude` |
-| `CCP-CTX-001` | ★ | Summary length exceeded — shrink the input |
+| `CCP-AG-001` | ★★ | Retry, or `/ccp:antigravity-rescue --fallback-claude` |
 | `CCP-ROUTER-001` | ★ | Run `/ccp:audit` to inspect routing decisions |
 | `CCP-COMPACT-001` | ★ | Run `/compact` manually |
-| `CCP-JOB-001~004` | ★ | Re-check job state via `/antigravity:status` |
+| `CCP-JOB-001~004` | ★ | Re-check job state via `/ccp:antigravity-status` |
 
 ### 6.2 Codex-side error codes
 

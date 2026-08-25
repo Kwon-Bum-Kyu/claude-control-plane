@@ -41,6 +41,8 @@ The subcommand is always `rescue`. This subagent must not call `setup`, `status`
 
 Return the Bash result JSON envelope exactly as-is. Do not add explanation, interpretation, or Markdown formatting. See `plugins/ccp/schemas/envelope.schema.json` for the envelope schema.
 
+If the envelope carries `summary_truncated: true`, that means `summary` was cut at a sentence boundary and `result_path` holds the untruncated body — pass the envelope through unchanged regardless (this subagent's forbidden list above still applies). This subagent has no Read tool and must not fetch `result_path` itself; whether the full body needs reading at all is a main-Claude decision, made only if the summary is insufficient for its current judgment, never a reflex right after this call returns.
+
 ### Foreground Success
 ```json
 {

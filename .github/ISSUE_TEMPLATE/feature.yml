@@ -38,7 +38,7 @@ body:
       multiple: true
       options:
         - Router (4-axis decision)
-        - Slash command (`/antigravity:*` or `/codex:*`)
+        - Slash command (`/ccp:antigravity-*` or `/ccp:codex-*`)
         - Hook (UserPromptSubmit / PreCompact / SessionEnd)
         - Companion script (Antigravity or Codex)
         - Audit (`/ccp:audit`)

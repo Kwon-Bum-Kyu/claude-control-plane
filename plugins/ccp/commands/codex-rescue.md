@@ -78,7 +78,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [
 | `CCP-OAUTH-101` | fallback_claude | Use `AskUserQuestion` to offer re-auth, fallback, or cancel |
 | `CCP-CODEX-001` | retry | Point to stderr logs and retry in main Claude |
 | `CCP-CODEX-002` | retry | No JSONL response — rerun with verbose output |
-| `CCP-CTX-001` | abort | Response estimated above 1,500 tokens |
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 
@@ -86,7 +85,7 @@ See the `errors` block in `plugins/ccp/scripts/adapters/codex.mjs` for the full 
 
 ## Model Compatibility
 
-Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the compatibility matrix (README §Model Compatibility). Antigravity rejects them (`CCP-UNSUPPORTED-001`).
+Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the compatibility matrix (README §Model Compatibility). Antigravity rejects them (`CCP-INVALID-001`).
 
 ## Acceptance Criteria
 

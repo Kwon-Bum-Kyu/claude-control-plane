@@ -28,15 +28,23 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<t
 
 The subcommand is always `rescue`. This subagent must not call `status`, `result`, `setup`, or `preflight`; those are invoked directly by slash handlers.
 
+## Security Notice — Automatic Tool-Permission Approval
+
+The companion invocation attaches `--dangerously-skip-permissions`, which auto-approves every tool-permission prompt the delegated `agy` model raises during this call (shell commands, file writes, etc.). This is necessary because non-interactive `-p` mode has nobody to answer those prompts — without it, any task needing a tool fails with a soft-denied confirmation.
+
+If the task you were given deals with untrusted input, tell the user that `--sandbox` can be added to constrain the auto-approved tool calls. To disable auto-approval entirely, `CCP_AGY_SKIP_PERMISSIONS=0` (also accepts `false` / `no`) can be set in the environment — this subagent does not set it itself and has no authority to change it.
+
 ## Output Format (Required)
 
 Return the Bash result JSON envelope exactly as-is. Do not add explanation, interpretation, or Markdown formatting.
+
+If the envelope carries `summary_truncated: true`, that means `summary` was cut at a sentence boundary and `result_path` holds the untruncated body — pass the envelope through unchanged regardless (Rule 2 above). This subagent has no Read tool and must not fetch `result_path` itself; whether the full body needs reading at all is a main-Claude decision, made only if the summary is insufficient for its current judgment, never a reflex right after this call returns.
 
 ### Foreground Success
 ```json
 {
   "summary": "summary in up to 3 lines",
-  "result_path": "_workspace/_jobs/<id>/result.md",
+  "result_path": "/absolute/path/to/project/_workspace/_jobs/<id>/result.md",
   "tokens": { "input": 0, "output": 0, "estimated": true },
   "exit_code": 0,
   "details": { "mode": "antigravity", "job_id": "<uuid>", "antigravity_conversation_id": "<uuid|null>" }
@@ -48,7 +56,7 @@ Return the Bash result JSON envelope exactly as-is. Do not add explanation, inte
 {
   "job_id": "<uuid>",
   "status": "queued",
-  "next_action": "/antigravity:status <job_id>",
+  "next_action": "/ccp:antigravity-status <job_id>",
   "details": { "mode": "background", "pid": <number> }
 }
 ```

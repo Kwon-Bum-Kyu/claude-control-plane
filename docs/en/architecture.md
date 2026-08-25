@@ -50,9 +50,9 @@ Hooks reinforce, never replace, the slash commands.
 
 Hooks use the Claude Code-supplied JSON stdin contract; no exec-based shell hooks.
 
-### 6. Namespace split (`/antigravity:*` vs `/ccp:*`)
+### 6. Command namespace
 
-Antigravity commands sit under their own namespace because users have a long-standing mental model of Antigravity as a heavy-summary tool. Codex and shared commands sit under `/ccp:*` because they are CCP-specific orchestration. This split is deliberate and not subject to ad-hoc renaming.
+Every command lives under the single `/ccp:*` namespace. Which CLI a command targets is expressed through the command name's own prefix — `/ccp:antigravity-*` for Antigravity, `/ccp:codex-*` for Codex — rather than through a separate namespace per CLI.
 
 ### 7. Subagent isolation is enforced
 
@@ -63,7 +63,7 @@ Subagents (`antigravity-rescue`, `codex-rescue`) cannot write into the main Clau
 CCP's token saving works strongest in **canonical** triggers:
 
 ```text
-✅  /antigravity:rescue summarize this directory
+✅  /ccp:antigravity-rescue summarize this directory
 ✅  /ccp:codex-rescue review this PR diff
 ```
 
@@ -73,7 +73,7 @@ In **headless** triggers (`claude -p ...`, scripted automation), models tend to 
 
 ```bash
 # Recommended: pre-scripted slash
-claude -p "/antigravity:rescue summarize this directory"
+claude -p "/ccp:antigravity-rescue summarize this directory"
 claude -p "/ccp:codex-rescue review the PR diff"
 
 # Forbidden: rescue --help loops, Skill -> Agent traversal, repeated prompt variations
