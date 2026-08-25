@@ -2,19 +2,18 @@
 // Antigravity CLI (`agy`) adapter, ported from the pre-refactor standalone
 // antigravity-companion.mjs. Every behavior below — including the ones that
 // look like inconsistencies (mode present on some subcommands and absent on
-// others, error details nested under `error` instead of at envelope root,
-// the result file always living under the repo root regardless of
-// CCP_JOBS_DIR) — is a faithful reproduction of that script's real,
-// golden-verified output, not a design choice made fresh here. See the
-// companion implementation progress log for the specific mapping between
-// each adapter field and the original code it replaces.
+// others, error details nested under `error` instead of at envelope root) —
+// is a faithful reproduction of that script's real, golden-verified output,
+// not a design choice made fresh here. See the companion implementation
+// progress log for the specific mapping between each adapter field and the
+// original code it replaces.
 
 import { existsSync } from 'node:fs';
 import { isAbsolute, join, resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { resolvePaths } from '../core/paths.mjs';
 
-const { PLUGIN_ROOT, REPO_ROOT } = resolvePaths();
+const { PLUGIN_ROOT, PROJECT_ROOT } = resolvePaths();
 
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 // English averages ~4 chars/token; Korean ~2 chars/token. 0.25 sits between
@@ -22,10 +21,32 @@ const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9
 const CHARS_PER_TOKEN_INVERSE = 0.25;
 const DEFAULT_MAX_TOKENS = 4000;
 const FALLBACK_HINT = ' To retry with the main Claude agent, re-enter the original prompt.';
+// Opt-out values for CCP_AGY_SKIP_PERMISSIONS, case-insensitive. Any other
+// value (including unset) keeps the default: auto-approve attached.
+const SKIP_PERMISSIONS_OPT_OUT_VALUES = new Set(['0', 'false', 'no']);
+// Prevention layer for the summary-truncation problem core/runtime.mjs now
+// handles (sentence-boundary cut + summary_truncated flag + full body saved
+// to result_path): asking the delegated model to lead with its own short
+// summary means that summary is what core's `summarize()` + truncation
+// picks up, so the truncation marker rarely lands mid-thought even when the
+// full response runs long. Not a hard cap — codex's full response would
+// otherwise shrink along with the summary if this said "answer in 500
+// characters"; asking only for a leading summary keeps the full body intact
+// for result_path while lowering both how often truncation fires and how
+// much is lost when it does.
+const OUTPUT_CONTRACT =
+  '\n\n(Response format: open with a summary of at most 3 lines and 500 characters, then put the full detail below it.)';
 
 function estimateTokensFromChars(chars) {
   if (!Number.isFinite(chars) || chars <= 0) return 0;
   return Math.ceil(chars * CHARS_PER_TOKEN_INVERSE);
+}
+
+// See commands/antigravity-rescue.md and agents/antigravity-rescue.md for
+// the full risk notice this opt-out is documented alongside.
+function isSkipPermissionsOptedOut() {
+  const raw = process.env.CCP_AGY_SKIP_PERMISSIONS;
+  return typeof raw === 'string' && SKIP_PERMISSIONS_OPT_OUT_VALUES.has(raw.trim().toLowerCase());
 }
 
 function detectAuthMethod() {
@@ -50,21 +71,21 @@ function parseAgyLogMetrics(logText) {
 
 function buildRetryHint(task) {
   return {
-    renew: '/antigravity:setup --renew',
-    fallback: `/antigravity:rescue --fallback-claude "${String(task || '').replace(/"/g, '\\"')}"`,
+    renew: '/ccp:antigravity-setup --renew',
+    fallback: `/ccp:antigravity-rescue --fallback-claude "${String(task || '').replace(/"/g, '\\"')}"`,
   };
 }
 
 function statusNextAction(state, jobId) {
-  if (state === 'completed') return `/antigravity:result ${jobId}`;
+  if (state === 'completed') return `/ccp:antigravity-result ${jobId}`;
   if (state === 'failed') return null;
-  return `/antigravity:status ${jobId}`;
+  return `/ccp:antigravity-status ${jobId}`;
 }
 
 const MISSING_ARG = {
-  rescue: { message: '/antigravity:rescue requires a task argument', action: 'Example: `/antigravity:rescue "Summarize this directory"`' },
-  status: { message: 'The `job_id` format is invalid (UUID v4 required)', action: 'Use the `job_id` exactly as returned by `/antigravity:rescue --background`.' },
-  result: { message: 'The `job_id` format is invalid (UUID v4 required)', action: 'Use the `job_id` exactly as returned by `/antigravity:status <job_id>`.' },
+  rescue: { message: '/ccp:antigravity-rescue requires a task argument', action: 'Example: `/ccp:antigravity-rescue "Summarize this directory"`' },
+  status: { message: 'The `job_id` format is invalid (UUID v4 required)', action: 'Use the `job_id` exactly as returned by `/ccp:antigravity-rescue --background`.' },
+  result: { message: 'The `job_id` format is invalid (UUID v4 required)', action: 'Use the `job_id` exactly as returned by `/ccp:antigravity-status <job_id>`.' },
 };
 
 export default {
@@ -147,7 +168,7 @@ export default {
       if (flag !== 'files') return null;
       if (isAbsolute(value)) {
         const resolved = resolve(value);
-        if (!resolved.startsWith(PLUGIN_ROOT) && !resolved.startsWith(REPO_ROOT)) {
+        if (!resolved.startsWith(PLUGIN_ROOT) && !resolved.startsWith(PROJECT_ROOT)) {
           return {
             code: 'CCP-INVALID-001',
             message: 'The `--files` absolute path is outside the plugin root',
@@ -207,12 +228,13 @@ export default {
 
   result: {
     fileName: 'result.md',
-    // 'repo-relative': the result file has always lived under REPO_ROOT
-    // regardless of CCP_JOBS_DIR (a pre-existing isolation gap, out of scope
-    // to fix this round — see the companion implementation progress log for
-    // when this was discovered). meta.json and the CLI's own log file still
-    // respect CCP_JOBS_DIR; only the result body's location is anchored here.
-    pathStyle: 'repo-relative',
+    // 'absolute': the result file now lives under JOBS_DIR like every other
+    // job artifact — it used to be anchored under the repo root regardless
+    // of CCP_JOBS_DIR (a pre-existing isolation gap; see the companion
+    // implementation progress log for when this was closed). meta.json and
+    // the CLI's own log file always respected CCP_JOBS_DIR; only the result
+    // body's location needed this fix.
+    pathStyle: 'absolute',
     logFileName: 'agy.log',
     // antigravity persists a real job record even for a synchronous foreground
     // call (needed for --log-file and so a later /…:result can find the body) —
@@ -222,19 +244,19 @@ export default {
 
   errors: {
     'CCP-SETUP-001': {
-      message: 'Antigravity CLI (`agy`) is not installed',
-      action: 'Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`, ensure `~/.local/bin` is on PATH, then rerun `/antigravity:setup`.',
+      message: 'Antigravity CLI (`agy`) is not installed, or is too old for this plugin',
+      action: 'Install with `curl -fsSL https://antigravity.google/cli/install.sh | bash`, or update an existing install with `agy update`. Ensure `~/.local/bin` is on PATH, then rerun `/ccp:antigravity-setup`.',
       recovery: 'abort',
     },
     'CCP-SETUP-002': {
       message: 'Your Node.js version is below the requirement',
-      action: 'Install Node.js 20 or later, then rerun `/antigravity:setup`.',
+      action: 'Install Node.js 20 or later, then rerun `/ccp:antigravity-setup`.',
       recovery: 'abort',
     },
     'CCP-OAUTH-001': {
       message: 'Antigravity authentication is missing or invalid',
       action:
-        'Run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`. Then rerun `/antigravity:setup`, or fall back with `/antigravity:rescue --fallback-claude "<original task>"`.' +
+        'Run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`. Then rerun `/ccp:antigravity-setup`, or fall back with `/ccp:antigravity-rescue --fallback-claude "<original task>"`.' +
         FALLBACK_HINT,
       recovery: 'fallback', // V-a — outside the schema's recovery enum, preserved (knownViolations)
     },
@@ -245,13 +267,8 @@ export default {
     },
     'CCP-AG-002': {
       message: 'The Antigravity free-tier quota has been exceeded',
-      action: 'Try again later, or handle it with `/antigravity:rescue --fallback-claude "<original task>"`.' + FALLBACK_HINT,
+      action: 'Try again later, or handle it with `/ccp:antigravity-rescue --fallback-claude "<original task>"`.' + FALLBACK_HINT,
       recovery: 'fallback', // V-a — outside the schema's recovery enum, preserved (knownViolations)
-    },
-    'CCP-CTX-001': {
-      message: 'The subagent response exceeded the summary threshold',
-      action: 'Retrieve only the summary with `/antigravity:result <job_id> --summary-only`.' + FALLBACK_HINT,
-      recovery: 'abort',
     },
     'CCP-ROUTER-001': {
       message: 'The routing decision may be inefficient',
@@ -260,7 +277,7 @@ export default {
     },
     'CCP-COMPACT-001': {
       message: 'Context usage has exceeded 75%',
-      action: 'Manually compact the session with `/compact`, or delegate large work to `/antigravity:rescue`.',
+      action: 'Manually compact the session with `/compact`, or delegate large work to `/ccp:antigravity-rescue`.',
       recovery: 'abort',
     },
     'CCP-API-001': {
@@ -269,9 +286,9 @@ export default {
       recovery: 'abort',
     },
     'CCP-JOB-001': { message: 'That job could not be found', action: 'Check the `job_id` again.', recovery: 'abort' },
-    'CCP-JOB-002': { message: 'The job is not complete yet', action: 'Check the status with `/antigravity:status <job_id>`, then try again.', recovery: 'retry' },
+    'CCP-JOB-002': { message: 'The job is not complete yet', action: 'Check the status with `/ccp:antigravity-status <job_id>`, then try again.', recovery: 'retry' },
     'CCP-JOB-003': { message: 'The job metadata is corrupted', action: 'Delete the job directory and create a new job.', recovery: 'abort' },
-    'CCP-JOB-004': { message: 'The result file is missing', action: 'Run it again with a new `/antigravity:rescue` call.', recovery: 'abort' },
+    'CCP-JOB-004': { message: 'The result file is missing', action: 'Run it again with a new `/ccp:antigravity-rescue` call.', recovery: 'abort' },
     'CCP-AUDIT-001': { message: 'There is no session data to audit', action: 'Adjust the `--since` range and try again.', recovery: 'abort' },
     'CCP-AUDIT-002': { message: 'The audit script failed to run', action: 'Try again later, or check the logs.', recovery: 'retry' },
     'CCP-INVALID-001': { message: 'Failed to parse arguments', action: 'Check the usage, then enter it again.', recovery: 'abort' },
@@ -346,7 +363,7 @@ export default {
 
   messages: {
     nextAction(kind, jobId) {
-      if (kind === 'background') return `/antigravity:status ${jobId}`;
+      if (kind === 'background') return `/ccp:antigravity-status ${jobId}`;
       return '';
     },
     retryHint(ctx) {
@@ -377,10 +394,26 @@ export default {
 
   buildArgs({ prompt, maxTokens, logFile, sandbox }) {
     const effectiveMaxTokens = Number.isFinite(maxTokens) ? maxTokens : DEFAULT_MAX_TOKENS;
-    const cappedPrompt = effectiveMaxTokens ? `${prompt}\n\n(Answer within ${effectiveMaxTokens} tokens if possible)` : prompt;
+    const tokenCappedPrompt = effectiveMaxTokens ? `${prompt}\n\n(Answer within ${effectiveMaxTokens} tokens if possible)` : prompt;
+    // OUTPUT_CONTRACT is appended unconditionally — independent of the
+    // maxTokens=0 branch above, which only controls the separate token-count
+    // hint.
+    const cappedPrompt = tokenCappedPrompt + OUTPUT_CONTRACT;
     const args = [];
     if (logFile) args.push('--log-file', logFile);
     if (sandbox) args.push('--sandbox');
+    // Auto-approve every tool-permission prompt the delegated agy model
+    // would otherwise raise. Non-interactive `-p` mode has nobody to answer
+    // those prompts, so without this any task that needs a tool (shell,
+    // file write, ...) fails with a soft-denied confirmation. Opt out per
+    // call with CCP_AGY_SKIP_PERMISSIONS — see commands/antigravity-rescue.md
+    // and agents/antigravity-rescue.md for the risk notice and --sandbox
+    // recommendation this flag ships alongside.
+    if (!isSkipPermissionsOptedOut()) args.push('--dangerously-skip-permissions');
+    // `-p <prompt>` must stay the last two elements of the array: older agy
+    // releases treat a value-less flag placed immediately before `-p` as
+    // swallowing the next token as its own value, so every boolean flag is
+    // pushed above this line, never below it.
     args.push('-p', cappedPrompt);
     return args;
   },
@@ -423,6 +456,12 @@ export default {
     const blob = `${stderr || ''}${stdout || ''}`;
     if (/quota|429|rate limit/i.test(blob)) return 'CCP-AG-002';
     if (/not logged in|sign in|authoriz|credential|login/i.test(blob)) return 'CCP-OAUTH-001';
+    // A CLI too old to recognize --dangerously-skip-permissions rejects it as
+    // an unknown flag rather than failing the delegated task itself — that's
+    // an install/version problem, not a generic run failure, so route it to
+    // the same code setup already uses for "not installed or too old" rather
+    // than the catch-all below (which only points at --verbose logs).
+    if (/unknown (option|flag|argument)|unrecognized (option|flag)|invalid option/i.test(blob)) return 'CCP-SETUP-001';
     return 'CCP-AG-001';
   },
 };

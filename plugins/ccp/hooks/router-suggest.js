@@ -21,7 +21,7 @@ const __dirname = dirname(__filename);
 
 const SUMMARY_MAX_CHARS = 500;
 const SLASH_HINT = {
-  antigravity: '/antigravity:rescue',
+  antigravity: '/ccp:antigravity-rescue',
   codex: '/ccp:codex-rescue',
 };
 
@@ -31,7 +31,7 @@ const SLASH_HINT = {
 // If there is no sign of a direct user slash call and automation keywords appear,
 // append one recommended pattern line.
 const HEADLESS_HINT = /headless|claude\s*-p|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654|automation|cron|CI/i;
-const SLASH_PRESENT = /\/(?:ccp:codex-|antigravity:)/;
+const SLASH_PRESENT = /\/ccp:(?:codex|antigravity)-/;
 
 function isLikelyHeadless(promptText) {
   if (SLASH_PRESENT.test(promptText)) return false;

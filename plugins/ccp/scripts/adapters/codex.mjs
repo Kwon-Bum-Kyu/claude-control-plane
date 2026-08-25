@@ -13,6 +13,16 @@
 // adapter interpolates ctx into its --fallback-claude summary text.
 
 const FALLBACK_HINT = ' Re-enter the original prompt to retry in Claude.';
+// Prevention layer for the summary-truncation problem core/runtime.mjs now
+// handles (sentence-boundary cut + summary_truncated flag + full body saved
+// to result_path) — see adapters/antigravity.mjs's OUTPUT_CONTRACT for the
+// full rationale (identical text, kept adapter-local rather than promoted to
+// core since core stays agnostic to CLI-specific prompt-shaping choices).
+// Especially relevant here: codex's own `summarize()` is an identity
+// function, so its own leading summary is effectively what ends up in the
+// envelope once truncation applies.
+const OUTPUT_CONTRACT =
+  '\n\n(Response format: open with a summary of at most 3 lines and 500 characters, then put the full detail below it.)';
 
 function normalizeTokens(tokens) {
   // codex usage has 3 fields (input/cached/output) -> CCP standard 4 fields
@@ -140,7 +150,6 @@ export default {
     },
     'CCP-CODEX-001': { message: 'Failed to run Codex CLI', action: 'Check stderr logs or retry in Claude.', recovery: 'retry' },
     'CCP-CODEX-002': { message: 'Could not find a valid JSONL event in the Codex response', action: 'Rerun with `--verbose` or check stderr logs.', recovery: 'retry' },
-    'CCP-CTX-001': { message: 'Subagent response exceeded the summary threshold', action: 'Fetch only the summary with `/ccp:codex-result <job_id> --summary-only`.' + FALLBACK_HINT, recovery: 'abort' },
     'CCP-JOB-002': { message: 'The job has not finished yet', action: 'Check `/ccp:codex-status <job_id>` and try again.', recovery: 'retry' },
     'CCP-JOB-004': { message: 'The result file is missing', action: 'Rerun with a new `/ccp:codex-rescue` call.', recovery: 'abort' },
     'CCP-JOB-409': { message: 'Cannot cancel in the current state', action: 'Check the job state and try again.', recovery: 'abort' },
@@ -228,7 +237,7 @@ export default {
     if (cwd) args.push('-C', cwd);
     if (model) args.push('-m', model);
     if (effort) args.push('-c', `model_reasoning_effort=${effort}`);
-    if (typeof prompt === 'string' && prompt.length > 0) args.push(prompt);
+    if (typeof prompt === 'string' && prompt.length > 0) args.push(prompt + OUTPUT_CONTRACT);
     return args;
   },
 

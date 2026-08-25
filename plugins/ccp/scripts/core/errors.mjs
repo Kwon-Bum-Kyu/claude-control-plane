@@ -41,11 +41,6 @@ export const SHARED_ERROR_CATALOG = {
     action: 'Retry or run asynchronously with --background.',
     recovery: 'retry',
   },
-  'CCP-CTX-001': {
-    message: 'Subagent response exceeded the summary threshold',
-    action: 'Fetch only the summary and try again.',
-    recovery: 'abort',
-  },
   'CCP-SETUP-002': {
     message: 'Node.js version is below the requirement',
     action: 'Install Node.js 20+ and rerun.',

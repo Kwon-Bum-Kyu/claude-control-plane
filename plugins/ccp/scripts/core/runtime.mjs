@@ -22,7 +22,7 @@ import { join, resolve } from 'node:path';
 import { resolvePaths } from './paths.mjs';
 import { mergeErrorCatalog } from './errors.mjs';
 import { emitSuccess, emitBackground, emitError } from './envelope.mjs';
-import { clampSummary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
+import { clampSummaryAtBoundary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
 import { parseArgsForAdapter, normalizeFlagName, pickInt, pickString, pickBool } from './args.mjs';
 import { runSync, spawnDetachedWorker, isAlive, killPid } from './process.mjs';
 import {
@@ -338,11 +338,12 @@ function jobLookupDetails(adapter, jobId, reason) {
 // envelope wrappers — pull adapter's sanitize policy so handlers don't repeat it
 // ---------------------------------------------------------------------------
 
-function emitSucc(ctx, { summary, result_path, tokens, details }) {
+function emitSucc(ctx, { summary, result_path, tokens, summary_truncated, details }) {
   emitSuccess({
     summary,
     result_path,
     tokens,
+    summary_truncated,
     details,
     allowKeys: ctx.adapter.details.allowKeys,
     sanitize: ctx.adapter.details.sanitizeScope.success,
@@ -582,14 +583,22 @@ function runForeground(ctx, { prompt, cwd, params }) {
 
   const summaryText = adapter.summarize(parsedRes.body || '');
   const budget = checkContextBudget(summaryText, { estimateTokens: adapter.estimateTokens, tokenCap: SUMMARY_TOKEN_CAP, maxChars: DEFAULT_SUMMARY_MAX_CHARS });
-  if (budget.violated) {
-    emitErr(ctx, 'CCP-CTX-001', { details: { estimated_tokens: budget.estimatedTokens, summary_length_chars: budget.lengthChars } });
-  }
+  // A summary over budget used to abort the whole call with a dedicated
+  // error code even though the CLI had already finished successfully. It
+  // now truncates at a sentence boundary and succeeds instead — the full,
+  // untruncated body is
+  // preserved below (jobId branch, or the truncation-triggered persistence
+  // branch for adapters with no foreground job record) so nothing is lost,
+  // only deferred out of the main-context-bound summary.
+  const clamped = budget.exceeded
+    ? clampSummaryAtBoundary(summaryText, DEFAULT_SUMMARY_MAX_CHARS)
+    : { text: summaryText, truncated: false };
+  const fullBody = parsedRes.body || summaryText;
 
   let resultPathOut = null;
   if (jobId) {
     const { resultPath } = jobArtifactPaths(adapter, paths, jobId);
-    writeFileSync(resultPath, summaryText, 'utf8');
+    writeFileSync(resultPath, fullBody, 'utf8');
     resultPathOut = exposedResultPath(adapter, paths, resultPath);
     patchJobMeta(
       paths.JOBS_DIR,
@@ -598,16 +607,34 @@ function runForeground(ctx, { prompt, cwd, params }) {
         state: 'completed',
         completed_at: new Date().toISOString(),
         result_path: resultPathOut,
-        summary_3lines: summaryText,
+        summary_3lines: clamped.text,
+        ...(clamped.truncated ? { summary_truncated: true } : {}),
         token_usage: adapter.tokensFrom(parsedRes.tokens),
         ...(parsedRes.meta || {}),
       },
       { writeStatusAlias }
     );
+  } else if (clamped.truncated) {
+    // Truncation-triggered persistence: an adapter that is otherwise fully
+    // stateless in the foreground (result.persistForeground: false — e.g.
+    // codex) still needs somewhere to put the full body once the summary can
+    // no longer hold all of it. Deliberately skips meta.json: this directory
+    // therefore has no lifecycle owner (status/result/cancel never look here,
+    // and hooks/rescue-finalize.js's orphan scan requires meta.json to exist
+    // before it will touch a directory at all) and accumulates one entry per
+    // truncated call with nothing cleaning it up — a known, recorded
+    // limitation, not a claim that this is side-effect-free. See the
+    // implementation progress log for the accumulation this causes.
+    const truncationJobId = randomUUID();
+    ensureJobDir(paths.JOBS_DIR, truncationJobId);
+    const resultPath = join(paths.JOBS_DIR, truncationJobId, adapter.result.fileName);
+    writeFileSync(resultPath, fullBody, 'utf8');
+    resultPathOut = exposedResultPath(adapter, paths, resultPath);
   }
 
   emitSucc(ctx, {
-    summary: summaryText || '(empty)',
+    summary: clamped.text || '(empty)',
+    summary_truncated: clamped.truncated || undefined,
     result_path: resultPathOut,
     tokens: adapter.tokensFrom(parsedRes.tokens),
     details: {
@@ -682,9 +709,17 @@ function handleResult(ctx, parsed) {
   if (!resolvedResultPath || !existsSync(resolvedResultPath)) {
     emitErr(ctx, 'CCP-JOB-004', { details: adapter.details.extraFor('result-file-missing', { jobId, meta }) });
   }
-  const summary = (meta.summary_3lines || '').slice(0, DEFAULT_SUMMARY_MAX_CHARS);
+  const clamped = clampSummaryAtBoundary(meta.summary_3lines || '', DEFAULT_SUMMARY_MAX_CHARS);
+  // Re-truncating an already-short, already-recorded summary is a no-op
+  // (clampSummaryAtBoundary passes text at or under the cap straight
+  // through), so `clamped.truncated` alone would miss a summary that a prior
+  // run already truncated and flagged in meta but that happens to read back
+  // under the cap here. OR in meta.summary_truncated so that flag survives
+  // the round trip instead of silently going missing on `/…:result`.
+  const wasTruncated = clamped.truncated || meta.summary_truncated === true;
   emitSucc(ctx, {
-    summary,
+    summary: clamped.text,
+    summary_truncated: wasTruncated || undefined,
     result_path: meta.result_path,
     tokens: adapter.tokensFrom(meta.token_usage),
     details: {
@@ -746,7 +781,12 @@ function handleTaskWorker(ctx, parsed) {
   if (r.status === 0 && r.stdout) {
     const logText = logFile ? readTextFileSafe(logFile) : '';
     const parsedRes = adapter.parseResult({ stdout: r.stdout, stderr: r.stderr, status: r.status, logText });
-    const summary = adapter.summarize(parsedRes.body || '') || '(empty)';
+    const summaryText = adapter.summarize(parsedRes.body || '');
+    const budget = checkContextBudget(summaryText, { estimateTokens: adapter.estimateTokens, tokenCap: SUMMARY_TOKEN_CAP, maxChars: DEFAULT_SUMMARY_MAX_CHARS });
+    const clamped = budget.exceeded
+      ? clampSummaryAtBoundary(summaryText, DEFAULT_SUMMARY_MAX_CHARS)
+      : { text: summaryText, truncated: false };
+    const fullBody = parsedRes.body || summaryText;
     const tokens = adapter.tokensFrom(parsedRes.tokens);
     // For adapters whose result file lives outside JOBS_DIR (the
     // repo-relative anchor), that directory was never created by the
@@ -756,7 +796,7 @@ function handleTaskWorker(ctx, parsed) {
     // whenever the two locations already coincide, which is every default,
     // non-overridden run.
     ensureJobDir(artifactDir, '');
-    writeFileSync(resultPath, summary, 'utf8');
+    writeFileSync(resultPath, fullBody, 'utf8');
     patchJobMeta(
       paths.JOBS_DIR,
       jobId,
@@ -765,7 +805,8 @@ function handleTaskWorker(ctx, parsed) {
         completed_at: new Date().toISOString(),
         exit_code: 0,
         result_path: exposedResultPath(adapter, paths, resultPath),
-        summary_3lines: clampSummary(summary),
+        summary_3lines: clamped.text || '(empty)',
+        ...(clamped.truncated ? { summary_truncated: true } : {}),
         token_usage: tokens,
         ...(parsedRes.meta || {}),
         duration_ms: duration,

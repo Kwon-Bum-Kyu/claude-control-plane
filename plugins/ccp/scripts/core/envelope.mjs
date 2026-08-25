@@ -86,18 +86,24 @@ function emit(envelope, knownViolations = []) {
  * @param {string} opts.summary
  * @param {string|null} [opts.result_path]
  * @param {object} opts.tokens          already adapter.tokensFrom()-shaped — passed through as-is
+ * @param {boolean} [opts.summary_truncated]  only ever added to the envelope when
+ *   this is exactly `true` — never emitted as `false`. A caller that already
+ *   ran the text through `budget.mjs#clampSummaryAtBoundary` passes its
+ *   `truncated` flag straight through here; anything else (`false`,
+ *   `undefined`) leaves the key out of the envelope entirely.
  * @param {object} [opts.details]
  * @param {string[]} [opts.allowKeys]
  * @param {boolean} [opts.sanitize]     adapter's details.sanitizeScope.success
  * @param {Array} [opts.knownViolations]  adapter's knownViolations allowlist
  */
-export function emitSuccess({ summary, result_path, tokens, details, allowKeys = [], sanitize = true, knownViolations = [] }) {
+export function emitSuccess({ summary, result_path, tokens, summary_truncated, details, allowKeys = [], sanitize = true, knownViolations = [] }) {
   const env = {
     summary: clamp(summary),
-    result_path: result_path ?? null,
-    tokens,
-    exit_code: 0,
   };
+  if (summary_truncated === true) env.summary_truncated = true;
+  env.result_path = result_path ?? null;
+  env.tokens = tokens;
+  env.exit_code = 0;
   if (details && typeof details === 'object') {
     env.details = sanitize ? sanitizeDetails(details, allowKeys) : details;
   }

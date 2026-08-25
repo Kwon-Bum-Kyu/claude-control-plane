@@ -105,7 +105,7 @@ function classify(input, opts = {}) {
   if (/\/ccp:codex-rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
     return { target: 'codex', axis: 'A', reason: 'user_explicit_codex' };
   }
-  if (/\/antigravity:rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
+  if (/\/ccp:antigravity-rescue\b/.test(text) && !/--fallback-claude/.test(text)) {
     return { target: 'antigravity', axis: 'A', reason: 'user_explicit_antigravity' };
   }
   if (/--fallback-claude\b/.test(text) || /--force-claude\b/.test(text)) {

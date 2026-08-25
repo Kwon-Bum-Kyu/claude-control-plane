@@ -17,11 +17,16 @@
         "summary": {
           "type": "string",
           "maxLength": 500,
-          "description": "Summary returned to the main Claude context. 500 chars or fewer (cap enforced to keep main-context absorption bounded)."
+          "description": "Summary returned to the main Claude context. 500 chars or fewer (cap enforced to keep main-context absorption bounded). When the source text was longer, it is cut at a sentence boundary and ends with the marker `...(truncated)`; `summary_truncated` is then set and `result_path` points at the untruncated body."
+        },
+        "summary_truncated": {
+          "type": "boolean",
+          "const": true,
+          "description": "Present and true only when the companion truncated the summary to fit the 500-char cap. Absent means the companion did not truncate — it is deliberately NOT emitted as false, because a CLI adapter may have shortened its own output before the companion ever saw it, and `false` would misstate that. When this flag is present, `result_path` is non-null and the file it names holds the full, untruncated response."
         },
         "result_path": {
           "type": ["string", "null"],
-          "description": "Path (relative or absolute) to the full result file. May be null in foreground mode."
+          "description": "Absolute path to the full result file. May be null in foreground mode for adapters that do not persist a job record — except when `summary_truncated` is present, in which case it is always non-null."
         },
         "tokens": { "$ref": "#/$defs/tokens" },
         "exit_code": {
@@ -132,7 +137,7 @@
               },
               "target": {
                 "type": ["string", "null"],
-                "description": "Slash hint — `/antigravity:rescue` or `/ccp:codex-rescue`. null if decision === 'claude'."
+                "description": "Slash hint — `/ccp:antigravity-rescue` or `/ccp:codex-rescue`. null if decision === 'claude'."
               },
               "axis": {
                 "type": "string",

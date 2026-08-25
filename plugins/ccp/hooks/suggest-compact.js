@@ -72,7 +72,7 @@ function main() {
       hookSpecificOutput: {
         hookEventName: 'PreCompact',
         additionalContext: clamp(
-          '[CCP-COMPACT-001] _workspace/_jobs/ and _workspace/_audits/ are preserved by .gitignore. You can still recover them with /antigravity:status <id> after compaction.'
+          '[CCP-COMPACT-001] _workspace/_jobs/ and _workspace/_audits/ are preserved by .gitignore. You can still recover them with /ccp:antigravity-status <id> after compaction.'
         ),
       },
     });
@@ -91,7 +91,7 @@ function main() {
   const message = clamp(
     `[CCP-COMPACT-001] Context usage has reached ${Math.round(
       ratio * 100
-    )}% (≥ 75%). Run \`/compact\` manually, or delegate large work with \`/antigravity:rescue\`.`
+    )}% (≥ 75%). Run \`/compact\` manually, or delegate large work with \`/ccp:antigravity-rescue\`.`
   );
 
   return emit({
