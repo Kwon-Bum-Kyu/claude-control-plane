@@ -50,19 +50,27 @@ const verbose = argv.includes('--verbose');
 //     "dispatch-then-read-back-live" scenario).
 //   - `next_action`: has that object's own (unmasked) job_id value stripped
 //     out, since it embeds the same id in prose.
-//   - `result_path`: only its mkdtemp random-suffix segment is masked
-//     (codex's `result` subcommand echoes the isolated capture tempdir —
-//     everything else in the path, including the job-id subdirectory, is a
-//     fixed test fixture and stays byte-exact).
+//   - `result_path`: everything from the start of the path through the
+//     mkdtemp leaf directory capture.mjs creates (`ccp-golden-<cli>-<rand>`)
+//     is masked as one unit — not just the random suffix. The OS-specific
+//     temp root ahead of it (`/var/folders/.../T` on macOS, `/tmp` on a
+//     Linux CI runner, and macOS's `/private/var/folders` alias for the same
+//     path) is host-dependent, so a baseline captured on one machine must
+//     still diff-clean when re-checked on another. Everything after that
+//     leaf directory, including the job-id subdirectory and filename, is a
+//     fixed test fixture and stays byte-exact.
 // Nothing else is ever masked — no blanket "any UUID-looking string" pass,
 // so codex_thread_id / antigravity_conversation_id / every other detail key
 // is always compared byte-exact.
 
 const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
-const CODEX_TMPDIR_SEGMENT_RE = /ccp-golden-codex-[A-Za-z0-9]+/g;
+// Anchored at the start of the string and greedy up to the mkdtemp leaf name
+// so it swallows the whole OS-specific prefix in one match, regardless of
+// what that prefix looks like on the host that produced it.
+const GOLDEN_TMPDIR_PREFIX_RE = /^.*ccp-golden-(?:codex|antigravity)-[A-Za-z0-9]+/;
 
 function maskResultPath(value) {
-  return typeof value === 'string' ? value.replace(CODEX_TMPDIR_SEGMENT_RE, '<TMPDIR>') : value;
+  return typeof value === 'string' ? value.replace(GOLDEN_TMPDIR_PREFIX_RE, '<TMPDIR>') : value;
 }
 
 function maskEnvelope(node, args) {

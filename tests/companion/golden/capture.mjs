@@ -90,7 +90,6 @@ function parseEnvelope(stdout) {
 function runOne(scenario, run) {
   const cli = run.cli;
   const isolatedDir = mkdtempSync(join(tmpdir(), `ccp-golden-${cli}-`));
-  let realRepoJobDir = null;
   const record = {
     id: scenario.id,
     title: scenario.title,
@@ -109,19 +108,6 @@ function runOne(scenario, run) {
       const path = join(isolatedDir, run.resultFile.relPath);
       mkdirSync(dirname(path), { recursive: true });
       writeFileSync(path, run.resultFile.content, 'utf8');
-    }
-
-    // --- antigravity-only: the `result` subcommand reads from the real
-    // repo tree regardless of CCP_JOBS_DIR (pre-existing isolation gap,
-    // not in scope to fix here). Materialize + clean up a real file so this
-    // one scenario can still capture a true success envelope without
-    // leaving anything behind. ---
-    if (run.realRepoResult) {
-      const absPath = join(REPO_ROOT, run.realRepoResult.relPath);
-      realRepoJobDir = dirname(absPath);
-      if (existsSync(realRepoJobDir)) rmSync(realRepoJobDir, { recursive: true, force: true });
-      mkdirSync(realRepoJobDir, { recursive: true });
-      writeFileSync(absPath, run.realRepoResult.content, 'utf8');
     }
 
     // --- env ---
@@ -153,9 +139,6 @@ function runOne(scenario, run) {
       spawnSync(process.execPath, ['-e', 'setTimeout(()=>{}, 400)']);
     }
   } finally {
-    if (realRepoJobDir && existsSync(realRepoJobDir)) {
-      rmSync(realRepoJobDir, { recursive: true, force: true });
-    }
     rmSync(isolatedDir, { recursive: true, force: true });
   }
 

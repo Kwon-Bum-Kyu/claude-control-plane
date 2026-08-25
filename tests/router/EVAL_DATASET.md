@@ -1,4 +1,4 @@
-# Router Regression Dataset — 70 cases
+# Router Regression Dataset — 72 cases
 
 This dataset is used by `tests/router/router-eval.mjs` to verify the routing decisions of `plugins/ccp/scripts/lib/router.mjs`.
 
@@ -6,12 +6,13 @@ This dataset is used by `tests/router/router-eval.mjs` to verify the routing dec
 
 | Class | Cases | Share |
 |-------|------:|------:|
-| Claude-favoured (`C01~C16`, `B01~B05`) | 21 | 30.0% |
-| Antigravity-favoured (`G01~G15`, minus `G09` which is codex-favoured) | 14 | 20.0% |
-| Codex-favoured (`G09`, `X01~X14`, magic keywords from `F16~F20`) | 19 | 27.1% |
-| False-positive guards (`F01~F15`) | 15 | 21.4% |
+| Claude-favoured (`C01~C16`, `B01~B05`) | 21 | 29.2% |
+| Antigravity-favoured (`G01~G15`, minus `G09` which is codex-favoured) | 14 | 19.4% |
+| Codex-favoured (`G09`, `X01~X14`, magic keywords from `F16~F20`) | 19 | 26.4% |
+| False-positive guards (`F01~F15`) | 15 | 20.8% |
 | Boundary cases (`B01~B05`, alt label permitted) | 5 (overlaps with C class) | — |
-| Magic-keyword (`F16~F20`) | 5 | 7.1% |
+| Magic-keyword (`F16~F20`) | 5 | 6.9% |
+| Namespace-substitution regression fixes (`N02~N03`) | 2 | 2.8% |
 
 ID prefixes are kept stable across runs so debug output stays diffable.
 
@@ -40,7 +41,7 @@ Claude is the right target when the task is short, depends on the previous main-
 
 Antigravity is the right target for large-context summarization or directory-wide analysis:
 
-- `G01` — slash command `/antigravity:rescue` with explicit prompt (axis A user-explicit)
+- `G01` — slash command `/ccp:antigravity-rescue` with explicit prompt (axis A user-explicit)
 - `G03` — summarize the entire repository in 3 lines (`estimated_tokens` 80,000)
 - `G06` — parse a 500MB access log (`large log` keyword + size)
 - `G08` — read the whole project and identify security risks (100,000 tokens)
@@ -76,6 +77,13 @@ Triggered by phrases that anchor the task to the previous turn. These force `cla
 - `F11–F15` — English actionable keywords must trigger correctly
 - `F16–F20` — magic keywords (`@antigravity`, `@ag`, `@안티`, `@codex`, `@코덱`, `@claude`, `@auto`) trigger axis A.
   Legacy `@gemini` / `@젬` / `@제미니` are retained as backward-compat aliases for `@antigravity` after the upstream Gemini CLI EOL.
+
+### Namespace-substitution regression fixes (N02–N03)
+
+Lock in two properties of the `/antigravity:*` → `/ccp:antigravity-*` namespace fix that no other case in this dataset exercises:
+
+- `N02` — `--fallback-claude` takes priority over an explicit `/ccp:antigravity-rescue` slash: `target === 'claude'`, `axis === 'A'`.
+- `N03` — the old, unregistered `/antigravity:rescue` notation is no longer recognized as user-explicit intent (`axis !== 'A'`; the input has no keyword, so it falls through to the size axis and lands on `claude`, but the axis is the property under test, not that target value). This case is the dataset's one deliberate, commented exception to "no `/antigravity:` strings anywhere in `tests/`" — it has to use the retired notation as input to prove the notation is retired.
 
 ## 4. How to run
 

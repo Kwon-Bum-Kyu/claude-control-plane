@@ -21,24 +21,29 @@ export const NON_UUID_JOB_ID = 'not-a-real-uuid';
 const AGY_CONVERSATION_ID = '22222222-2222-4222-8222-222222222222';
 const CODEX_THREAD_ID = '11111111-1111-4111-8111-111111111111';
 
-const AGY_COMPLETED_META = {
-  id: COMPLETED_JOB_ID,
-  status: 'completed',
-  prompt: 'golden test prompt',
-  mode: 'foreground',
-  created_at: '2026-01-01T00:00:00.000Z',
-  started_at: '2026-01-01T00:00:01.000Z',
-  completed_at: '2026-01-01T00:00:05.000Z',
-  antigravity_conversation_id: AGY_CONVERSATION_ID,
-  agy_version: '1.2.0',
-  max_tokens: 4000,
-  files: null,
-  sandbox: false,
-  token_usage: { input: 250, output: 500, estimated: true },
-  result_file_path: `_workspace/_jobs/${COMPLETED_JOB_ID}/result.md`,
-  summary_3lines: 'golden stub line 1\ngolden stub line 2\ngolden stub line 3',
-  error: null,
-};
+// A function, not a static object, because `result_file_path` must resolve
+// under the isolated CCP_JOBS_DIR the capture run seeds (antigravity's
+// result path is now 'absolute' — see adapters/antigravity.mjs `result`).
+function agyCompletedMeta(isolatedDir) {
+  return {
+    id: COMPLETED_JOB_ID,
+    status: 'completed',
+    prompt: 'golden test prompt',
+    mode: 'foreground',
+    created_at: '2026-01-01T00:00:00.000Z',
+    started_at: '2026-01-01T00:00:01.000Z',
+    completed_at: '2026-01-01T00:00:05.000Z',
+    antigravity_conversation_id: AGY_CONVERSATION_ID,
+    agy_version: '1.2.0',
+    max_tokens: 4000,
+    files: null,
+    sandbox: false,
+    token_usage: { input: 250, output: 500, estimated: true },
+    result_file_path: `${isolatedDir}/${COMPLETED_JOB_ID}/result.md`,
+    summary_3lines: 'golden stub line 1\ngolden stub line 2\ngolden stub line 3',
+    error: null,
+  };
+}
 
 const AGY_RUNNING_META = {
   id: RUNNING_JOB_ID,
@@ -148,17 +153,13 @@ function codexCancelMeta() {
 }
 
 // `meta` may be:
-//   - an object  -> JSON.stringify'd into meta.json (valid meta)
-//   - a string   -> written verbatim (used for the corrupted-JSON scenario)
-//   - undefined  -> no meta.json written (job id stays "not found")
-//
-// `realRepoResult` (antigravity "result-completed" run only): the
-// antigravity companion's `result` subcommand resolves `result_file_path`
-// against the real repo root regardless of CCP_JOBS_DIR — a pre-existing
-// isolation gap in the companion, out of scope for this bundle to fix.
-// Capturing a true success envelope for that path requires a matching file
-// to exist in the real repo tree; the capture script creates and removes it
-// around the call so no contamination survives the run.
+//   - an object    -> JSON.stringify'd into meta.json (valid meta)
+//   - a function    -> called with the isolated CCP_JOBS_DIR path, its return
+//                       value JSON.stringify'd into meta.json (used whenever
+//                       the meta needs to embed an isolation-run-specific
+//                       absolute path, e.g. result_file_path/result_path)
+//   - a string      -> written verbatim (used for the corrupted-JSON scenario)
+//   - undefined     -> no meta.json written (job id stays "not found")
 
 export const SCENARIOS = [
   {
@@ -207,9 +208,10 @@ export const SCENARIOS = [
       {
         cli: 'antigravity',
         args: ['result', COMPLETED_JOB_ID],
-        meta: AGY_COMPLETED_META,
-        realRepoResult: {
-          relPath: `_workspace/_jobs/${COMPLETED_JOB_ID}/result.md`,
+        meta: (isolatedDir) => agyCompletedMeta(isolatedDir),
+        resultFile: {
+          // resolved relative to the isolated CCP_JOBS_DIR at capture time
+          relPath: `${COMPLETED_JOB_ID}/result.md`,
           content: 'golden stub antigravity result body\n',
         },
       },

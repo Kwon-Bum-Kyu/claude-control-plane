@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CCP router accuracy regression — 70-case 3-way classifier.
+// CCP router accuracy regression — 72-case 3-way classifier.
 //
 // The 4-axis algorithm specified in plugins/ccp/skills/router/SKILL.md is
 // mirrored by plugins/ccp/scripts/lib/router.mjs. This script and
@@ -31,17 +31,17 @@ const DATASET = [
   { id: 'C16', input: 'eslint 에러 전부 autofix로 고쳐줘.', expected: 'claude', deciding_axis_expected: 'C' },
 
   // G01~G15 — Antigravity-favoured (G09 is codex-favoured: large diff review)
-  { id: 'G01', input: '/antigravity:rescue "이 디렉토리(src/**/*.ts, 12k LOC) 아키텍처 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
-  { id: 'G02', input: '/antigravity:rescue --background "logs/production.log 15MB에서 ERROR 빈도 상위 10"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G01', input: '/ccp:antigravity-rescue "이 디렉토리(src/**/*.ts, 12k LOC) 아키텍처 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G02', input: '/ccp:antigravity-rescue --background "logs/production.log 15MB에서 ERROR 빈도 상위 10"', expected: 'antigravity', deciding_axis_expected: 'A' },
   { id: 'G03', input: '이 전체 레포지토리를 3줄로 요약해줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 80000 },
   { id: 'G04', input: 'docs/ 아래 모든 마크다운 읽고 공통 개념 10개 뽑아줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 60000 },
   { id: 'G05', input: '이 디렉토리의 테스트 커버리지 현황 요약.', expected: 'antigravity', deciding_axis_expected: 'C' },
   { id: 'G06', input: '대용량 로그 파싱: access.log 500MB에서 상위 엔드포인트 100개', expected: 'antigravity', deciding_axis_expected: 'C' },
-  { id: 'G07', input: '/antigravity:rescue "이 모노레포의 패키지 의존성 그래프 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G07', input: '/ccp:antigravity-rescue "이 모노레포의 패키지 의존성 그래프 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
   { id: 'G08', input: 'node_modules 제외한 전체 프로젝트를 읽고 보안 리스크 식별해줘.', expected: 'antigravity', deciding_axis_expected: 'C', estimated_tokens: 100000 },
   { id: 'G09', input: '이 PR의 diff 10,000줄 전체를 리뷰해줘.', expected: 'codex', deciding_axis_expected: 'B', estimated_tokens: 50000 },
   { id: 'G10', input: '프로젝트 전체 코드베이스에서 unused export 목록 뽑아줘.', expected: 'antigravity', deciding_axis_expected: 'C' },
-  { id: 'G11', input: '/antigravity:rescue "이 10GB 데이터셋 CSV의 컬럼 스키마 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'G11', input: '/ccp:antigravity-rescue "이 10GB 데이터셋 CSV의 컬럼 스키마 요약"', expected: 'antigravity', deciding_axis_expected: 'A' },
   { id: 'G12', input: '이 라이선스 파일 50개(LICENSE, COPYING 등) 모두 분석해서 호환성 표 만들어줘.', expected: 'antigravity', deciding_axis_expected: 'C' },
   { id: 'G13', input: 'tsconfig.json부터 시작해서 모든 include 대상 파일 트리 요약.', expected: 'antigravity', deciding_axis_expected: 'C' },
   { id: 'G14', input: '이 전체 API 문서(spec.yaml 8000줄)에서 breaking changes 식별해줘.', expected: 'antigravity', deciding_axis_expected: 'B', estimated_tokens: 40000 },
@@ -106,6 +106,15 @@ const DATASET = [
   { id: 'F19', input: '@gemini summarize the README', expected: 'antigravity', deciding_axis_expected: 'A' },
   // F20 — 매직 키워드가 코드 블록 안에 있으면 false positive 차단 (axis A 미발동)
   { id: 'F20', input: '아래 코드 한 줄 수정\n```\n// @젬 example here\n```\nconfig.ts 의 첫 줄 변경', expected: 'claude', deciding_axis_expected: 'C' },
+
+  // N02~N03 — 네임스페이스 치환 회귀 고정 (02_router_accuracy_spec.md N-2·N-3).
+  // N-1·N-4 의 취지는 갱신된 G02·S9 로 이미 커버되어 신규 항목을 추가하지 않는다.
+  // N-2 — 명시 --fallback-claude 가 슬래시 사용자 명시보다 우선해 claude 로 귀결되는지.
+  { id: 'N02', input: '/ccp:antigravity-rescue --fallback-claude "이 디렉토리 전체 요약"', expected: 'claude', deciding_axis_expected: 'A' },
+  // N-3 — 미등록 구 표기(`/antigravity:rescue`)는 더 이상 axis A 사용자 명시로 인정되지 않는다.
+  // 키워드가 없는 입력이라 최종 target 은 크기 축(too_small)의 claude 로 귀결되지만, 이 케이스가
+  // 지키는 것은 그 target 값이 아니라 axis 가 A 가 아니라는 사실이다(axis 는 실측값 'B' 로 고정).
+  { id: 'N03', input: '/antigravity:rescue "이 로그 파일 확인"', expected: 'claude', deciding_axis_expected: 'B' },
 ];
 
 // 채점
@@ -182,13 +191,13 @@ console.log(`\n## 4. 오분류 케이스 (${failed.length}건)\n`);
 if (failed.length === 0) console.log('없음.');
 else for (const r of failed) console.log(`- ${r.id} 정답=${r.expected} 예측=${r.pred.target} (axis ${r.pred.axis}, ${r.pred.reason})`);
 
-const allPass =
-  correctTotal/total >= 0.80 &&
-  correctClear/clear.length >= 0.90 &&
-  correctBoundary/boundary.length >= 0.60 &&
-  TARGETS.every((t) => {
-    const pr = precRecall(t);
-    return pr.precision >= 0.75 && pr.recall >= 0.75;
-  });
-console.log(`\n**Verdict: ${allPass ? '✅ PASS' : '❌ FAIL'}**`);
+// Verdict gate: zero misclassifications, full stop. The percentage/precision/
+// recall table above stays as diagnostic detail (useful for seeing *how*
+// close a failing run was), but it is no longer the pass/fail bar — an
+// 80%-accuracy regression that silently drops 14 cases would still print
+// "PASS" under the old thresholds. `correct` already allows a boundary
+// case's `alt_label`, so this is exactly "every case classified acceptably",
+// not a stricter re-definition of correctness.
+const allPass = failed.length === 0;
+console.log(`\n**Verdict: ${allPass ? '✅ PASS' : '❌ FAIL'}** (gate: 0 misclassifications; ${failed.length}/${total} failed)`);
 process.exit(allPass ? 0 : 1);
