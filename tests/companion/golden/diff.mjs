@@ -68,6 +68,13 @@ const ISO_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
 // so it swallows the whole OS-specific prefix in one match, regardless of
 // what that prefix looks like on the host that produced it.
 const GOLDEN_TMPDIR_PREFIX_RE = /^.*ccp-golden-(?:codex|antigravity)-[A-Za-z0-9]+/;
+// plugin_root is an absolute path on whichever host produced the snapshot, so
+// a baseline captured in one checkout fails in another (a second clone, a CI
+// runner). Only the prefix ahead of the plugin's own directory is masked —
+// the '/plugins/ccp' tail stays byte-exact so the assertion this scenario
+// actually makes, that the rejected path is compared against the plugin root,
+// is still verified rather than papered over.
+const PLUGIN_ROOT_PREFIX_RE = /^.*(?=\/plugins\/ccp$)/;
 
 function maskResultPath(value) {
   return typeof value === 'string' ? value.replace(GOLDEN_TMPDIR_PREFIX_RE, '<TMPDIR>') : value;
@@ -89,6 +96,8 @@ function maskEnvelope(node, args) {
       out[k] = jobIdIsFromInput ? v : '<TIMESTAMP>';
     } else if (k === 'result_path' && typeof v === 'string') {
       out[k] = maskResultPath(v);
+    } else if (k === 'plugin_root' && typeof v === 'string') {
+      out[k] = v.replace(PLUGIN_ROOT_PREFIX_RE, '<PLUGIN_ROOT>');
     } else if (k === 'next_action' && typeof v === 'string') {
       out[k] = rawJobId && !jobIdIsFromInput ? v.split(rawJobId).join('<JOB_ID>') : v;
     } else if (v && typeof v === 'object') {
