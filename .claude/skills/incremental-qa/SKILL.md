@@ -1,6 +1,7 @@
 ---
 name: incremental-qa
 description: "CCP 모듈 단위 즉시 검증 절차. 전체 완성 후 1회 QA가 아니라 모듈 완성 즉시 검증. 경계면 교차 비교 (명세 ↔ 구현) 중심. QA·검증·테스트 작업 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Incremental QA — 모듈 단위 즉시 검증 절차
@@ -10,16 +11,18 @@ CCP의 QA는 전체 완성 후 1회가 아니라 **모듈이 완성될 때마다
 ## 검증 사이클
 
 ```
-adapter-engineer가 모듈 묶음 완성 (진행 보고 기록)
-   ↓ 오케스트레이터가 harness-qa 재개(SendMessage) 호출
+adapter-engineer가 모듈 묶음 완성 → 종료 (진행 보고 기록)
+   ↓ 오케스트레이터가 harness-qa 를 신규 스폰 (이전 검증 이력은 memory + 05_qa_report.md 로 인계)
 harness-qa가 즉시 검증 시작
    ↓
-모듈별 체크리스트 실행
+모듈별 체크리스트 실행 (5분 초과 가능 명령은 run_in_background)
    ↓
-결과 보고 (_workspace/05_qa_report.md 추가)
+결과를 _workspace/05_qa_report.md 에 누적 기록 + 요약 반환 → 종료
    ↓
-회귀 발견 시 오케스트레이터가 adapter-engineer 재개로 수정 중재 (다음 묶음 진입 차단)
+회귀 발견 시 오케스트레이터가 adapter-engineer 를 결함 좌표와 함께 재호출하여 수정 중재 (다음 묶음 진입 차단)
 ```
+
+> 각 호출은 완주형이다. 검증을 마치면 종료하고, 다음 묶음은 새 호출로 받는다. 서브 에이전트를 살려 둔 채 다음 모듈 완성을 기다리면 5분 캐시 TTL 을 넘겨 컨텍스트가 통째로 재작성된다. 그래서 검증 결과를 반환값에만 담지 않고 반드시 파일에 남긴다 — 다음 호출이 읽을 근거는 파일과 `memory` 뿐이다.
 
 ## 모듈별 체크리스트
 
@@ -70,7 +73,7 @@ QA의 핵심은 "존재 확인"이 아니라 **두 인터페이스를 동시에 
 ## 회귀 발견 시 즉시 차단
 
 회귀가 발견되면:
-1. 오케스트레이터에게 결함 좌표(파일:라인)와 함께 즉시 보고 — 오케스트레이터가 adapter-engineer/plugin-scaffolder 재개 호출로 수정을 중재
+1. 오케스트레이터에게 결함 좌표(파일:라인)와 함께 즉시 보고 — 오케스트레이터가 adapter-engineer/plugin-scaffolder 를 결함 좌표와 함께 재호출하여 수정을 중재
 2. `_workspace/05_qa_report.md`에 회귀 ID와 재현 절차 기록
 3. 수정 후 재검증 사이클 반복
 

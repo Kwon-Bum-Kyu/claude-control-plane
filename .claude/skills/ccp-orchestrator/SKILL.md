@@ -1,6 +1,8 @@
 ---
 name: ccp-orchestrator
 description: "CCP(Claude Control Plane) 플러그인 개발 8단계 하네스 오케스트레이터 — 자연어 접수→기획→검수→휴먼 승인(G1)→개발→QA→휴먼 승인(G2)→위키화 파이프라인으로 에이전트 팀을 조율. CCP 플러그인 개발·기획·검수·구현·QA·위키화, 라우터 작업, Antigravity/Codex 통합, codex-plugin-cc 미러링, 결과 수정·부분 재실행·업데이트·보완·다시 실행·이전 결과 개선·기획 다시·검수 다시·구현 다시·QA 다시·위키화 다시·하네스 재실행 요청 시 반드시 이 스킬을 사용. 승인 게이트 응답('승인', '개발 진행해', '위키화 진행해', '거부, 이 부분 수정')도 이 스킬로 처리."
+disable-model-invocation: false
+user-invocable: true
 ---
 
 # CCP Orchestrator — Claude Control Plane 개발 하네스
@@ -18,7 +20,7 @@ Claude Control Plane(CCP) 플러그인 개발을 8단계 파이프라인으로 �
 
 ## 실행 모드: 하이브리드 서브 에이전트
 
-팀 옵트인(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) 미활성 전제로 서브 에이전트 패턴으로 실행한다. 에이전트 간 통신은 **파일 기반 인계 + 오케스트레이터 중재 + 재개(SendMessage)** 로 대체한다.
+팀 옵트인(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`) 미활성 전제로 서브 에이전트 패턴으로 실행한다. 에이전트 간 통신은 **파일 기반 인계 + 오케스트레이터 중재 + 에이전트 `memory`** 로 대체한다. 재개(SendMessage)는 아래 캐시 리듬 규칙이 허용하는 범위에서만 쓴다.
 
 | 단계 | 실행 모드 | 참여자 (model) |
 |------|----------|---------------|
@@ -26,12 +28,23 @@ Claude Control Plane(CCP) 플러그인 개발을 8단계 파이프라인으로 �
 | S2 기획 | 서브 직렬 → 병렬 | spec-writer(opus) → scope-guard(haiku) ∥ ux-designer(sonnet) |
 | S3 검수 | 서브 병렬 | architecture-reviewer(opus) ∥ token-economist(opus) ∥ license-auditor(opus) |
 | S4 휴먼 승인 G1 | 오케스트레이터 인라인 (`AskUserQuestion`) | — |
-| S5 개발 | 서브 직렬 + 재개 사이클 | plugin-scaffolder(sonnet) → adapter-engineer(sonnet) ⇄ harness-qa(sonnet, incremental) |
-| S6 QA | 서브 단독 (재개) | harness-qa(sonnet, 전체 스위트) |
+| S5 개발 | 서브 직렬 (묶음마다 완주형 스폰) | plugin-scaffolder(sonnet) → adapter-engineer(sonnet) ⇄ harness-qa(sonnet, incremental) |
+| S6 QA | 서브 단독 (신규 스폰) | harness-qa(sonnet, 전체 스위트) |
 | S7 휴먼 승인 G2 | 오케스트레이터 인라인 (`AskUserQuestion`) | — |
 | S8 위키화 | 서브 병렬 | claude-obsidian:wiki-ingest (N개 소스) |
 
 모든 Agent 호출 prompt에는 브리핑 5요소를 포함한다: ① 목표(결과 정의) ② 이미 시도/룰아웃된 것 ③ 파일/라인 좌표 ④ 산출물 형식 ⑤ 보고 길이 한도. 에이전트 보고는 의도이지 결과가 아니므로, 핵심 산출물은 오케스트레이터가 직접 열어 검증한다.
+
+## 캐시 리듬 (서브 에이전트 TTL 대응)
+
+서브 에이전트의 프롬프트 캐시 TTL 은 약 5분이며, API 호출 사이의 공백이 이를 넘으면 그 에이전트의 컨텍스트 전체가 재작성된다. 문제는 작업이 오래 걸리는 것이 아니라 **호출 사이가 비는 것**이므로, 본 하네스는 다음 규칙을 강제한다.
+
+- **완주형 임무** — 서브 에이전트는 자기완결 단위로 스폰하고, 결과를 반환값과 `_workspace/` 파일로 남긴 뒤 종료시킨다. 국면을 넘는 컨텍스트 유지는 대기 상태 에이전트가 아니라 에이전트 `memory` 와 산출물 파일이 담당한다. 재개(SendMessage)는 "결함 보고 직후 수정 지시" 처럼 5분 안에 이을 수 있는 경우로만 한정한다.
+- **대기는 메인 레벨에만** — 승인 게이트(G1·G2)나 사용자 판단 대기는 오케스트레이터(메인, 약 1시간 TTL)가 처리한다. 게이트 앞에 서브 에이전트를 대기시키지 않고, 게이트 사이 구간을 완주형 임무로 잘라 스폰한다. 게이트를 통과하면 다음 구간 에이전트를 새로 스폰하는 편이, 살아 있는 에이전트를 대기시키는 것보다 싸다.
+- **5분 초과 명령은 background** — 외부 CLI 호출·빌드·테스트 스위트·회귀 하니스처럼 5분을 넘길 수 있는 Bash 명령은 `run_in_background: true` 로 실행하고 완료 알림을 받는다. 명시적 polling 이나 sleep 은 쓰지 않는다. 이 조건은 Agent 호출 prompt 에 매번 포함한다 (브리핑 5요소와 함께 점검).
+- **프리픽스 안정성** — 세션 도중 MCP 서버를 연결하거나 해제하지 않는다. deferred 도구의 `ToolSearch` 로드는 에이전트 초반에 몰아서 처리한다. 스크린샷 등 이미지는 컨텍스트에 쌓지 말고 파일로 저장한 뒤 경로만 전달한다.
+- **에이전트 분리 기준** — TTL 회피 목적의 에이전트 쪼개기는 무효다. 분리는 에이전트 컨텍스트가 비대해졌거나(약 100k 토큰 초과) 단계 간 의존이 파일 인계로 끊어질 때만 유효하다. 새 에이전트마다 프리픽스 캐시 재작성 1회 비용이 발생하므로 일회성 작업마다 새 에이전트를 만들지 않는다.
+- **진단** — 캐시 손실이 의심되면 `python3 ~/.claude/skills/harness/scripts/cache_cold_scan.py ~/.claude/projects/<프로젝트-디렉터리>` 를 실행하고, 결과를 캐시 리듬 가이드의 실측 기준선과 대조한다.
 
 ## 산출물 번호 체계 (`_workspace/`)
 
@@ -80,7 +93,7 @@ Claude Control Plane(CCP) 플러그인 개발을 8단계 파이프라인으로 �
 - scope-guard: `01_*.md` 전체의 범위 적합성 판정 → `01_backlog.md`, `01_scope_decisions.md`
 - ux-designer: 슬래시 UX·사용자 시나리오·에러 메시지·README 구조 → `01_user_scenarios.md`, `01_onboarding.md`, `01_error_messages.md`, `01_readme_outline.md`
 
-**3) 범위 위반 반영:** scope-guard가 명세 본문에 남은 범위 초과 항목을 지목하면, spec-writer를 재개(SendMessage)하여 백로그 이관 반영 (1회).
+**3) 범위 위반 반영:** scope-guard가 명세 본문에 남은 범위 초과 항목을 지목하면, spec-writer를 백로그 이관 지시와 함께 재호출한다 (1회). 병렬 호출이 5분을 넘겼다면 재개가 아니라 신규 스폰이며, 이전 산출물 경로를 prompt에 넘긴다.
 
 **종료 조건:** `01_*.md` 산출물 전부 존재 + 모든 산출물에 `## 미결 사항` 섹션 명시.
 
@@ -101,7 +114,7 @@ Claude Control Plane(CCP) 플러그인 개발을 8단계 파이프라인으로 �
 1. 게이트 요약 작성: 기획 핵심(범위·합격 기준), 검수 결과(BLOCKER/수정 요청/미결 사항), 예상 공수
 2. `AskUserQuestion`으로 제시 — 선택지: **승인(개발 진행)** / **수정 후 재검수**(피드백 반영하여 S2 또는 S3 부분 재실행) / **중단**
 3. 결과를 `_workspace/03_gate1_approval.md`에 기록: 상태(approved/rejected/pending), 일시, 사용자 피드백 원문, 조건부 승인 시 조건
-4. 거부 시: 피드백을 해당 에이전트 재개 호출에 전달 → 수정 → 재검수 → G1 재제시
+4. 거부 시: 피드백과 이전 산출물 경로를 담아 해당 에이전트를 신규 스폰 → 수정 → 재검수 → G1 재제시 (게이트 대기 중 서브 에이전트는 이미 종료된 상태다)
 5. 세션이 게이트에서 끊기면 상태는 pending으로 남는다 — 다음 세션에서 Stage 0이 감지하여 게이트부터 재개
 
 ### Stage 5: 개발 (Development) — 서브 직렬 + incremental QA 사이클
@@ -111,25 +124,28 @@ Claude Control Plane(CCP) 플러그인 개발을 8단계 파이프라인으로 �
 - 진행 보고: `04_scaffold_progress.md`
 
 **2) harness-qa (sonnet) 스폰 — 스캐폴드 즉시 검증:**
-- 스캐폴드 구조·매니페스트 스키마 검증. 이 에이전트는 이후 incremental 사이클과 S6 전체 QA까지 **재개(SendMessage)로 컨텍스트를 유지**한다
+- 스캐폴드 구조·매니페스트 스키마를 검증하고 결과를 보고한 뒤 **종료**한다 (완주형)
+- 이후 incremental 사이클과 S6 전체 QA는 같은 에이전트를 살려 두는 것이 아니라 **매번 새로 스폰**한다. 검증 이력은 에이전트 `memory` 와 `_workspace/04_*`·`05_*` 산출물이 잇는다 — adapter-engineer가 모듈을 구현하는 동안 QA를 대기시키면 5분 TTL을 넘겨 컨텍스트가 통째로 재작성된다
 
 **3) adapter-engineer (sonnet) 모듈 단위 직렬 사이클:**
 - 구현 작업을 모듈 2~4개 묶음으로 분해 (예: companion 스크립트 / 라우터 / 훅·가드레일)
-- 각 묶음: adapter-engineer 호출(첫 회) 또는 재개(이후) → 완료 시 harness-qa 재개로 즉시 검증(incremental-qa 스킬 M1~M5) → 결함 발견 시 adapter-engineer 재개로 수정 → 재검증 후 다음 묶음
-- 진행 보고: `04_implementation_progress.md`
+- 각 묶음: adapter-engineer 스폰 → 묶음 완주 후 종료 → harness-qa 신규 스폰으로 즉시 검증(incremental-qa 스킬 M1~M5) → 결함 발견 시 adapter-engineer를 결함 좌표와 함께 재호출하여 수정 → 재검증 후 다음 묶음
+- 결함 보고 직후 5분 안에 수정 지시를 이을 수 있으면 재개(SendMessage)를 써도 된다. 그보다 늦으면 신규 스폰하고 이전 산출물 경로를 prompt에 넘긴다
+- 테스트·빌드·외부 CLI 호출처럼 5분을 넘길 수 있는 명령은 `run_in_background: true` 로 실행하도록 두 에이전트의 prompt에 명시한다
+- 진행 보고: adapter-engineer 는 `04_implementation_progress.md`, harness-qa 는 `05_qa_report.md` 에 누적 기록 — 완주형 스폰이므로 검증 상태는 파일로만 이어진다
 
 **종료 조건:** 명세된 코드 산출물 전부 존재 + incremental 검증에서 미해결 결함 0건.
 
-### Stage 6: QA — harness-qa 전체 스위트 (재개)
+### Stage 6: QA — harness-qa 전체 스위트 (신규 스폰)
 
-개발 단계에서 유지해 온 harness-qa를 재개하여 통합 스위트를 실행한다:
+harness-qa를 새로 스폰하여 통합 스위트를 실행한다. 개발 단계의 검증 이력은 에이전트 `memory` 와 `_workspace/04_*`·`05_*` 산출물로 전달하고, 회귀 하니스·측정 시나리오 실행은 `run_in_background: true` 로 지시한다:
 
 1. `02_token_scenarios.md`의 측정 시나리오 전체 실행 → `05_token_measurement.md`
 2. `02_regression_cases.md`의 회귀 케이스 + 기존 회귀 baseline (`tests/router/` 하니스, harness-audit 점수) 실행 → `05_qa_report.md`, `05_router_accuracy.md`
 3. 경계면 교차 비교 — 명세(`01_*`, `02_*`) ↔ 구현(`plugins/ccp/`) 시그니처·스키마·권한 대조
 4. 합격/불합격 판정 → `05_verdict.md` (판정 근거·수치 포함)
 
-**불합격 시:** adapter-engineer 재개로 수정 1루프 → 재QA. 재불합격이면 불합격 verdict 그대로 G2에 상정한다 (허위 합격 금지 — 판정 조작 대신 사용자 판단으로).
+**불합격 시:** adapter-engineer를 결함 좌표와 함께 재호출하여 수정 1루프 → 재QA. 재불합격이면 불합격 verdict 그대로 G2에 상정한다 (허위 합격 금지 — 판정 조작 대신 사용자 판단으로).
 
 ### Stage 7: 휴먼 승인 G2 (위키화 진입 게이트)
 
@@ -169,7 +185,7 @@ _workspace/02_*.md
       ↓ (S4: AskUserQuestion) → 03_gate1_approval.md [approved]
       ↓ (S5: scaffolder → adapter ⇄ harness-qa incremental)
 plugins/ccp/* + _workspace/04_*.md
-      ↓ (S6: harness-qa 전체 스위트, 재개)
+      ↓ (S6: harness-qa 전체 스위트, 신규 스폰)
 _workspace/05_*.md (verdict 포함)
       ↓ (S7: AskUserQuestion) → 06_gate2_approval.md [approved]
       ↓ (S8: 런 요약 → vault .raw/ → wiki-ingest 병렬)
@@ -182,7 +198,7 @@ wiki vault 페이지 + 07_wiki_run_summary.md + HARNESS_CHANGELOG 1행
 |------|------|
 | 서브 에이전트 1회 실패 | 1회 재시도. 재실패 시 해당 산출물 없이 진행하되 게이트 요약에 누락 명시 (사용자가 게이트에서 판단) |
 | S3 검수 BLOCKER 발견 | S2 복귀 수정 라운드. 복귀/강행이 모호하면 G1에 결함 포함 상정 |
-| G1/G2 거부 | 피드백을 해당 에이전트 재개 호출에 전달 → 수정 → 재검증 → 게이트 재제시. 거부 사유는 게이트 파일에 누적 기록 |
+| G1/G2 거부 | 피드백과 이전 산출물 경로를 담아 해당 에이전트를 신규 스폰 → 수정 → 재검증 → 게이트 재제시. 게이트 대기 중 서브 에이전트를 살려 두지 않는다. 거부 사유는 게이트 파일에 누적 기록 |
 | 게이트에서 세션 중단 | 게이트 파일 pending 보존 → 다음 세션 Stage 0이 감지하여 게이트부터 재개 |
 | S6 QA 불합격 | 수정 1루프 → 재QA → 재불합격 시 불합격 그대로 G2 상정 (허위 합격 금지) |
 | 산출물 간 불일치 (명세↔구현) | 검수 산출물 우선 적용, 차이를 `04_implementation_progress.md`의 `## drift` 섹션에 기록 |
@@ -203,7 +219,7 @@ wiki vault 페이지 + 07_wiki_run_summary.md + HARNESS_CHANGELOG 1행
 ### 에러 흐름 (G1 거부)
 1. S4에서 사용자가 "수정 후 재검수" 선택 + "범위가 너무 넓다" 피드백
 2. `03_gate1_approval.md` [rejected + 사유] 기록
-3. scope-guard 재개 → 범위 축소 판정 → spec-writer 재개 → 명세 수정
+3. scope-guard 신규 스폰 → 범위 축소 판정 → spec-writer 신규 스폰 → 명세 수정 (게이트 대기로 이전 에이전트는 이미 종료된 상태)
 4. architecture-reviewer만 부분 재검수 → G1 재제시 → 승인 → 이후 정상 진행
 
 ### 게이트 재개 흐름 (세션 분리)
