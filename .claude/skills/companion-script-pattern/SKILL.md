@@ -1,6 +1,7 @@
 ---
 name: companion-script-pattern
 description: "antigravity-companion.mjs 등 외부 CLI 래퍼 스크립트 구현 패턴. codex-companion.mjs 미러링 — foreground/background 분기, JSON envelope, OAuth 사전 검증, job 메타 디스크 저장. CLI 래퍼·companion 스크립트 작성 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Companion Script Pattern — CLI 래퍼 구현 패턴

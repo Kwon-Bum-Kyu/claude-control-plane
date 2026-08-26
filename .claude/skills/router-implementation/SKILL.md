@@ -1,6 +1,7 @@
 ---
 name: router-implementation
 description: "Claude vs Antigravity 라우팅 결정 로직 구현 가이드. 입력 크기·키워드·사용자 명시·fallback 4축 분류. 라우터 분류 정확도 80%+ 합격 기준. 라우터 구현·라우팅 정책 작성 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Router Implementation — 모델 라우터 구현 가이드

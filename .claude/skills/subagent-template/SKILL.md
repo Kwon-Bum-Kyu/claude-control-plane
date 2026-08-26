@@ -1,6 +1,7 @@
 ---
 name: subagent-template
 description: "Claude Code 플러그인 서브에이전트 정의 템플릿. 권한 화이트리스트·입출력 계약·요약 반환 강제 패턴. antigravity-rescue 등 서브에이전트 명세 작성 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Subagent Template — 서브에이전트 정의 템플릿

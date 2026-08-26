@@ -1,6 +1,7 @@
 ---
 name: slash-command-template
 description: "Claude Code 플러그인 슬래시 커맨드 명세 작성 템플릿. 입력·출력·에러·권한 4축 구조. /antigravity:rescue 등 슬래시 커맨드 명세 작성 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Slash Command Template — 슬래시 커맨드 명세 템플릿

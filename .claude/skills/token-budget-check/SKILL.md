@@ -1,6 +1,7 @@
 ---
 name: token-budget-check
 description: "토큰 예산·컨텍스트 사용량 추정 및 회귀 케이스 검증 절차. ecc context-budget 패턴 기반 (words×1.3 추정). 토큰 사용량 측정·이중 청구 검증·라우터 효율 평가 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Token Budget Check — 토큰 예산 추정·검증 절차

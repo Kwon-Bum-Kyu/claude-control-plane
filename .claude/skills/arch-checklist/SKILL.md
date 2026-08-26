@@ -1,6 +1,7 @@
 ---
 name: arch-checklist
 description: "CCP 아키텍처 검수 체크리스트 (A1~A8). codex-plugin-cc 대칭성·플러그인 시스템 호환성·서브에이전트 격리·OAuth fallback 검증. 아키텍처 리뷰·검수 작업 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Arch Checklist — CCP 아키텍처 검수 체크리스트

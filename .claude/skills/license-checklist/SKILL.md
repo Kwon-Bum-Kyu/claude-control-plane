@@ -1,6 +1,7 @@
 ---
 name: license-checklist
 description: "공개 레포 배포를 위한 라이선스·의존성·비밀 정보 누출 감사 체크리스트 (L1~L9). ecc·codex-plugin-cc 차용 코드 검증. 라이선스 감사·공개 적합성 검토 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # License Checklist — 공개 레포 라이선스·의존성 감사

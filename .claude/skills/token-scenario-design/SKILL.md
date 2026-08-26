@@ -1,6 +1,7 @@
 ---
 name: token-scenario-design
 description: "CCP 토큰 절감 가설 검증을 위한 측정 시나리오·회귀 케이스·라우터 정확도 평가 데이터셋 설계 절차. 토큰 측정 시나리오 작성·회귀 케이스 설계 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Token Scenario Design — 토큰 측정 시나리오 설계 절차

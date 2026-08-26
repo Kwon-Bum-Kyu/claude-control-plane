@@ -1,6 +1,7 @@
 ---
 name: plugin-manifest-spec
 description: "Claude Code 플러그인 매니페스트 스키마 표준 — .claude-plugin/marketplace.json, plugins/{name}/plugin.json 작성 규칙. 슬래시·서브에이전트·훅 등록 방식. 매니페스트 작성·검토·검증 작업 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # Plugin Manifest Spec — Claude Code 플러그인 매니페스트 표준

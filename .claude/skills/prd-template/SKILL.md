@@ -1,6 +1,7 @@
 ---
 name: prd-template
 description: "CCP 플러그인 PRD(제품 요구사항 문서) 작성 템플릿. 목표·범위·시나리오·합격 기준 구조. PRD 작성·기획 문서 작성 시 반드시 이 스킬을 사용."
+user-invocable: false
 ---
 
 # PRD Template — CCP 제품 요구사항 문서 템플릿
