@@ -19,7 +19,7 @@ You only need the CLI for the side(s) you actually want to use. Both setups are 
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
 /reload-plugins
-/antigravity:setup        # diagnoses Antigravity CLI and OAuth
+/ccp:antigravity-setup        # diagnoses Antigravity CLI and OAuth
 /ccp:codex-setup     # diagnoses Codex CLI and OAuth
 ```
 
@@ -55,7 +55,7 @@ Pick OAuth for casual interactive use; pick API key when you want predictable pe
 Run a small request that exercises the router:
 
 ```text
-/antigravity:rescue "summarize the README of this repository in three lines"
+/ccp:antigravity-rescue "summarize the README of this repository in three lines"
 ```
 
 You should see a three-line summary, an estimated token saving, and a `result_path` pointing into `_workspace/_jobs/`. If you do not, jump to [troubleshooting](./troubleshooting.md).
@@ -65,7 +65,7 @@ You should see a three-line summary, an estimated token saving, and a `result_pa
 ### 1. Small input — let the router learn
 
 ```text
-/antigravity:rescue "summarize the README of this repository in three lines"
+/ccp:antigravity-rescue "summarize the README of this repository in three lines"
 ```
 
 The router weighs input size and keywords and picks Claude or Antigravity accordingly. For tiny inputs it usually keeps the work on Claude.
@@ -73,14 +73,14 @@ The router weighs input size and keywords and picks Claude or Antigravity accord
 ### 2. Large input — background job
 
 ```text
-/antigravity:rescue --background "from /var/log/app/error.log extract the top 10 5xx errors in the last 24 hours"
+/ccp:antigravity-rescue --background "from /var/log/app/error.log extract the top 10 5xx errors in the last 24 hours"
 ```
 
 The companion returns a `job_id` immediately. Track and collect with:
 
 ```text
-/antigravity:status <job_id>
-/antigravity:result <job_id>
+/ccp:antigravity-status <job_id>
+/ccp:antigravity-result <job_id>
 ```
 
 The full Antigravity output is written to disk; only the bounded summary returns to Claude.

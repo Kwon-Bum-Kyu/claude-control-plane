@@ -14,7 +14,7 @@ body:
     attributes:
       label: Summary
       description: One-sentence description of the defect.
-      placeholder: "/antigravity:rescue returns ENOENT when the prompt contains a Korean code block"
+      placeholder: "/ccp:antigravity-rescue returns ENOENT when the prompt contains a Korean code block"
     validations:
       required: true
 
@@ -24,7 +24,7 @@ body:
       label: Reproduction steps
       description: Minimal steps. Include the exact slash command or shell invocation.
       placeholder: |
-        1. `/antigravity:rescue --background "summarize this 50KB log"`
+        1. `/ccp:antigravity-rescue --background "summarize this 50KB log"`
         2. Wait until status transitions to `running`
         3. Observe envelope.exit_code == 1
     validations:
@@ -91,7 +91,7 @@ body:
     attributes:
       label: Pre-flight
       options:
-        - label: I ran `/antigravity:setup` (and `/codex:setup` if applicable) and OAuth is healthy
+        - label: I ran `/ccp:antigravity-setup` (and `/ccp:codex-setup` if applicable) and OAuth is healthy
           required: true
         - label: I confirmed the issue still reproduces on the latest `main`
           required: true

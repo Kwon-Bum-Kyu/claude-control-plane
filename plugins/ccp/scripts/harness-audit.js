@@ -236,30 +236,45 @@ function scorePluginCompat() {
 }
 
 function scoreBorrowedCodeDocumented() {
-  // License texts live in LICENSES/. This category verifies that the directory is
-  // present and contains at least one license file per upstream project that CCP
-  // borrows from. License obligations are met by LICENSES/ alone.
+  // Two signals, weighted equally:
+  //   (1) upstream license texts present in LICENSES/
+  //   (2) every file declared as borrowed in docs/en/architecture.md actually exists
+  //       and, for Apache-2.0 files, carries its upstream header comment
   const repoRoot = resolve(PLUGIN_ROOT, '..', '..');
   const licensesDir = resolve(repoRoot, 'LICENSES');
   if (!existsSync(licensesDir)) {
     return { score: 0, note: 'LICENSES/ missing' };
   }
-  const required = [
+
+  const requiredTexts = [
     'codex-plugin-cc-Apache-2.0.txt',
     'oh-my-claudecode-MIT.txt',
     'everything-claude-code-MIT.txt',
   ];
-  let pass = 0;
-  const missing = [];
-  for (const file of required) {
-    if (existsSync(resolve(licensesDir, file))) pass += 1;
-    else missing.push(file);
+  const textsOk = requiredTexts.filter((f) => existsSync(resolve(licensesDir, f))).length;
+
+  // Apache-2.0 files must exist AND declare their upstream in a header comment.
+  const apacheFiles = [
+    'scripts/core/args.mjs',
+    'scripts/core/jobs.mjs',
+    'scripts/core/process.mjs',
+    'scripts/core/runtime.mjs',
+    'scripts/adapters/codex.mjs',
+  ];
+  let headersOk = 0;
+  for (const rel of apacheFiles) {
+    const abs = resolve(PLUGIN_ROOT, rel);
+    if (!existsSync(abs)) continue;
+    const head = readFileSync(abs, 'utf8').slice(0, 800);
+    if (head.includes('codex-plugin-cc') && head.includes('Apache License 2.0')) headersOk += 1;
   }
-  const score = Math.round((pass / required.length) * 5);
+
+  const textRatio = textsOk / requiredTexts.length;
+  const headerRatio = headersOk / apacheFiles.length;
+  const score = Math.round(((textRatio + headerRatio) / 2) * 5);
   const note =
-    missing.length === 0
-      ? `${pass}/${required.length} upstream license texts present in LICENSES/`
-      : `${pass}/${required.length} pass, missing: ${missing.join(', ')}`;
+    `${textsOk}/${requiredTexts.length} upstream license texts in LICENSES/, ` +
+    `${headersOk}/${apacheFiles.length} adapted files declare their upstream header`;
   return { score, note };
 }
 

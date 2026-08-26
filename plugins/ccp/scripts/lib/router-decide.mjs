@@ -142,7 +142,7 @@ function mapReasonCode(decision) {
 }
 
 const SLASH_HINT = {
-  antigravity: '/antigravity:rescue',
+  antigravity: '/ccp:antigravity-rescue',
   codex: '/ccp:codex-rescue',
   claude: null,
 };

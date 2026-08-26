@@ -6,10 +6,10 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Antigravit
 
 | 커맨드 | 용도 |
 |---|---|
-| `/antigravity:rescue <prompt>` | Antigravity 에 무거운 작업 위임 |
-| `/antigravity:status <job_id>` | background job 상태 조회 |
-| `/antigravity:result <job_id>` | 완료된 job 의 요약 + `result_path` 회수 |
-| `/antigravity:setup [--renew]` | Antigravity CLI · OAuth 진단 |
+| `/ccp:antigravity-rescue <prompt>` | Antigravity 에 무거운 작업 위임 |
+| `/ccp:antigravity-status <job_id>` | background job 상태 조회 |
+| `/ccp:antigravity-result <job_id>` | 완료된 job 의 요약 + `result_path` 회수 |
+| `/ccp:antigravity-setup [--renew]` | Antigravity CLI · OAuth 진단 |
 
 ## Codex (코드 리뷰·diff·버그 조사)
 
@@ -44,7 +44,7 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Antigravit
 | `--cwd DIR` | ❌ | ✅ | Codex 작업 루트 |
 | `--renew` | ✅ | (`codex login` 직접 사용) | OAuth 재인증 안내 |
 
-`/antigravity:rescue` 에 Codex 전용 플래그 (또는 그 반대) 가 들어오면 companion 이 인라인으로 `CCP-INVALID-001` 을 반환합니다. 의도된 동작이며, 잘못된 슬래시를 조기에 노출합니다.
+`/ccp:antigravity-rescue` 에 Codex 전용 플래그 (또는 그 반대) 가 들어오면 companion 이 인라인으로 `CCP-INVALID-001` 을 반환합니다. 의도된 동작이며, 잘못된 슬래시를 조기에 노출합니다.
 
 ## 3-way 호환성
 
@@ -65,10 +65,10 @@ CCP 는 9개 슬래시 커맨드를 3그룹으로 제공합니다 — Antigravit
 ### Background job 라이프사이클
 
 ```text
-/antigravity:rescue --background "/var/log/app/error.log 최근 24시간 요약"
+/ccp:antigravity-rescue --background "/var/log/app/error.log 최근 24시간 요약"
 # → envelope.summary 에 job_id
-/antigravity:status <job_id>     # queued / running / completed / failed
-/antigravity:result <job_id>     # 요약 + result_path
+/ccp:antigravity-status <job_id>     # queued / running / completed / failed
+/ccp:antigravity-result <job_id>     # 요약 + result_path
 ```
 
 ### Codex — effort + sandbox 명시

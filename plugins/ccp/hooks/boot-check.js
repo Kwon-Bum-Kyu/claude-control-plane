@@ -66,15 +66,15 @@ function main() {
   const issues = [];
   if (nodeMajor() < MIN_NODE_MAJOR) {
     issues.push(
-      `Node.js ${process.versions.node} (CCP requires ≥ v${MIN_NODE_MAJOR}) — run \`/antigravity:setup\``
+      `Node.js ${process.versions.node} (CCP requires ≥ v${MIN_NODE_MAJOR}) — run \`/ccp:antigravity-setup\``
     );
   }
   const ver = agyVersion();
   if (!ver) {
-    issues.push('Antigravity CLI (`agy`) not installed — `curl -fsSL https://antigravity.google/cli/install.sh | bash`, then run `/antigravity:setup`');
+    issues.push('Antigravity CLI (`agy`) not installed — `curl -fsSL https://antigravity.google/cli/install.sh | bash`, then run `/ccp:antigravity-setup`');
   }
   if (!detectAuth()) {
-    issues.push('Antigravity authentication not found — run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`, then run `/antigravity:setup`');
+    issues.push('Antigravity authentication not found — run `agy` once interactively to complete keyring sign-in, or export `ANTIGRAVITY_API_KEY`, then run `/ccp:antigravity-setup`');
   }
 
   if (issues.length === 0) return emit({});

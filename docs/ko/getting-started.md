@@ -19,7 +19,7 @@ CCP (Claude Control Plane) 는 Claude 를 메인 컨트롤 플레인으로 두�
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
 /reload-plugins
-/antigravity:setup        # Antigravity CLI · OAuth 진단
+/ccp:antigravity-setup        # Antigravity CLI · OAuth 진단
 /ccp:codex-setup     # Codex CLI · OAuth 진단
 ```
 
@@ -55,7 +55,7 @@ Antigravity CLI 는 두 가지 인증 경로를 지원하며, **무료 티어 �
 라우터를 거치는 작은 요청을 실행해 보세요.
 
 ```text
-/antigravity:rescue "이 레포지토리의 README 를 3줄로 요약해"
+/ccp:antigravity-rescue "이 레포지토리의 README 를 3줄로 요약해"
 ```
 
 3줄 요약 + 토큰 절감 추정 + `_workspace/_jobs/` 하위의 `result_path` 가 출력되면 정상입니다. 그렇지 않으면 [트러블슈팅](./troubleshooting.md) 을 참고하세요.
@@ -65,7 +65,7 @@ Antigravity CLI 는 두 가지 인증 경로를 지원하며, **무료 티어 �
 ### 1. 작은 입력 — 라우터 학습
 
 ```text
-/antigravity:rescue "이 레포지토리의 README 를 3줄로 요약해"
+/ccp:antigravity-rescue "이 레포지토리의 README 를 3줄로 요약해"
 ```
 
 라우터가 입력 크기와 키워드를 분석해 Claude 또는 Antigravity 로 분기합니다. 매우 작은 입력은 보통 Claude 가 처리합니다.
@@ -73,14 +73,14 @@ Antigravity CLI 는 두 가지 인증 경로를 지원하며, **무료 티어 �
 ### 2. 큰 입력 — background job
 
 ```text
-/antigravity:rescue --background "/var/log/app/error.log 에서 최근 24시간 5xx 에러 Top 10 추출"
+/ccp:antigravity-rescue --background "/var/log/app/error.log 에서 최근 24시간 5xx 에러 Top 10 추출"
 ```
 
 companion 이 `job_id` 를 즉시 반환합니다. 추적·회수:
 
 ```text
-/antigravity:status <job_id>
-/antigravity:result <job_id>
+/ccp:antigravity-status <job_id>
+/ccp:antigravity-result <job_id>
 ```
 
 전체 Antigravity 출력은 디스크에 저장되고, 한정된 요약만 Claude 로 회귀합니다.

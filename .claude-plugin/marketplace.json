@@ -6,7 +6,7 @@
   "metadata": {
     "displayName": "Claude Control Plane",
     "description": "Claude as the main control plane orchestrating Antigravity and Codex CLIs as sub-agents. Mirrors codex-plugin-cc patterns for zero learning cost; ports ecc guardrails to prevent token regression.",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "license": "MIT"
   },
   "plugins": [
@@ -14,7 +14,7 @@
       "name": "ccp",
       "source": "./plugins/ccp",
       "description": "Antigravity CLI wrapper + model router + ecc guardrails port.",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "license": "MIT"
     }
   ]

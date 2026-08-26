@@ -5,20 +5,20 @@ allowed-tools:
   - Bash
 ---
 
-# /antigravity:result
+# /ccp:antigravity-result
 
-Retrieves the result of a job started with `/antigravity:rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (double-billing prevention — see README §4).
+Retrieves the result of a job started with `/ccp:antigravity-rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (double-billing prevention — see README §4).
 
 ## Usage
 
 ```
-/antigravity:result <job_id> [--summary-only]
+/ccp:antigravity-result <job_id> [--summary-only]
 ```
 
 | Argument | Description |
 |------|------|
 | `<job_id>` | UUID v4 of the completed job (required) |
-| `--summary-only` | Return only the summary without opening the result file (to avoid `CCP-CTX-001`) |
+| `--summary-only` | Accepted but currently a no-op — the envelope already never includes raw result content (see Behavior below); reserved for a future stricter mode |
 
 ## Behavior
 
@@ -37,7 +37,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" result <job_id> [
 ```json
 {
   "summary": "≤3-line summary (hard cap: 500 chars)",
-  "result_path": "_workspace/_jobs/<uuid>/result.md",
+  "result_path": "/absolute/path/to/project/_workspace/_jobs/<uuid>/result.md",
   "tokens": { "input": 97, "output": 580, "estimated": true },
   "exit_code": 0,
   "details": { "mode": "antigravity", "job_id": "<uuid>", "antigravity_conversation_id": "<uuid|null>" }
@@ -46,13 +46,15 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" result <job_id> [
 
 Main Claude should pass `result_path` to the user, but **must not open it with a Read tool on its own** (partial reading is allowed only on explicit user request).
 
+If the envelope also carries `summary_truncated: true`, the `summary` above was cut at a sentence boundary and is not the whole response — the untruncated body is the file at `result_path`. This still does not license an automatic read: consult that file, and prefer reading only the part you need over the whole thing, only when the summary genuinely is not enough for the judgment you are making right now — never as a reflex immediately after the call returns.
+
 ## Error Codes
 
 | Code | Cause | recovery |
 |------|------|:---:|
 | `CCP-INVALID-001` | Invalid UUID format | abort |
 | `CCP-JOB-001` | job directory missing | abort |
-| `CCP-JOB-002` | still running or failed | retry — wait via `/antigravity:status` |
+| `CCP-JOB-002` | still running or failed | retry — wait via `/ccp:antigravity-status` |
 | `CCP-JOB-003` | meta.json corrupted | abort |
 | `CCP-JOB-004` | meta exists but `result.md` is missing | abort |
 
@@ -63,5 +65,6 @@ Main Claude should pass `result_path` to the user, but **must not open it with a
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/antigravity-companion.mjs:cmdResult`
+- `plugins/ccp/scripts/core/runtime.mjs:handleResult`
+- `plugins/ccp/scripts/adapters/antigravity.mjs` `result` / `supports.resultIncompleteCode` (CLI-specific result path + incomplete-state error mapping)
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)

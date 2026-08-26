@@ -6,7 +6,9 @@
 //   - Headless heuristic (S7~S9): 3 scenarios
 //   - Hook ↔ router-agent split responsibility + envelope defense (S10~S19): 10 scenarios
 //
-// Pass threshold: ≥18/19 (≥95%).
+// Pass threshold: 19/19 (0 misclassifications — a partial-credit threshold
+// would let a real regression in this exact suite, e.g. the slash-dedup
+// fix, pass silently).
 // Run: node tests/router/router-suggest-test.mjs
 
 import { spawnSync, execFileSync } from 'node:child_process';
@@ -67,8 +69,8 @@ const CASES = [
   // === Recommendation baseline (S1~S6) ===
   {
     id: 'S1-antigravity-slash',
-    label: 'baseline: explicit /antigravity:rescue → ROUTER-001 emit, no META-WARN',
-    run: () => runHook({ input: { prompt: '/antigravity:rescue 이 디렉토리 전체 요약' } }),
+    label: 'baseline: explicit /ccp:antigravity-rescue → ROUTER-001 emit, no META-WARN',
+    run: () => runHook({ input: { prompt: '/ccp:antigravity-rescue 이 디렉토리 전체 요약' } }),
     expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
   },
   {
@@ -118,7 +120,7 @@ const CASES = [
   {
     id: 'S9-slash-overrides-headless',
     label: 'headless: explicit slash overrides headless keyword → no META-WARN',
-    run: () => runHook({ input: { prompt: '/antigravity:rescue headless 자동화로 이 디렉토리 요약' } }),
+    run: () => runHook({ input: { prompt: '/ccp:antigravity-rescue headless 자동화로 이 디렉토리 요약' } }),
     expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
   },
 
@@ -351,13 +353,12 @@ const total = CASES.length;
 const rate = (pass / total) * 100;
 console.log(`\n## Result: ${pass}/${total} PASS (${rate.toFixed(1)}%)`);
 
-// Pass threshold: ≥95% (≥18/19).
-const passThreshold = Math.ceil(total * 0.95);
-if (pass >= passThreshold) {
-  console.log(`**Verdict: ✅ PASS (${pass}/${total} ≥ ${passThreshold}/${total} = 95%)**`);
+// Pass threshold: 0 misclassifications (see header comment).
+if (fail === 0) {
+  console.log(`**Verdict: ✅ PASS (${pass}/${total})**`);
   process.exit(0);
 } else {
-  console.log(`**Verdict: ❌ FAIL (${pass}/${total} < ${passThreshold}/${total} = 95%)**`);
+  console.log(`**Verdict: ❌ FAIL (${pass}/${total}, ${fail} misclassified)**`);
   for (const f of failures) {
     console.log(`\n[${f.id}] ${f.label}\noutput: ${f.output}`);
   }

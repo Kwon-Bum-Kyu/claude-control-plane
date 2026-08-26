@@ -5,7 +5,7 @@ description: "Estimates the main Claude context token budget and warns when usag
 
 # Context Budget Skill
 
-Estimates the main Claude context token budget and recommends voluntary compaction (`/compact`) or Antigravity delegation (`/antigravity:rescue`) when thresholds are crossed.
+Estimates the main Claude context token budget and recommends voluntary compaction (`/compact`) or Antigravity delegation (`/ccp:antigravity-rescue`) when thresholds are crossed.
 
 ## Trigger conditions
 
@@ -30,9 +30,9 @@ Rationale: see `.claude/skills/token-budget-check/SKILL.md` §2. The `words × 1
 | Utilisation | Level | Recommendation |
 |-------------|-------|----------------|
 | < 50% | OK | (no trigger) |
-| 50% – 75% | INFO | "Context usage above 50%. Consider delegating new large tasks via `/antigravity:rescue`." |
-| 75% – 90% | WARNING (`CCP-COMPACT-001`) | "75% reached — compact manually with `/compact`, or delegate large tasks via `/antigravity:rescue`." |
-| ≥ 90% | CRITICAL (`CCP-COMPACT-001`) | "90% imminent — `/compact` or `/antigravity:rescue --background` recommended." |
+| 50% – 75% | INFO | "Context usage above 50%. Consider delegating new large tasks via `/ccp:antigravity-rescue`." |
+| 75% – 90% | WARNING (`CCP-COMPACT-001`) | "75% reached — compact manually with `/compact`, or delegate large tasks via `/ccp:antigravity-rescue`." |
+| ≥ 90% | CRITICAL (`CCP-COMPACT-001`) | "90% imminent — `/compact` or `/ccp:antigravity-rescue --background` recommended." |
 
 `decision: "block"` is never used — the user flow is not interrupted (Principle 4).
 
@@ -49,7 +49,7 @@ Automatic compaction is intentionally not in scope for v0.x.
 ## Integration points
 
 - `plugins/ccp/hooks/suggest-compact.js` — UserPromptSubmit / PreCompact hook consumes the threshold matrix above
-- `plugins/ccp/scripts/antigravity-companion.mjs` — companion output guard (`enforceContextBudget`) applies the same 1,500-token / 500-character cap
+- `plugins/ccp/scripts/core/budget.mjs` — companion output guard (`checkContextBudget`, shared by every CLI adapter) applies the same 1,500-token / 500-character cap
 
 ## Acceptance criteria
 
@@ -60,6 +60,6 @@ Automatic compaction is intentionally not in scope for v0.x.
 ## Spec SSOT
 
 - `plugins/ccp/hooks/suggest-compact.js` (hook implementation)
-- `plugins/ccp/scripts/antigravity-companion.mjs:enforceContextBudget` (companion output guard)
+- `plugins/ccp/scripts/core/budget.mjs:checkContextBudget` (companion output guard, shared by every CLI adapter)
 - README §4 (subagent isolation principle — no automatic fallback)
 - `.claude/skills/token-budget-check/SKILL.md` (meta-skill)

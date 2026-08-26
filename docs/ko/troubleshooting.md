@@ -6,14 +6,13 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 
 | 코드 | 빈도 | 다음 행동 |
 |---|:---:|---|
-| `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/antigravity:setup` 재실행 |
+| `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/ccp:antigravity-setup` 재실행 |
 | `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
-| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/antigravity:rescue --fallback-claude` |
-| `CCP-CTX-001` | ★ | summary 가 500자 초과 — 입력 축소 |
+| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/ccp:antigravity-rescue --fallback-claude` |
 | `CCP-ROUTER-001` | ★ | `/ccp:audit` 으로 라우터 결정 검토 |
 | `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
-| `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/antigravity:status <job_id>` 로 job 상태 재확인 |
+| `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/ccp:antigravity-status <job_id>` 로 job 상태 재확인 |
 
 ## Codex 측 에러
 
@@ -26,7 +25,7 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 | `CCP-CODEX-002` | ★ | JSONL 파싱 실패 — `--verbose` 또는 stderr 확인 후 재시도 |
 | `CCP-JOB-001` ~ `CCP-JOB-004` | ★ | `/ccp:codex-status <job_id>` 로 재확인 |
 | `CCP-JOB-409` | ★ | 현 상태에서 취소 불가 — 상태 확인 후 재시도 |
-| `CCP-INVALID-001` | ★ | Codex 전용 플래그 (`--effort`/`--sandbox`/`--write`) 가 `/antigravity:rescue` 에 들어왔습니다 — `/ccp:codex-rescue` 사용 |
+| `CCP-INVALID-001` | ★ | Codex 전용 플래그 (`--effort`/`--sandbox`/`--write`) 가 `/ccp:antigravity-rescue` 에 들어왔습니다 — `/ccp:codex-rescue` 사용 |
 
 ## 공통 에러
 
@@ -35,7 +34,7 @@ CCP 의 모든 에러는 `CCP-<카테고리>-<NNN>` 코드, 한 줄 `message`, �
 | `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` (foreground default 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | ★ | `--since` 윈도 조정 또는 스크립트 로그 확인 |
 
-전체 카탈로그는 `plugins/ccp/scripts/antigravity-companion.mjs` 와 `codex-companion.mjs` 의 `ERROR_CATALOG` 상수에 있습니다.
+전체 카탈로그는 `plugins/ccp/scripts/adapters/antigravity.mjs` 와 `adapters/codex.mjs` 의 `errors` 블록에 있습니다 (`core/errors.mjs` 의 공용 코드와 병합됨).
 
 ## 자주 묻는 질문
 
@@ -71,8 +70,8 @@ Codex CLI 의 정상 동작입니다. 무해하며 companion 이 자동 흡수�
 두 setup 커맨드는 멱등합니다. 환경 변경이 의심될 때마다 실행하세요.
 
 ```text
-/antigravity:setup            # Node + Antigravity CLI + OAuth
-/antigravity:setup --renew    # OAuth 재인증까지 안내
+/ccp:antigravity-setup            # Node + Antigravity CLI + OAuth
+/ccp:antigravity-setup --renew    # OAuth 재인증까지 안내
 /ccp:codex-setup         # Node + Codex CLI + OAuth
 ```
 
@@ -80,7 +79,7 @@ Codex CLI 의 정상 동작입니다. 무해하며 companion 이 자동 흡수�
 
 ## 버그 신고 시점
 
-에러 코드가 누락되었거나, action 이 message 와 맞지 않거나, `CCP-CODEX-*` / `CCP-GEMINI-*` 가 재시도 후에도 반복되면 issue 템플릿으로 신고해주세요. envelope JSON 과 `/antigravity:setup` · `/ccp:codex-setup` 의 출력을 첨부해주세요.
+에러 코드가 누락되었거나, action 이 message 와 맞지 않거나, `CCP-CODEX-*` / `CCP-GEMINI-*` 가 재시도 후에도 반복되면 issue 템플릿으로 신고해주세요. envelope JSON 과 `/ccp:antigravity-setup` · `/ccp:codex-setup` 의 출력을 첨부해주세요.
 
 ## 관련 문서
 

@@ -1,6 +1,6 @@
 ---
 name: router
-description: "Deterministic router for CCP 3-way model selection (Claude / Antigravity / Codex). Use proactively when the user prompt may benefit from delegation — large-context summarization, code review, diff analysis, bug investigation. MUST BE USED when the user prompt contains a magic keyword (@antigravity / @ag / @안티 / @gemini / @젬 / @codex / @코덱 / @claude / @클로드 / @auto / @자동) or when the user prompt is ambiguous before manually invoking /antigravity:rescue or /ccp:codex-rescue. Forwarding wrapper only — runs router-decide.mjs and returns its JSON envelope verbatim. No LLM judgment added (forwarding-wrapper dispatch defense)."
+description: "Deterministic router for CCP 3-way model selection (Claude / Antigravity / Codex). Use proactively when the user prompt may benefit from delegation — large-context summarization, code review, diff analysis, bug investigation. MUST BE USED when the user prompt contains a magic keyword (@antigravity / @ag / @안티 / @gemini / @젬 / @codex / @코덱 / @claude / @클로드 / @auto / @자동) or when the user prompt is ambiguous before manually invoking /ccp:antigravity-rescue or /ccp:codex-rescue. Forwarding wrapper only — runs router-decide.mjs and returns its JSON envelope verbatim. No LLM judgment added (forwarding-wrapper dispatch defense)."
 tools: ["Bash"]
 disallowedTools: ["mcp__*", "Task"]
 model: haiku
@@ -49,7 +49,7 @@ Return the stdout of the Bash command verbatim. The envelope shape is fixed (see
   "details": {
     "mode": "router",
     "decision": "claude" | "antigravity" | "codex",
-    "target": "/antigravity:rescue" | "/ccp:codex-rescue" | null,
+    "target": "/ccp:antigravity-rescue" | "/ccp:codex-rescue" | null,
     "axis": "A" | "B" | "C" | "D",
     "reason_code": "<one of 12 enum values>",
     "headless_confident": <boolean>

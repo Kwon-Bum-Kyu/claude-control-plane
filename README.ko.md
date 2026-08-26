@@ -51,11 +51,11 @@
 /plugin marketplace add Kwon-Bum-Kyu/claude-control-plane
 /plugin install ccp@claude-control-plane
 /reload-plugins
-/antigravity:setup        # antigravity CLI·OAuth 진단
+/ccp:antigravity-setup        # antigravity CLI·OAuth 진단
 /ccp:codex-setup     # codex CLI·OAuth 진단
 ```
 
-`/antigravity:setup` 과 `/ccp:codex-setup` 이 Node.js·각 CLI·OAuth 상태를 자동 진단합니다. 미설치 시 안내 명령:
+`/ccp:antigravity-setup` 과 `/ccp:codex-setup` 이 Node.js·각 CLI·OAuth 상태를 자동 진단합니다. 미설치 시 안내 명령:
 
 ```bash
 # Antigravity
@@ -74,7 +74,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 ### 성공 확인
 
 ```
-/antigravity:rescue "이 레포지토리의 README.md 를 3줄로 요약해"
+/ccp:antigravity-rescue "이 레포지토리의 README.md 를 3줄로 요약해"
 ```
 
 3줄 요약 + 토큰 절감 추정 + `result_path` 가 출력되면 정상.
@@ -90,7 +90,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 ### 샘플 1 — README 요약 (작은 입력, 라우터 학습)
 
 ```
-/antigravity:rescue "이 레포지토리의 README.md 를 3줄로 요약해"
+/ccp:antigravity-rescue "이 레포지토리의 README.md 를 3줄로 요약해"
 ```
 
 라우터가 입력 크기·키워드를 분석해 Claude 또는 Antigravity 로 자동 분기합니다.
@@ -98,10 +98,10 @@ codex login                         # 브라우저로 ChatGPT 인증
 ### 샘플 2 — 큰 로그 파일 위임 (대용량, background)
 
 ```
-/antigravity:rescue --background "/var/log/app/error.log 에서 최근 24시간 500 에러 Top 10 추출"
+/ccp:antigravity-rescue --background "/var/log/app/error.log 에서 최근 24시간 500 에러 Top 10 추출"
 ```
 
-→ `job_id` 즉시 반환 → `/antigravity:status <job_id>` 로 진행 확인 → `/antigravity:result <job_id>` 로 요약 회수.
+→ `job_id` 즉시 반환 → `/ccp:antigravity-status <job_id>` 로 진행 확인 → `/ccp:antigravity-result <job_id>` 로 요약 회수.
 
 ### 샘플 3 — 코드 리뷰 위임
 
@@ -127,10 +127,10 @@ codex login                         # 브라우저로 ChatGPT 인증
 
 | 커맨드 | 요약 |
 |--------|------|
-| `/antigravity:rescue <prompt>` | 무거운 작업을 Antigravity 에 위임 |
-| `/antigravity:status <job_id>` | background job 상태 조회 |
-| `/antigravity:result <job_id>` | 완료된 job 의 요약+경로 회수 |
-| `/antigravity:setup [--renew]` | Antigravity CLI·OAuth 환경 진단 |
+| `/ccp:antigravity-rescue <prompt>` | 무거운 작업을 Antigravity 에 위임 |
+| `/ccp:antigravity-status <job_id>` | background job 상태 조회 |
+| `/ccp:antigravity-result <job_id>` | 완료된 job 의 요약+경로 회수 |
+| `/ccp:antigravity-setup [--renew]` | Antigravity CLI·OAuth 환경 진단 |
 
 ### 4.2 Codex (코드 리뷰·diff·버그 조사)
 
@@ -161,7 +161,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--files <glob>` | ⚠️ MVP 미구현 | ❌ | antigravity 첨부 파일 |
 | `--model NAME` | ❌ | ✅ | codex 모델 별칭 |
 | `--effort low\|medium\|high` | ❌ `CCP-INVALID-001` | ✅ (`-c model_reasoning_effort=`) | reasoning effort |
-| `--sandbox MODE` | ❌ `CCP-INVALID-001` | ✅ (read-only/workspace-write/danger-full-access) | codex 샌드박스 |
+| `--sandbox MODE` | ✅ (불리언 토글, 모드 값 없음) | ✅ (read-only/workspace-write/danger-full-access) | codex 샌드박스 |
 | `--cwd DIR` | ❌ | ✅ | codex 작업 루트 |
 | `--renew` | ✅ | (해당 없음 — `codex login` 직접 사용) | OAuth 재인증 안내 |
 
@@ -169,7 +169,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 
 ## 4.5 모델 호환성 매트릭스 (3-way)
 
-`/ccp:codex-rescue` (codex), `/antigravity:rescue` (antigravity), Claude 본체(claude) 3 경로가 지원하는 옵션·기능 비교:
+`/ccp:codex-rescue` (codex), `/ccp:antigravity-rescue` (antigravity), Claude 본체(claude) 3 경로가 지원하는 옵션·기능 비교:
 
 | 옵션 / 기능 | claude | antigravity | codex | 비고 |
 |---|:---:|:---:|:---:|---|
@@ -179,7 +179,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--poll-interval-ms N` | N/A | ✅ (2000) | ✅ (2000) | polling 주기 |
 | `--model NAME` | †`/model` 슬래시 | ✅ | ✅ | claude 는 Claude Code `/model` 슬래시로 변경 |
 | `--effort low\|medium\|high` | ‡extended thinking | ❌ `CCP-INVALID-001` | ✅ `-c model_reasoning_effort=<level>` | claude 는 Option+T (extended thinking 토글) |
-| `--sandbox <mode>` | N/A (실행 안 함) | ❌ | ✅ read-only/workspace-write/danger-full-access | codex 만 |
+| `--sandbox <mode>` | N/A (실행 안 함) | ✅ (불리언 토글만) | ✅ read-only/workspace-write/danger-full-access | antigravity 는 불리언, codex 는 명명된 모드 |
 | `--write` | N/A | ❌ | ✅ (= `--sandbox workspace-write`) | codex 의 가독성 alias |
 | `--cwd DIR` | N/A (대화 turn) | ❌ | ✅ (`-C`) | codex 만 |
 | `--max-tokens N` | N/A | ✅ (prompt suffix 변환) | ❌ | antigravity 만 |
@@ -187,7 +187,7 @@ codex login                         # 브라우저로 ChatGPT 인증
 | `--resume-last` | N/A | ⚠️ MVP 미구현 (메타파일 흉내) | ✅ (`codex resume --last`) | codex CLI 네이티브; 현재 cwd 범위 한정 (다른 디렉토리 세션은 `codex resume --all`) |
 | OAuth 검증 | N/A | `agy --version` + `keyring (agy silent-auth)` | `codex login status` | 양 companion 30s timeout |
 
-**범례:** ✅ 지원 / ❌ `CCP-INVALID-001` 또는 `CCP-UNSUPPORTED-001` 거부 / ⚠️ 부분 매핑 / N/A 해당 없음
+**범례:** ✅ 지원 / ❌ `CCP-INVALID-001` 거부 / ⚠️ 부분 매핑 / N/A 해당 없음
 **각주:**
 - ‡ Claude extended thinking: `Option+T` 토글 또는 `~/.claude/settings.json` 의 `alwaysThinkingEnabled`
 - † Claude `/model` 슬래시: Claude Code 내장 명령
@@ -208,7 +208,7 @@ CCP 라우터는 **4축 우선순위** 로 Claude / Antigravity / Codex 3 경로
 ```
 [사용자 프롬프트]
        ↓
-   [axis A] /antigravity:rescue / /ccp:codex-rescue / --fallback-claude / --effort / --sandbox
+   [axis A] /ccp:antigravity-rescue / /ccp:codex-rescue / --fallback-claude / --effort / --sandbox
        ↓ (없으면)
    [axis B] estimated_tokens > 30,000 → Antigravity  (review 키워드 동시 매칭 시 Codex)
             5,000 ≤ tokens ≤ 30,000 + review 키워드 → Codex
@@ -228,7 +228,7 @@ CCP 라우터는 **4축 우선순위** 로 Claude / Antigravity / Codex 3 경로
 CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** 패턴에서 가장 강하게 작동합니다.
 
 ```
-✅ 권장:  /antigravity:rescue 이 디렉토리 전체 요약
+✅ 권장:  /ccp:antigravity-rescue 이 디렉토리 전체 요약
 ✅ 권장:  /ccp:codex-rescue 이 PR diff 검토
 ```
 
@@ -240,7 +240,7 @@ CCP 의 토큰 절감 효과는 **인터랙티브 슬래시 직접 트리거** �
 
 ```bash
 # ✅ 권장: 슬래시 사전 스크립트화
-claude -p "/antigravity:rescue 이 디렉토리 전체 요약" -- ...
+claude -p "/ccp:antigravity-rescue 이 디렉토리 전체 요약" -- ...
 claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 
 # ❌ 금지: rescue --help / Skill→Agent 우회 / 동일 task 변형 재시도
@@ -286,14 +286,13 @@ claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 
 | 코드 | 빈도 | 다음 행동 |
 |------|:----:|----------|
-| `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/antigravity:setup` 재실행 |
+| `CCP-OAUTH-001` | ★★★ | `agy` 한 번 실행해 OAuth 트리거 (또는 `ANTIGRAVITY_API_KEY` 설정) 후 `/ccp:antigravity-setup` 재실행 |
 | `CCP-SETUP-001` | ★★★ | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | ★★ | Node.js 20+ 설치 (nvm 권장) |
-| `CCP-GEMINI-001` | ★★ | 잠시 후 재시도 또는 `/antigravity:rescue --fallback-claude` |
-| `CCP-CTX-001` | ★ | summary 길이 초과 — 입력 축소 |
+| `CCP-AG-001` | ★★ | 잠시 후 재시도 또는 `/ccp:antigravity-rescue --fallback-claude` |
 | `CCP-ROUTER-001` | ★ | `/ccp:audit` 으로 라우터 결정 검토 |
 | `CCP-COMPACT-001` | ★ | `/compact` 수동 실행 |
-| `CCP-JOB-001~004` | ★ | `/antigravity:status` 로 job 상태 재확인 |
+| `CCP-JOB-001~004` | ★ | `/ccp:antigravity-status` 로 job 상태 재확인 |
 
 ### 6.2 Codex 측 에러 코드
 
@@ -315,7 +314,7 @@ claude -p "/ccp:codex-rescue 이 PR diff 검토" -- ...
 | `CCP-TIMEOUT-001` | ★★ | 재시도 또는 `--background` 권장 (foreground default 600s) |
 | `CCP-AUDIT-001~002` | ★ | `--since` 범위 조정 또는 로그 확인 |
 
-전체 카탈로그는 `plugins/ccp/scripts/antigravity-companion.mjs`·`codex-companion.mjs` 의 `ERROR_CATALOG` 를 참조하세요.
+전체 카탈로그는 `plugins/ccp/scripts/adapters/antigravity.mjs`·`adapters/codex.mjs` 의 `errors` 블록을 참조하세요 (`core/errors.mjs` 의 공용 코드와 병합됨).
 
 ### 6.4 자주 묻는 질문
 

@@ -72,6 +72,23 @@ jobs:
       - name: run router-suggest hook regression (≥18/19, 95%)
         run: node tests/router/router-suggest-test.mjs
 
+  companion-contract:
+    name: companion-contract (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: run companion golden envelope diff (must be 29/29, diff 0)
+        run: node tests/companion/golden/diff.mjs --cli all
+      - name: run companion core-contract test (mock adapter, must be 15/15)
+        run: node tests/companion/contract-test.mjs
+
   audit:
     name: harness-audit (>= 33/40)
     runs-on: ubuntu-latest

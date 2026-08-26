@@ -14,13 +14,18 @@
 - [ ] `node tests/router/router-eval.mjs` — 70/70 PASS (or unchanged baseline)
 - [ ] `node tests/router/router-suggest-test.mjs` — ≥18/19 PASS (95%)
 - [ ] `node plugins/ccp/scripts/harness-audit.js` — total ≥ 33/40
-- [ ] Manual smoke test for any affected slash command (`/antigravity:*`, `/codex:*`, `/ccp:*`)
+- [ ] Manual smoke test for any affected slash command (`/ccp:antigravity-*`, `/ccp:codex-*`, `/ccp:*`)
 
 ## Borrowed-code checklist (skip if N/A)
 
-<!-- Required when touching borrowed files (`plugins/ccp/scripts/lib/codex-*.mjs`, `lib/magic-keywords.mjs`, etc.). -->
+<!-- Required when touching files that carry adapted upstream code. Those files declare
+     their origin in a header comment; `docs/en/architecture.md` lists them all. -->
 
 - [ ] License text added to `LICENSES/` if a new upstream project is introduced
+- [ ] If an adapted file moved or was renamed, `docs/en/architecture.md` and
+      `docs/ko/architecture.md` were updated in the same commit
+- [ ] If an adapted Apache-2.0 file changed, its header comment still describes the
+      upstream origin and the modifications accurately
 
 ## DCO sign-off
 

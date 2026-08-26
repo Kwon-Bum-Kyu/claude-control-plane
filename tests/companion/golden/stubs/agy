@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+// Golden-capture stub for the Antigravity CLI (`agy`).
+// Behavior is selected via CCP_GOLDEN_AGY_MODE so a single stub file can
+// cover every golden scenario deterministically, without depending on any
+// CLI actually being installed on the capture host.
+//
+// Modes:
+//   not_installed — --version fails (simulates "binary missing" outcome:
+//                    agyVersion() treats a non-zero/failed probe as absent)
+//   old_version    — --version prints a version below MIN_ANTIGRAVITY_VERSION
+//   ok             — --version prints a supported version; `-p ping` (the
+//                    auth probe) succeeds; any other `-p <task>` call fails
+//                    on purpose so the detached background worker never
+//                    reaches the result-file write path (that path ignores
+//                    CCP_JOBS_DIR and writes into the real repo tree — a
+//                    pre-existing isolation gap; the stub avoids ever
+//                    exercising it)
+//   invalid_auth   — --version prints a supported version; `-p ping` fails
+//                    with exit 1 and a stderr message matching the CLI's
+//                    real "not logged in" wording — exercises the
+//                    content-based probe-failure classification path
+//                    (distinct from a bare non-zero exit with no recognizable
+//                    message, which old_version/not_installed don't reach anyway)
+
+const mode = process.env.CCP_GOLDEN_AGY_MODE || 'ok';
+const argv = process.argv.slice(2);
+
+function out(text) {
+  process.stdout.write(text);
+}
+
+if (argv.includes('--version')) {
+  if (mode === 'not_installed') {
+    process.exit(1);
+  }
+  if (mode === 'old_version') {
+    out('agy version 0.5.0\n');
+    process.exit(0);
+  }
+  out('agy version 1.2.0\n');
+  process.exit(0);
+}
+
+const pIndex = argv.indexOf('-p');
+if (pIndex !== -1) {
+  const prompt = argv[pIndex + 1] || '';
+  if (prompt === 'ping') {
+    if (mode === 'ok') process.exit(0);
+    if (mode === 'invalid_auth') {
+      process.stderr.write('Error: not logged in. Please sign in.\n');
+      process.exit(1);
+    }
+    process.exit(1);
+  }
+  // Any real task call: fail on purpose (see module header — avoids the
+  // real-repo result-file write path during background-worker golden capture).
+  process.stderr.write('golden stub: real task calls are not simulated\n');
+  process.exit(1);
+}
+
+process.stderr.write(`golden stub agy: unhandled args ${JSON.stringify(argv)}\n`);
+process.exit(1);

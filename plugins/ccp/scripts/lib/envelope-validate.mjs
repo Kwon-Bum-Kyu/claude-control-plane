@@ -9,6 +9,7 @@
 //   - error: code matches ^CCP-[A-Z]+-\d{3}$, recovery enum, exit_code ≥ 1
 //   - details.mode enum [antigravity, codex, router] (when present)
 //   - auto_routed (when present): boolean only — auto-delegation consistency check
+//   - summary_truncated (when present): exactly true — never emitted as false
 //   - details.reason_code (when mode=router): enum only — runtime defense
 
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
@@ -99,6 +100,10 @@ export function validateEnvelope(env) {
 
   if (env.auto_routed !== undefined && typeof env.auto_routed !== 'boolean') {
     errors.push(`auto_routed "${env.auto_routed}" must be boolean`);
+  }
+
+  if (env.summary_truncated !== undefined && env.summary_truncated !== true) {
+    errors.push(`summary_truncated must be omitted or exactly true (got ${JSON.stringify(env.summary_truncated)})`);
   }
 
   if (env.details !== undefined) {

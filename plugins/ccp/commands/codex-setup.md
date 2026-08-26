@@ -60,5 +60,6 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" setup
 
 ## Spec SSOT
 
-- `plugins/ccp/scripts/codex-companion.mjs:cmdSetup`
+- `plugins/ccp/scripts/core/runtime.mjs:handleSetup`
+- `plugins/ccp/scripts/adapters/codex.mjs` `bin` / `version` (CLI discovery + version-check config)
 - `plugins/ccp/schemas/envelope.schema.json` (output self-validation)

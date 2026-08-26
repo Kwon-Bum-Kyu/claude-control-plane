@@ -1,6 +1,6 @@
 ---
 name: router
-description: "CCP model router — 3-way delegation decision logic for Claude (main) vs Antigravity vs Codex. 4-axis priority: user-explicit > input-size > keyword > fallback. Use when deciding `/antigravity:rescue` / `/ccp:codex-rescue` invocation, evaluating routing, or guarding against router misclassification cost. **hooks/router-suggest.js injects recommendations on UserPromptSubmit. Headless auto-delegation is NOT performed (no automatic fallback for delegated calls).**"
+description: "CCP model router — 3-way delegation decision logic for Claude (main) vs Antigravity vs Codex. 4-axis priority: user-explicit > input-size > keyword > fallback. Use when deciding `/ccp:antigravity-rescue` / `/ccp:codex-rescue` invocation, evaluating routing, or guarding against router misclassification cost. **hooks/router-suggest.js injects recommendations on UserPromptSubmit. Headless auto-delegation is NOT performed (no automatic fallback for delegated calls).**"
 ---
 
 # CCP Router — 3-way Routing Skill (Claude / Antigravity / Codex)
@@ -11,14 +11,14 @@ Decides whether to delegate work from the main Claude context. Acceptance criter
 - The 4-axis algorithm in this SKILL.md is mirrored in code by `plugins/ccp/scripts/lib/router.mjs`. Both the recommendation hook and the regression suite import that single module (single SSOT).
 - **Recommendation hook active**: `hooks/router-suggest.js` injects the decision as a system reminder on UserPromptSubmit (`[CCP-ROUTER-001]`). When the decision is `claude`, it is a no-op.
 - **Canonical auto-routing (opt-in)**: in canonical interactive sessions, set `plugin.json#config.auto_routing: true` to let the router agent dispatch automatically (see README §5.3). Default is `false`.
-- **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/antigravity:rescue` / `/ccp:codex-rescue`).
+- **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/ccp:antigravity-rescue` / `/ccp:codex-rescue`).
 - Regression dataset: 70 cases (codex / antigravity / claude classes + boundary false-positive guards).
 
 ## Trigger conditions
 
 Apply this skill when any of the following holds:
 
-- The user invokes `/antigravity:rescue` or `/antigravity:*` slash commands directly.
+- The user invokes `/ccp:antigravity-rescue` or `/ccp:antigravity-*` slash commands directly.
 - Main context utilisation exceeds 75% and a new large task is incoming.
 - The input contains delegation keywords such as "summarize", "review codebase", "this directory", or "large log".
 - Attached files or text exceed 30,000 tokens.
@@ -33,7 +33,7 @@ The router applies four axes in priority order. The first matching axis wins.
 
 | Signal | Decision | reason |
 |--------|----------|--------|
-| `/antigravity:rescue` slash invocation | `antigravity` | `user_explicit_antigravity` |
+| `/ccp:antigravity-rescue` slash invocation | `antigravity` | `user_explicit_antigravity` |
 | `/ccp:codex-rescue` slash invocation | `codex` | `user_explicit_codex` |
 | `--fallback-claude` flag | `claude` | `user_explicit_claude` |
 | `--force-claude` flag (future) | `claude` | `user_explicit_claude` |
@@ -123,7 +123,7 @@ After the router decides `antigravity` or `codex`, a failed delegation must NOT 
 
 | Model | Failure cause | User choices |
 |-------|---------------|--------------|
-| antigravity | auth invalid / quota | `/antigravity:setup --renew` or `/antigravity:rescue --fallback-claude "<task>"` |
+| antigravity | auth invalid / quota | `/ccp:antigravity-setup --renew` or `/ccp:antigravity-rescue --fallback-claude "<task>"` |
 | codex | not authenticated | `codex login` then retry, or `/ccp:codex-rescue --fallback-claude "<task>"` |
 
 Reasons for forbidding auto-fallback:
@@ -144,13 +144,13 @@ In `claude -p` headless invocations, when the router recommends antigravity/code
 
 ### Do (pre-script the slash)
 
-- ✅ Pre-script the slash command: `claude -p "/antigravity:rescue <task>" -- ...`
+- ✅ Pre-script the slash command: `claude -p "/ccp:antigravity-rescue <task>" -- ...`
 - ✅ On failure, retry once and surface the result to the user (`--fallback-claude` only when explicitly requested — no auto-fallback).
 
 ### Guard
 
 - `hooks/router-suggest.js` detects keywords such as `headless`, `claude -p`, `script`, `automation` on UserPromptSubmit and adds a `[CCP-META-WARN]` notice.
-- When the user/script invokes a slash command (`/antigravity:rescue` etc.), the headless suspicion is cleared and only the standard `[CCP-ROUTER-001]` recommendation is emitted.
+- When the user/script invokes a slash command (`/ccp:antigravity-rescue` etc.), the headless suspicion is cleared and only the standard `[CCP-ROUTER-001]` recommendation is emitted.
 
 ## Accuracy measurement procedure
 

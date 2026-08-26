@@ -1,0 +1,35 @@
+#!/usr/bin/env node
+// Fake binary for the mock adapter's `bin` — lets contract-test.mjs drive the
+// mock adapter through core/runtime.mjs's real dispatch path (not just
+// assertAdapter's shape check) without any real CLI installed.
+//
+// Modes (CCP_MOCK_MODE):
+//   ok           — --version / --auth-check / `run <prompt>` all succeed
+//   not_installed — --version fails
+//   auth_fail    — --auth-check fails (no recognizable stdout)
+
+const mode = process.env.CCP_MOCK_MODE || 'ok';
+const argv = process.argv.slice(2);
+
+if (argv.includes('--version')) {
+  if (mode === 'not_installed') process.exit(1);
+  process.stdout.write('mock-cli version 1.2.0\n');
+  process.exit(0);
+}
+
+if (argv.includes('--auth-check')) {
+  if (mode === 'auth_fail') {
+    process.stderr.write('not authenticated\n');
+    process.exit(1);
+  }
+  process.stdout.write('OK\n');
+  process.exit(0);
+}
+
+if (argv[0] === 'run') {
+  process.stdout.write(`mock response: ${argv[1] || ''}\n`);
+  process.exit(0);
+}
+
+process.stderr.write(`mock stub: unhandled args ${JSON.stringify(argv)}\n`);
+process.exit(1);

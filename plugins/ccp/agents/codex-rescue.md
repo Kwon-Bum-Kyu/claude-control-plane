@@ -41,6 +41,8 @@ The subcommand is always `rescue`. This subagent must not call `setup`, `status`
 
 Return the Bash result JSON envelope exactly as-is. Do not add explanation, interpretation, or Markdown formatting. See `plugins/ccp/schemas/envelope.schema.json` for the envelope schema.
 
+If the envelope carries `summary_truncated: true`, that means `summary` was cut at a sentence boundary and `result_path` holds the untruncated body — pass the envelope through unchanged regardless (this subagent's forbidden list above still applies). This subagent has no Read tool and must not fetch `result_path` itself; whether the full body needs reading at all is a main-Claude decision, made only if the summary is insufficient for its current judgment, never a reflex right after this call returns.
+
 ### Foreground Success
 ```json
 {
@@ -72,8 +74,8 @@ Return the Bash result JSON envelope exactly as-is. Do not add explanation, inte
 {
   "error": {
     "code": "CCP-XXX-NNN",
-    "message_ko": "...",
-    "action_ko": "...",
+    "message": "...",
+    "action": "...",
     "recovery": "fallback_claude|retry|abort|user_action_required"
   },
   "exit_code": 1
@@ -86,7 +88,7 @@ If the companion returns an error envelope, pass it upstream unchanged.
 
 - Do not retry on your own (the companion already handled that).
 - Do not perform fallback on your own (main Claude reads the `recovery` field and decides).
-- Do not translate or interpret error messages (the envelope already contains Korean `message_ko`).
+- Do not translate or interpret error messages (the envelope already contains English `message` / `action`).
 
 ## Permission Whitelist (Reference)
 
@@ -100,5 +102,6 @@ Whitelist the Bash command pattern in the project's `.claude/settings.json` unde
 ## Spec SSOT
 
 - `plugins/ccp/schemas/envelope.schema.json` (envelope contract)
-- `plugins/ccp/scripts/codex-companion.mjs` ERROR_CATALOG (error code SSOT)
+- `plugins/ccp/scripts/adapters/codex.mjs` `errors` (error code SSOT, merged with `core/errors.mjs`'s shared catalog)
+- `plugins/ccp/scripts/core/runtime.mjs:handleRescue` (dispatch logic shared across CLIs)
 - README §4 (subagent isolation principle — no automatic fallback)

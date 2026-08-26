@@ -6,14 +6,13 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 
 | Code | Frequency | What to do |
 |---|:---:|---|
-| `CCP-OAUTH-001` | very high | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/antigravity:setup` |
+| `CCP-OAUTH-001` | very high | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/ccp:antigravity-setup` |
 | `CCP-SETUP-001` | very high | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
 | `CCP-SETUP-002` | high | Install Node.js 20+ (nvm recommended) |
-| `CCP-GEMINI-001` | high | Retry shortly, or use `/antigravity:rescue --fallback-claude` |
-| `CCP-CTX-001` | medium | `summary` exceeded 500 chars -- shrink the input |
+| `CCP-GEMINI-001` | high | Retry shortly, or use `/ccp:antigravity-rescue --fallback-claude` |
 | `CCP-ROUTER-001` | medium | Run `/ccp:audit` to inspect the router's decision |
 | `CCP-COMPACT-001` | medium | Run `/compact` manually |
-| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/antigravity:status <job_id>` to recheck job state |
+| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/ccp:antigravity-status <job_id>` to recheck job state |
 
 ## Codex-side errors
 
@@ -26,7 +25,7 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 | `CCP-CODEX-002` | medium | JSONL parse failure -- retry with `--verbose` and check stderr |
 | `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/ccp:codex-status <job_id>` to recheck |
 | `CCP-JOB-409` | low | Job is in a state that cannot be cancelled; check status and retry |
-| `CCP-INVALID-001` | low | A Codex-only flag (`--effort`, `--sandbox`, `--write`) was passed to `/antigravity:rescue`. Use `/ccp:codex-rescue` instead. |
+| `CCP-INVALID-001` | low | A Codex-only flag (`--effort`, `--sandbox`, `--write`) was passed to `/ccp:antigravity-rescue`. Use `/ccp:codex-rescue` instead. |
 
 ## Shared errors
 
@@ -35,7 +34,7 @@ Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `act
 | `CCP-TIMEOUT-001` | high | Retry, or run with `--background` (foreground default is 600s) |
 | `CCP-AUDIT-001` / `CCP-AUDIT-002` | low | Adjust `--since` window or check the script log |
 
-The full catalog is the `ERROR_CATALOG` constant inside `plugins/ccp/scripts/antigravity-companion.mjs` and `codex-companion.mjs`.
+The full catalog is the `errors` block inside `plugins/ccp/scripts/adapters/antigravity.mjs` and `adapters/codex.mjs` (merged with the shared codes in `core/errors.mjs`).
 
 ## FAQ
 
@@ -71,8 +70,8 @@ Normal Codex CLI behavior. Harmless -- the companion absorbs it.
 Both setup commands are idempotent. Run them whenever you suspect environment drift:
 
 ```text
-/antigravity:setup            # Node + Antigravity CLI + OAuth
-/antigravity:setup --renew    # also re-prompts for OAuth
+/ccp:antigravity-setup            # Node + Antigravity CLI + OAuth
+/ccp:antigravity-setup --renew    # also re-prompts for OAuth
 /ccp:codex-setup         # Node + Codex CLI + OAuth
 ```
 
@@ -80,7 +79,7 @@ Each prints the version it detected; mismatches against the documented minimums 
 
 ## When to file a bug
 
-If an error code is missing, the action does not match what the message says, or a `CCP-CODEX-*` / `CCP-GEMINI-*` repeats after retry, file a bug using the issue template. Include the envelope JSON and the output of `/antigravity:setup` and `/ccp:codex-setup`.
+If an error code is missing, the action does not match what the message says, or a `CCP-CODEX-*` / `CCP-GEMINI-*` repeats after retry, file a bug using the issue template. Include the envelope JSON and the output of `/ccp:antigravity-setup` and `/ccp:codex-setup`.
 
 ## Related reading
 

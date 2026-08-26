@@ -1,6 +1,6 @@
 # Router behavior
 
-The CCP router decides whether a user prompt should be handled by Claude (the main control plane), Antigravity (`/antigravity:rescue`), or Codex (`/ccp:codex-rescue`). It uses a four-axis priority order: each axis can short-circuit the decision before lower-priority axes are consulted.
+The CCP router decides whether a user prompt should be handled by Claude (the main control plane), Antigravity (`/ccp:antigravity-rescue`), or Codex (`/ccp:codex-rescue`). It uses a four-axis priority order: each axis can short-circuit the decision before lower-priority axes are consulted.
 
 The router decision logic lives in a single shared module used by the recommendation hook, the offline regression dataset, and the router agent — so the behavior described here matches the runtime.
 
@@ -24,7 +24,7 @@ The user is always right. The following inputs route deterministically:
 
 | Signal | Decision |
 |---|---|
-| `/antigravity:rescue ...` | Antigravity |
+| `/ccp:antigravity-rescue ...` | Antigravity |
 | `/ccp:codex-rescue ...` | Codex |
 | `--fallback-claude` | Claude (overrides any later axis) |
 | `--effort` / `--sandbox` / `--write` / `--cwd` | Codex (Codex-only flags) |
@@ -63,7 +63,7 @@ The router ships with a 70-case offline regression dataset. Current accuracy: **
 
 | Want | Do |
 |---|---|
-| Force Antigravity regardless of size | Use `/antigravity:rescue` |
+| Force Antigravity regardless of size | Use `/ccp:antigravity-rescue` |
 | Force Codex regardless of size | Use `/ccp:codex-rescue` |
 | Force Claude regardless of keywords | Add `--fallback-claude` |
 | See what the router decided | Look at `details.mode` in the envelope or run `/ccp:audit` |
@@ -77,7 +77,7 @@ When the prompt looks headless (`claude -p`, `automation`, `cron`, `CI`, ...) th
 ## Anti-patterns
 
 - **Repeating a prompt with minor variations** to "find" a delegation entry point. The router is deterministic; the second attempt will route the same way.
-- **Calling `/antigravity:rescue --help` from inside a headless script** to discover flags. Cache the help output once and reference it; do not pay for it on every run.
+- **Calling `/ccp:antigravity-rescue --help` from inside a headless script** to discover flags. Cache the help output once and reference it; do not pay for it on every run.
 - **Forcing Codex on small refactors** (`< 5K` tokens) when no review keyword is present. The size threshold exists because Codex's reasoning overhead is wasted on small edits.
 
 ## Related reading

@@ -1,6 +1,6 @@
 {
   "name": "ccp",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Claude as control plane, Antigravity + Codex as CLI sub-agents — companion wrappers, 3-way model router, ecc guardrails.",
   "author": {
     "name": "CCP contributors"

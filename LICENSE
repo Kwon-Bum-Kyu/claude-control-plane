@@ -19,3 +19,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Portions of this software are adapted from openai/codex-plugin-cc and are licensed
+under the Apache License, Version 2.0. Those files identify their upstream origin and
+modifications in a header comment. The full Apache License 2.0 text and the upstream
+NOTICE are preserved in the LICENSES/ directory. See docs/en/architecture.md for the
+list of affected files.
