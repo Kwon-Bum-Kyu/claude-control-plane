@@ -15,6 +15,7 @@
 - [ ] `node tests/router/router-suggest-test.mjs` — ≥18/19 PASS (95%)
 - [ ] `node plugins/ccp/scripts/harness-audit.js` — total ≥ 33/40
 - [ ] Manual smoke test for any affected slash command (`/ccp:antigravity-*`, `/ccp:codex-*`, `/ccp:*`)
+- [ ] `node tests/subagent/rescue-isolation-fixture-test.mjs` — fixture logic regression (all cases)
 
 ## Borrowed-code checklist (skip if N/A)
 
