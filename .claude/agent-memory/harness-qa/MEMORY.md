@@ -4,3 +4,7 @@
 - [자동 검증기의 "0 violations"를 곧이곧대로 믿지 말 것](feedback_validator_coverage_gap.md) — validate-evidence.mjs가 4종 확장자만 스캔해 validate-strict.txt의 마스킹 누락을 놓친 사례
 - [격리 루트 안 원본 로그는 teardown 전 evidence/로 보존됐는지 확인](feedback_evidence_survival_before_teardown.md) — D-010(S1) agy.log가 $E2E_ROOT 안에만 있어 teardown 시 영구 소실 위험
 - [모호한 actor 필드의 세션 개입은 데이터 진위와 절차 투명성을 분리 판정](feedback_unlogged_session_audit_gap.md) — "Phase A-1" 미기록 harness-qa 세션이 D-010 증적을 보존했으나 dispatch 근거 없음
+- [CCP 서브에이전트 격리 런 진행 상태](project_ccp_subagent_isolation_run.md) — 전체 QA 완료(2026-08-30), AC-1~AC-12 전건 PASS, 합격
+- [형제 함수 중 하나만 에러 래핑된 비대칭을 의도적으로 탐침할 것](feedback_read_path_symmetry_check.md) — meta.json 읽기는 래핑, jsonl 본문 읽기는 무방비였던 사례
+- [자기 위치 기준 경로 해석 스크립트는 바이트 동일 복사로 스크래치에서 실행 검증 가능](feedback_scratch_copy_for_self_relative_tools.md) — 보호된 fixtures/ 디렉터리를 건드리지 않고 러너 CLI 실증
+- [zsh echo로 --json 출력 왕복시키면 백틱·백슬래시가 재해석되어 가짜 파싱 실패가 난다](feedback_json_echo_pipe_corruption.md) — 항상 파일 리다이렉트로 재검증할 것
