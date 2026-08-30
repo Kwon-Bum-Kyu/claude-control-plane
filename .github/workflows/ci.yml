@@ -88,6 +88,9 @@ jobs:
         run: node tests/companion/golden/diff.mjs --cli all
       - name: run companion core-contract test (mock adapter, must be 15/15)
         run: node tests/companion/contract-test.mjs
+      - name: run rescue-isolation fixture regression (all cases)
+        if: always()
+        run: node tests/subagent/rescue-isolation-fixture-test.mjs
 
   audit:
     name: harness-audit (>= 33/40)
