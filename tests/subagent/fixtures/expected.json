@@ -1,0 +1,1021 @@
+{
+  "schema_version": 1,
+  "observed": "2026-08-30",
+  "cases": {
+    "compliant-codex-alias-cache-path": {
+      "note": "thin-alias codex call from an installed-cache path with the full observed flag set; a leading user record with string content and a message-less attachment record must not block PASS",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "compliant-antigravity-heredoc": {
+      "note": "thin-alias antigravity call with the task passed through a quoted heredoc substitution and --max-tokens",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "compliant-unified-codex-plain-path": {
+      "note": "unified entry point (companion.mjs codex rescue) invoked with an unquoted absolute path",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "compliant-unified-antigravity": {
+      "note": "unified entry point (companion.mjs antigravity rescue) with a glob-bearing --files argument that must not be read as a chain",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "compliant-duplicate-tool-use-id": {
+      "note": "the same tool_use id recorded twice by a streaming rewrite must be counted once, not treated as extra_bash",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-extra-bash": {
+      "note": "companion rescue call once, then two unrelated file reads in the same subagent",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 3,
+          "companion_rescue_count": 1,
+          "violation_kinds": [
+            "extra_bash",
+            "extra_bash"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-chained-command": {
+      "note": "a single Bash call chains a second command with && after the companion invocation",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-wrong-subcommand": {
+      "note": "companion script is correct but the subcommand is status, not rescue",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "wrong_subcommand"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-adapter-mismatch": {
+      "note": "agentType expects codex but the subagent calls the antigravity companion script",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "adapter_mismatch"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-non-bash-tool": {
+      "note": "the single Bash call is the correct companion rescue, but a second tool call reads a file directly",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [
+            "non_bash_tool"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-non-bash-only": {
+      "note": "zero Bash calls but one non-Bash tool call -- non_bash_tool must win over the Bash-zero SKIP path",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 0,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "non_bash_tool"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-not-companion-script": {
+      "note": "the node <script> <sub> shape is right but the script is not a companion script",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "not_companion_script"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-unexpected-invocation": {
+      "note": "the companion script is executed directly, without a leading node prefix",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "unexpected_invocation"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-two-companion-calls": {
+      "note": "two distinct tool_use ids each issue a valid companion rescue call; the second is extra_bash under a foreground-only isolation contract",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 2,
+          "companion_rescue_count": 2,
+          "violation_kinds": [
+            "extra_bash"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-kind-order": {
+      "note": "two structurally-invalid Bash calls in one transcript -- violation order must follow transcript order, not a sorted set",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 2,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "adapter_mismatch",
+            "wrong_subcommand"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-with-parse-error": {
+      "note": "an already-detected violation must keep the agent FAIL even though a later line fails to parse",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 1
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 2,
+          "companion_rescue_count": 1,
+          "violation_kinds": [
+            "extra_bash"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "skip-missing-subagents-dir": {
+      "note": "a case directory that exists but has no subagents/ directory at all",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "missing_subagents_dir"
+      ]
+    },
+    "skip-no-subagent-transcripts": {
+      "note": "subagents/ exists but contains zero agent-*.jsonl transcripts",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "no_subagent_transcripts"
+      ]
+    },
+    "skip-missing-meta": {
+      "note": "a transcript with a compliant call but no matching .meta.json -- cannot identify the agent, so it cannot be graded PASS by guessing",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 1,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "missing_meta"
+      ]
+    },
+    "skip-missing-agent-type": {
+      "note": ".meta.json exists but has no agentType field",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 1,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "missing_agent_type"
+      ]
+    },
+    "skip-meta-parse-error": {
+      "note": ".meta.json itself is not valid JSON",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 1,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "meta_parse_error"
+      ]
+    },
+    "skip-no-target-agent": {
+      "note": "the only transcript present belongs to a non-rescue agentType, so it is excluded rather than judged",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "no_target_agents"
+      ]
+    },
+    "skip-transcript-parse-error": {
+      "note": "a parse error with zero violations found in the readable part -- absence of evidence is not reported as a pass",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 0,
+        "skip": 1,
+        "unidentified": 0,
+        "parse_errors": 1
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "skip",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": "transcript_parse_error"
+        }
+      ],
+      "skip_reasons": [
+        "transcript_parse_error"
+      ]
+    },
+    "skip-no-bash-tool-use": {
+      "note": "a parsable transcript with zero Bash tool calls -- unverified, not a violation",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 0,
+        "skip": 1,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "skip",
+          "bash_tool_use_count": 0,
+          "companion_rescue_count": 0,
+          "violation_kinds": [],
+          "skip_reason": "no_bash_tool_use"
+        }
+      ],
+      "skip_reasons": [
+        "no_bash_tool_use"
+      ]
+    },
+    "skip-structure-mismatch": {
+      "note": "one assistant record has message.content as a string instead of an array -- a compliant call elsewhere does not rescue this into a PASS",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 0,
+        "skip": 1,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "skip",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": "structure_mismatch"
+        }
+      ],
+      "skip_reasons": [
+        "structure_mismatch"
+      ]
+    },
+    "mixed-fail-and-pass": {
+      "note": "two target agents, one PASS and one FAIL -- overall verdict must be FAIL, and this mirrors the real observed session shape",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 2,
+        "pass": 1,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        },
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 3,
+          "companion_rescue_count": 1,
+          "violation_kinds": [
+            "extra_bash",
+            "extra_bash"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "mixed-pass-and-skip": {
+      "note": "one PASS agent and one SKIP agent in the same session -- overall verdict must be SKIP, not a folded PASS",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 2,
+        "pass": 1,
+        "fail": 0,
+        "skip": 1,
+        "unidentified": 0,
+        "parse_errors": 1
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        },
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "skip",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": "transcript_parse_error"
+        }
+      ],
+      "skip_reasons": [
+        "transcript_parse_error"
+      ]
+    },
+    "mixed-pass-and-unidentified": {
+      "note": "one PASS agent plus one file with no .meta.json in the same session -- the unidentified file forces the overall verdict to SKIP",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 1,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": [
+        "missing_meta"
+      ]
+    },
+    "trap-task-body-contains-companion-string": {
+      "note": "the heredoc task body itself contains companion.mjs, &&, ;, |, an unpaired quote, and non-ASCII text -- still PASS",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-escaped-backtick-in-quoted-task": {
+      "note": "an escaped backtick inside the double-quoted task argument must not trip the chain scanner",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-quoted-metachar-args": {
+      "note": "shell metacharacters inside quoted argument values must not be read as a chain",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-unquoted-pipe-arg": {
+      "note": "an unquoted pipe is a real shell pipe, so detecting it is correct behaviour, not a false positive",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-single-quoted-script-path": {
+      "note": "the script path is wrapped in single quotes instead of double quotes -- structural parsing must still succeed",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-plugin-root-unquoted": {
+      "note": "an unquoted ${CLAUDE_PLUGIN_ROOT} literal prefix must not be read as a command substitution",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:antigravity-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-chain-after-quoted-apostrophe": {
+      "note": "an apostrophe correctly quoted inside double quotes must not close early and swallow the following chain operator",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-semicolon-after-quoted-apostrophe": {
+      "note": "same as the && case but with a semicolon operator after a quoted apostrophe",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-command-substitution-in-quoted-task": {
+      "note": "a shell also expands $( ) inside double quotes, so this must be caught",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "violation-backtick-in-quoted-task": {
+      "note": "a shell also expands unescaped backticks inside double quotes, so this must be caught",
+      "verdict": "fail",
+      "exit_code": 1,
+      "totals": {
+        "targets": 1,
+        "pass": 0,
+        "fail": 1,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "fail",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 0,
+          "violation_kinds": [
+            "chained_command"
+          ],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-quoted-pipe-in-task": {
+      "note": "a pipe character quoted inside the task text is literal, not a shell pipe",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "trap-quoted-and-in-task": {
+      "note": "a && sequence quoted inside the task text is literal, not a shell chain operator",
+      "verdict": "pass",
+      "exit_code": 0,
+      "totals": {
+        "targets": 1,
+        "pass": 1,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [
+        {
+          "agent_type": "ccp:codex-rescue",
+          "verdict": "pass",
+          "bash_tool_use_count": 1,
+          "companion_rescue_count": 1,
+          "violation_kinds": [],
+          "skip_reason": null
+        }
+      ],
+      "skip_reasons": []
+    },
+    "skip-path-not-found": {
+      "note": "the runner passes a synthetic path under fixtures/ that intentionally does not exist; this case directory must not exist",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "path_not_found"
+      ]
+    },
+    "skip-unsupported-input": {
+      "note": "the runner points the engine at an existing fixture .meta.json file, which is not a .jsonl transcript",
+      "verdict": "skip",
+      "exit_code": 2,
+      "totals": {
+        "targets": 0,
+        "pass": 0,
+        "fail": 0,
+        "skip": 0,
+        "unidentified": 0,
+        "parse_errors": 0
+      },
+      "agents": [],
+      "skip_reasons": [
+        "unsupported_input"
+      ]
+    }
+  }
+}

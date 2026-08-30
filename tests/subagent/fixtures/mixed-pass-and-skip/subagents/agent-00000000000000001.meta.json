@@ -1,0 +1,6 @@
+{
+  "agentType": "ccp:antigravity-rescue",
+  "description": "rescue subagent fixture",
+  "toolUseId": "fx-tool-parent-0001",
+  "spawnDepth": 1
+}
