@@ -60,6 +60,7 @@
 | Runtime 디스크 경로 | `_workspace/_jobs/`·`_workspace/_audits/`·`_workspace/_probe/` | companion·audit 가 사용자 호스트에 쓰는 실제 경로. `.gitignore` 차단으로 공개 레포 추적 0. result_path 안내·테스트 산출물 위치 설명에 사용 |
 | 회귀 테스트 디렉터리 | `_workspace/_router_test/` | router 회귀 데이터셋·하니스 디렉터리. CI 가 실행하므로 git 추적 (`.gitignore` 예외). PR 체크리스트·workflow 에 명시적으로 등장. |
 | 옵시디언 문서화 config | `.obsidian-doc.local.json` | 옵시디언 vault 설정 SSOT (vault path·차단 패턴 시드·치환 사전 path 등). dev 전용 — `.gitignore` 차단으로 공개 레포 추적 0. 변환 시점 가드 SSOT (작성 시점 가드 = 본 룰 §1 과 분리). |
+| 감사 대상 리포트 경로 | `_workspace/04_router_report.md`·`_workspace/04_token_report.md` | harness-audit 라우터 감사 카테고리가 존재 여부를 검사하는 리포트 경로 (`plugins/ccp/scripts/harness-audit.js`). 파일 자체는 `_workspace/` 블랭킷 `.gitignore` 차단으로 공개 레포 추적 0 — CI 는 seed 파일을 생성해 검사를 통과시킨다 (`.github/workflows/ci.yml`). runtime 디스크 경로와 같은 성격이므로 경로 문자열의 공개 표면 등장을 보존. |
 
 ---
 
@@ -130,3 +131,4 @@ Claude 는 §3.1 파일에서 §1 패턴을 발견하면 즉시 사용자에게 
 | 2026-05-05 | §2 보존 대상에 "Runtime 디스크 경로" 행 추가 (`_workspace/_jobs/`·`_workspace/_audits/`·`_workspace/_probe/`) | Public Surface Cleanup 진행 중 분기점. companion 이 background job 결과를 사용자 호스트 로컬에 쓰는 실제 디렉터리 경로 — `.gitignore` 차단으로 공개 레포 추적 0. dev 추적 ID 가 아니라 runtime 디스크 경로이므로 외부 사용자 result_path 안내 + 테스트 산출물 위치 설명에 보존 가능. dev 추적 문서 인용 (`_workspace/01_backlog.md`·`02_arch_decisions.md` 등) 만 차단 대상으로 좁힘. |
 | 2026-05-08 | §1 정규식 13건을 `.obsidian-doc.local.json` 의 `blocked_patterns` 로 1회 복사 (변환 시점 가드 SSOT 분리). 본 룰은 작성 시점 가드 (strict block), config 는 변환 시점 가드 (interactive replacement). §2 보존 대상에 `.obsidian-doc.local.json` 행 추가. | 옵시디언 문서화 변환 시 외부 노출 방지. 향후 §1 변경 시 config 도 수동 동기화 필요 (drift 검사 미래 옵션). |
 | 2026-08-30 | §3.1 강제 준수 목록에 `tests/**` 추가 | 서브에이전트 출구 측 회귀 기준 런의 라이선스 검수가 지적: `tests/` 는 prod 레포에 포함되는 공개 표면인데 §3.1 에 명시되어 있지 않아 보수적 적용에 의존하고 있었다. 사용자 승인(G1, 2026-08-30) 후 명시. fixture 디렉터리·`tests/README.md`·검사 스크립트 주석에 §1 패턴 작성 금지. |
+| 2026-08-31 | §2 보존 대상에 "감사 대상 리포트 경로" 행 추가 (`_workspace/04_router_report.md`·`_workspace/04_token_report.md`) | 출구 측 격리 하니스 런의 인계 사항 해소. `harness-audit.js:162` 와 `ci.yml:107·132·134` 에 이 경로가 이미 등장하는데, §1.2 `_workspace/...` 패턴에 형식상 걸리면서 §2 예외로 등재되어 있지 않았다. 감사가 사용자 호스트에서 실제로 읽는 runtime 성격의 경로이고 파일 자체는 `.gitignore` 로 추적 0 이므로 보존 대상으로 확정. |
