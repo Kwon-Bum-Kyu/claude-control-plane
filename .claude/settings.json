@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs *)",
+      "Bash(node ${CLAUDE_PLUGIN_ROOT}/scripts/harness-audit.js *)",
+      "Bash(${HOME}/.local/bin/agy --version)",
+      "Bash(${HOME}/.local/bin/agy -p \"ping\")"
+    ]
+  }
+}

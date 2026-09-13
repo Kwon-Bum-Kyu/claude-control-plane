@@ -10,6 +10,41 @@ permissions:
   contents: read
 
 jobs:
+  guard-ignore:
+    name: guard-ignore (deployment boundary)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: ignore rules and tracked set agree
+        run: node tools/repo-guard.mjs ignore-coverage
+
+  guard-content:
+    name: guard-content (secrets and personal data)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: tracked content carries no host paths, secrets or personal data
+        run: node tools/repo-guard.mjs content
+
+  guard-public-surface:
+    name: guard-public-surface (maintainer-only identifiers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: published files carry no maintainer-only identifiers
+        run: node tools/repo-guard.mjs public-surface
+
   lint:
     name: lint (node ${{ matrix.node }})
     runs-on: ubuntu-latest
@@ -100,9 +135,9 @@ jobs:
       - name: run harness-audit and enforce threshold
         run: |
           set -euo pipefail
-          # CI runs against a clean checkout where _workspace/ is gitignored
-          # (no _jobs/, no 04_router_report.md, no 04_token_report.md). Seed
-          # a minimal but complete job so harness-audit can score all 8
+          # CI runs against a clean checkout where the harness working directory
+          # is gitignored, so none of the paths below exist yet. Seed a minimal
+          # but complete job so harness-audit can score all 8
           # categories. Metadata mirrors a real antigravity-companion completion.
           mkdir -p _workspace/_jobs/ci-seed _workspace/_audits
           cat > _workspace/_jobs/ci-seed/result.txt <<'BODY'
@@ -126,8 +161,9 @@ jobs:
             "exit_code": 0
           }
           JOB
-          # Router accuracy report — proxy for the human-written 04_router_report.md
-          # (gitignored under _workspace/). audit only checks for file existence.
+          # Router accuracy report — proxy for the human-written report at
+          # _workspace/04_router_report.md, which is gitignored on a clean
+          # checkout. audit only checks that the file exists.
           echo "# Router report (CI seed) — 70/70 PASS" > _workspace/04_router_report.md
           out=$(node plugins/ccp/scripts/harness-audit.js --format json)
           echo "$out"

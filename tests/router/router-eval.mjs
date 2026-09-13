@@ -107,7 +107,7 @@ const DATASET = [
   // F20 — 매직 키워드가 코드 블록 안에 있으면 false positive 차단 (axis A 미발동)
   { id: 'F20', input: '아래 코드 한 줄 수정\n```\n// @젬 example here\n```\nconfig.ts 의 첫 줄 변경', expected: 'claude', deciding_axis_expected: 'C' },
 
-  // N02~N03 — 네임스페이스 치환 회귀 고정 (02_router_accuracy_spec.md N-2·N-3).
+  // N02~N03 — 네임스페이스 치환 회귀 고정.
   // N-1·N-4 의 취지는 갱신된 G02·S9 로 이미 커버되어 신규 항목을 추가하지 않는다.
   // N-2 — 명시 --fallback-claude 가 슬래시 사용자 명시보다 우선해 claude 로 귀결되는지.
   { id: 'N02', input: '/ccp:antigravity-rescue --fallback-claude "이 디렉토리 전체 요약"', expected: 'claude', deciding_axis_expected: 'A' },

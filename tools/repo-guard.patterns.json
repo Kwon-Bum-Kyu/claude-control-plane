@@ -1,0 +1,225 @@
+{
+  "_comment": "Pattern definitions for tools/repo-guard.mjs. This file is the only one excluded from the content and public-surface scans, because it necessarily contains the very strings those scans look for. The rule document at .claude/rules/no-internal-tracking-ids.md is the human-readable counterpart; publicSurface.scope and publicSurface.exclude must match its section 3.1 and 3.2 lists exactly.",
+  "ruleDoc": ".claude/rules/no-internal-tracking-ids.md",
+  "ignoreCoverage": {
+    "trackedPathDeny": [
+      "(^|/)[^/]*\\.local\\.[^/]*$",
+      "(^|/)_workspace/",
+      "^_workspace_archive_",
+      "^\\.omx/",
+      "^\\.obsidian-doc",
+      "^\\.claude/RESUME\\.md$",
+      "^\\.claude/archive/",
+      "^\\.claude/agent-memory/",
+      "^\\.claude/settings\\.local\\.json$",
+      "^ccp_report\\.md$",
+      "^\\.env",
+      "\\.(pem|key)$",
+      "^secrets\\.json$",
+      "(^|/)node_modules/"
+    ],
+    "mustBeIgnored": [
+      "_workspace/x",
+      "_workspace_archive_20260421/x",
+      "CLAUDE.local.md",
+      "WIKI.local.md",
+      "ccp_report.md",
+      ".claude/RESUME.md",
+      ".claude/settings.local.json",
+      ".claude/archive/x",
+      ".claude/agent-memory/harness-qa/x",
+      ".obsidian-doc.local.json",
+      ".omx/x",
+      "plugins/ccp/_workspace/x",
+      ".claude/shell-snapshots/x"
+    ]
+  },
+  "content": {
+    "excludeFiles": [
+      "tools/repo-guard.patterns.json"
+    ],
+    "patterns": [
+      {
+        "id": "host-path",
+        "re": "/Users/|/home/[a-z]"
+      },
+      {
+        "id": "macos-tmpdir",
+        "re": "/(private/)?var/folders/[A-Za-z0-9_]+/[A-Za-z0-9_]{10,}"
+      },
+      {
+        "id": "email",
+        "re": "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
+      },
+      {
+        "id": "vault",
+        "re": "GoogleDrive|CloudStorage|\\.shortcut-targets-by-id|Obsidian Vault"
+      },
+      {
+        "id": "account",
+        "re": "gwonbeomgyu|missing107"
+      },
+      {
+        "id": "session",
+        "re": "claude\\.ai/code/session_|Claude-Session:"
+      },
+      {
+        "id": "secret",
+        "re": "sk-[A-Za-z0-9]{16,}|ghp_|github_pat_|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|Bearer [A-Za-z0-9._-]{20,}"
+      },
+      {
+        "id": "backend-key",
+        "re": "(ANTIGRAVITY_API_KEY|GEMINI_API_KEY)\\s*[:=]\\s*[\"']?[A-Za-z0-9_-]{12,}|AIza[0-9A-Za-z_-]{35}"
+      }
+    ],
+    "exceptions": [
+      {
+        "token": "you@example.com",
+        "paths": [
+          "CONTRIBUTING.md"
+        ]
+      },
+      {
+        "token": "ANTIGRAVITY_API_KEY = 'golden-test-key",
+        "paths": [
+          "tests/companion/golden/capture.mjs"
+        ]
+      },
+      {
+        "token": "ANTIGRAVITY_API_KEY: 'probe-test-key",
+        "paths": [
+          "tests/companion/truncation-probe.mjs"
+        ]
+      }
+    ]
+  },
+  "commitMessage": {
+    "patterns": [
+      {
+        "id": "session-url",
+        "re": "claude\\.ai/code/session_|Claude-Session:"
+      },
+      {
+        "id": "dev-branch",
+        "re": "\\b(merge|wt)/[a-z-]+\\b"
+      },
+      {
+        "id": "dev-sha",
+        "re": "\\b[0-9a-f]{7}\\b|\\b[0-9a-f]{40}\\b"
+      }
+    ],
+    "identityTrailers": [
+      "Signed-off-by",
+      "Co-authored-by",
+      "Reported-by",
+      "Reviewed-by",
+      "Tested-by",
+      "Acked-by",
+      "Suggested-by",
+      "Helped-by"
+    ],
+    "_identityTrailersNote": "Git's standard identity trailers exist to carry an address, and this repo requires Signed-off-by on every commit. Only the address inside such a trailer line is exempt; anything else on the line, and any address elsewhere in the message, still fails."
+  },
+  "publicSurface": {
+    "scope": [
+      "plugins/**",
+      "docs/**",
+      "README.md",
+      "README.ko.md",
+      "CHANGELOG.md",
+      "CONTRIBUTING.md",
+      "LICENSE",
+      "LICENSES/**",
+      ".github/**",
+      "tests/**",
+      "tools/repo-guard.mjs"
+    ],
+    "exclude": [
+      "_workspace/**",
+      "_workspace_archive_*/**",
+      "CLAUDE.local.md",
+      "CLAUDE.md",
+      ".claude/**",
+      "tools/repo-guard.patterns.json"
+    ],
+    "patterns": [
+      {
+        "id": "backlog-id",
+        "re": "\\bB\\d{1,3}(-\\d+)?\\b"
+      },
+      {
+        "id": "gate-id",
+        "re": "\\bG-?B?\\d+(-\\d+)?\\b|\\bG\\d+(-[A-Z])?\\b"
+      },
+      {
+        "id": "criteria-id",
+        "re": "\\bAC-?\\d+(-[A-Z]\\d*)?\\b"
+      },
+      {
+        "id": "measure-id",
+        "re": "\\bU\\d+-[A-Z]\\b"
+      },
+      {
+        "id": "blocker-id",
+        "re": "\\bB-\\d+\\b"
+      },
+      {
+        "id": "decision-id",
+        "re": "\\bD\\d+(-[A-Z])?\\b|\\bQ-B\\d+-\\d+\\b|\\bR\\d+\\b"
+      },
+      {
+        "id": "trouble-id",
+        "re": "\\bT\\d+(-[a-z])?\\b|\\bC\\d+\\b|\\bN\\d+(-\\d+)?\\b|\\bW\\d+\\b|\\bX\\d+\\b|\\bF\\d+\\b"
+      },
+      {
+        "id": "phase-id",
+        "re": "\\bPhase \\d+(-[A-Z])?\\b|\\bS\\d+(-\\d+(-[A-Z]+)?)?\\b"
+      },
+      {
+        "id": "dev-path",
+        "re": "_workspace|보고서/|연구노트/"
+      },
+      {
+        "id": "dev-doc",
+        "re": "\\b0\\d_[a-z_]+\\.md\\b"
+      },
+      {
+        "id": "review-cite",
+        "re": "\\b(spec-writer|scope-guard|ux-designer|architecture-reviewer|token-economist|license-auditor|plugin-scaffolder|adapter-engineer|harness-qa|ccp-orchestrator)\\b|arch-review|검수 결과"
+      }
+    ],
+    "preservedTokens": [
+      "_workspace/_jobs",
+      "_workspace/_audits/",
+      "_workspace/_audits",
+      "_workspace/_probe",
+      "_workspace/_router_test",
+      "_workspace/04_router_report.md",
+      "_workspace/04_token_report.md",
+      "04_router_report.md",
+      "04_token_report.md"
+    ],
+    "exceptions": [
+      {
+        "re": "\\b(?:C|G|B|F|N|X)\\d{2}\\b|\\bS\\d{1,2}\\b|\\bT[123]\\b",
+        "paths": [
+          "tests/router/EVAL_DATASET.md",
+          "tests/router/router-eval.mjs",
+          "tests/router/router-suggest-test.mjs",
+          "tests/router/u4-measure.mjs"
+        ],
+        "note": "Router dataset labels. Zero-padded two-digit IDs and the S-series case numbering are stable identifiers this dataset publishes on purpose; the scope is these four files only, never repository-wide."
+      }
+    ],
+    "workspaceLiteralAllowList": [
+      "plugins/ccp/scripts/harness-audit.js",
+      "plugins/ccp/scripts/core/paths.mjs",
+      "plugins/ccp/scripts/core/runtime.mjs",
+      "plugins/ccp/hooks/rescue-finalize.js",
+      "tests/companion/golden/capture.mjs",
+      "tools/repo-guard.mjs"
+    ],
+    "workspaceLiteral": "_workspace",
+    "_workspaceLiteralNote": "These files build the runtime job directory path from separate segments, which the path pattern cannot see. Listing them here means a new occurrence anywhere else still fails. Only the decomposed form is allowed — the literal followed by a separator is a path reference and stays blocked even here."
+  }
+}

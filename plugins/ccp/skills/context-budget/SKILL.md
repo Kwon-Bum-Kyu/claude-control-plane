@@ -23,7 +23,7 @@ Below 50% the skill does NOT trigger (avoids unnecessary alerts).
 estimated_tokens = words × 1.3
 ```
 
-Rationale: see `.claude/skills/token-budget-check/SKILL.md` §2. The `words × 1.3` heuristic is sufficiently conservative and works in every environment without invoking a tokenizer.
+Rationale: the `words × 1.3` heuristic is sufficiently conservative and works in every environment without invoking a tokenizer.
 
 ## Threshold matrix
 
@@ -62,4 +62,3 @@ Automatic compaction is intentionally not in scope for v0.x.
 - `plugins/ccp/hooks/suggest-compact.js` (hook implementation)
 - `plugins/ccp/scripts/core/budget.mjs:checkContextBudget` (companion output guard, shared by every CLI adapter)
 - README §4 (subagent isolation principle — no automatic fallback)
-- `.claude/skills/token-budget-check/SKILL.md` (meta-skill)

@@ -279,7 +279,7 @@ function scoreBorrowedCodeDocumented() {
 }
 
 function scoreSecretLeak(jobs) {
-  // L5·L6 — grep secret-pattern matches in meta.json / summary_3lines / details
+  // Secret-pattern leak check — API keys / bearer tokens must not appear in job metadata
   const blocked = /(Bearer\s+[A-Za-z0-9._-]+|ANTIGRAVITY_API_KEY|GEMINI_API_KEY|AKIA[0-9A-Z]{16})/i;
   let leaks = 0;
   for (const j of jobs) {
@@ -314,7 +314,7 @@ function renderMarkdown({ scores, jobs, since, generatedAt }) {
   }
   lines.push('');
   lines.push('## Spec SSOT');
-  lines.push('- `plugins/ccp/commands/ccp-audit.md` (slash-command spec)');
+  lines.push('- `plugins/ccp/commands/audit.md` (slash-command spec)');
   lines.push('- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)');
   lines.push('- README §4 (subagent isolation principle)');
   return lines.join('\n');
