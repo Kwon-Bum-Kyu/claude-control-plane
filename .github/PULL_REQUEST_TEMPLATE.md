@@ -8,12 +8,13 @@
 
 ## Test plan
 
-<!-- Concrete verification steps. CI runs the four jobs below; list anything you ran locally as well. -->
+<!-- Concrete verification steps. CI runs the jobs listed in .github/workflows/ci.yml; list anything you ran locally as well. -->
 
 - [ ] `node --check` passes for every changed `.mjs` under `plugins/ccp/scripts/`
 - [ ] `node tests/router/router-eval.mjs` — 70/70 PASS (or unchanged baseline)
 - [ ] `node tests/router/router-suggest-test.mjs` — ≥18/19 PASS (95%)
 - [ ] `node plugins/ccp/scripts/harness-audit.js` — total ≥ 33/40
+- [ ] Changed what git tracks (edited `.gitignore`, ran `git rm --cached`, added a new top-level file)? Confirm `guard-ignore` is green — it is the only check that notices a dropped ignore rule.
 - [ ] Manual smoke test for any affected slash command (`/ccp:antigravity-*`, `/ccp:codex-*`, `/ccp:*`)
 
 ## Borrowed-code checklist (skip if N/A)

@@ -7,7 +7,8 @@
 // `validateEnvelope(env)` (data-only: returns {valid, errors}, no side
 // effects) is reused as-is. What lives here is the *emit-time* wrapper around
 // it: validation is always on for every adapter (no more per-adapter kill
-// switch — see 04_implementation_progress.md for why that was reverted), and
+// switch — a per-adapter opt-out was tried and reverted, because an adapter
+// that can silence validation eventually does), and
 // a violation only stays silent if it matches a `knownViolations` entry the
 // adapter registered. An adapter with an empty `knownViolations` array gets
 // every violation surfaced, same as always.

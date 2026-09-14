@@ -1,17 +1,18 @@
 #!/usr/bin/env node
-// CCP — F-1 truncation-path validation harness (companion core-integration).
+// CCP — summary-truncation validation harness (companion core-integration).
 //
 // Independent of tests/companion/golden/: the golden stubs' `ok` mode
 // deliberately fails every real task call (see golden/stubs/agy's header),
 // so they cannot exercise a long, successful CLI response — exactly the
-// input F-1 (summary truncated at a sentence boundary, `summary_truncated`
-// emitted only when true, full body preserved at `result_path`) needs to be
-// driven through. This harness writes its own throwaway stub CLIs into a
-// fresh temp directory per run (never touching golden/stubs/), points
-// CCP_AGY_BIN / CCP_CODEX_BIN and CCP_JOBS_DIR at that same temp directory,
-// and invokes the real companion entry points exactly like golden/capture.mjs
-// does. It never seeds or reads golden/baseline/companion-baseline.json, so
-// the golden 29-record baseline is unaffected by anything in this file.
+// scenario this harness needs to drive through (summary truncated at a
+// sentence boundary, `summary_truncated` emitted only when true, full body
+// preserved at `result_path`). This harness writes its own throwaway stub
+// CLIs into a fresh temp directory per run (never touching golden/stubs/),
+// points CCP_AGY_BIN / CCP_CODEX_BIN and CCP_JOBS_DIR at that same temp
+// directory, and invokes the real companion entry points exactly like
+// golden/capture.mjs does. It never seeds or reads
+// golden/baseline/companion-baseline.json, so the golden 29-record baseline
+// is unaffected by anything in this file.
 //
 // Usage:
 //   node tests/companion/truncation-probe.mjs
@@ -19,18 +20,23 @@
 // Real-CLI/network access: none. Everything runs against the throwaway
 // stubs this script writes for itself. Exit code 0 = all checks passed.
 //
-// Covers PRD `01_prd.md` §5 AC-F1-1 through AC-F1-11. AC-F1-9's full-plugin
-// grep is included for visibility but is a known partial: `core/errors.mjs`
-// and two `commands/*.md` files still name `CCP-CTX-001` as of this batch —
-// they are outside this batch's approved edit scope (see
-// `_workspace/04_implementation_progress.md`), not an unnoticed miss.
+// Checks below cover the summary-truncation contract end to end: truncation
+// only kicks in once a delegated response exceeds the summary cap, the cut
+// lands on a sentence boundary (falling back to a whitespace boundary when
+// there is no sentence-terminal punctuation), the full untruncated body is
+// always saved to `result_path`, and the output-contract prompt suffix that
+// keeps most responses under the cap in the first place is present in every
+// adapter's CLI args. The full-plugin grep for `CCP-CTX-001` further down is
+// included for visibility but is a known partial: `core/errors.mjs`'s
+// shared error catalog and two `commands/*.md` files still name
+// `CCP-CTX-001` directly, which this harness does not attempt to fix.
 //
 // No JSON Schema engine is available in this dependency-free repo (no
-// package.json, no node_modules — confirmed before writing this file). Per
-// `01_schema.md` §7 SC-4, the project's own practice for this gap is to
-// treat `lib/envelope-validate.mjs`'s hand-rolled `validateEnvelope()` as
-// the schema's runtime proxy and cross-check the two stay in agreement —
-// AC-F1-11 below follows that same practice rather than vendoring a new
+// package.json, no node_modules — confirmed before writing this file). For
+// the envelope schema, the project's own practice for this gap is to treat
+// `lib/envelope-validate.mjs`'s hand-rolled `validateEnvelope()` as the
+// schema's runtime proxy and cross-check the two stay in agreement — the
+// last checks below follow that same practice rather than vendoring a new
 // dependency for one test file.
 
 import { spawnSync } from 'node:child_process';
@@ -71,8 +77,8 @@ function note(label, value) {
 }
 
 // ---------------------------------------------------------------------------
-// fixtures — 02_token_scenarios.md §1.4. Sizes are approximate (the design
-// doc's 180/1,200 figures describe intent, not a byte-exact contract); what
+// fixtures. Sizes are approximate — the round figures below describe intent,
+// not a byte-exact contract; what
 // matters for every check below is SHORT staying under the cap and the two
 // LONG_* fixtures clearing it while exercising the sentence-boundary and
 // whitespace-fallback paths respectively. Both LONG_* fixtures are kept on a
@@ -226,10 +232,10 @@ function findCutBoundaryOk(summaryWithoutMarker, fixtureBody) {
 }
 
 // ---------------------------------------------------------------------------
-// AC-F1-10 / RC-F1-9 — output-contract prevention layer, buildArgs unit calls
+// Output-contract prevention layer — buildArgs unit calls (no CLI spawned)
 // ---------------------------------------------------------------------------
 
-console.log('1. AC-F1-10 — output-contract prompt suffix in buildArgs (unit calls, no CLI spawned)');
+console.log('1. Output-contract prompt suffix in buildArgs (unit calls, no CLI spawned)');
 
 {
   const antigravityAdapterPath = join(SCRIPTS_DIR, 'adapters', 'antigravity.mjs');
@@ -268,10 +274,10 @@ console.log('1. AC-F1-10 — output-contract prompt suffix in buildArgs (unit ca
 }
 
 // ---------------------------------------------------------------------------
-// AC-F1-1 ~ AC-F1-8 — end-to-end truncation behavior
+// End-to-end truncation behavior — foreground rescue calls
 // ---------------------------------------------------------------------------
 
-console.log('\n2. AC-F1-1 ~ AC-F1-8 — foreground rescue, long response (sentence-boundary path)');
+console.log('\n2. End-to-end truncation behavior — foreground rescue, long response (sentence-boundary path)');
 
 const probeDir = setupProbeDir();
 try {
@@ -279,36 +285,36 @@ try {
     const r = runRescue(cli, 'LONG_SENTENCED', probeDir);
     const env = r.envelope;
 
-    check(`[${cli}] AC-F1-1 exit_code === 0 and stdout is a success envelope`, r.status === 0 && env && 'summary' in env && !('error' in env), JSON.stringify(env));
+    check(`[${cli}] exit_code === 0 and stdout is a success envelope`, r.status === 0 && env && 'summary' in env && !('error' in env), JSON.stringify(env));
 
     if (cli === 'codex') {
       // codex's summarize() is an identity function, so core's own
       // checkContextBudget/clampSummaryAtBoundary is guaranteed to fire here.
-      check('[codex] AC-F1-2 summary_truncated === true', env?.summary_truncated === true, JSON.stringify(env));
+      check('[codex] summary_truncated === true', env?.summary_truncated === true, JSON.stringify(env));
     } else {
       // antigravity's own summarize() already hard-clips to <=500 chars
       // before core ever sees the text (adapters/antigravity.mjs — a
       // pre-existing, out-of-round-scope adapter-side clamp), so core's
       // truncation path is not guaranteed to trigger on this CLI. Per
-      // 02_token_scenarios.md TS-1 item 5, that is not a failure — recorded
-      // as an observation, not a check().
+      // that is not a failure for this CLI — recorded as an observation
+      // rather than a check().
       note('[antigravity] summary_truncated observed as', JSON.stringify(env?.summary_truncated));
     }
 
-    check(`[${cli}] AC-F1-3 summary.length <= 500`, typeof env?.summary === 'string' && env.summary.length <= 500, `len=${env?.summary?.length}`);
+    check(`[${cli}] summary.length <= 500`, typeof env?.summary === 'string' && env.summary.length <= 500, `len=${env?.summary?.length}`);
 
     if (env?.summary_truncated === true) {
-      check(`[${cli}] AC-F1-4 summary ends with the truncation marker`, env.summary.endsWith('...(truncated)'), env.summary);
+      check(`[${cli}] summary ends with the truncation marker`, env.summary.endsWith('...(truncated)'), env.summary);
     }
 
-    check(`[${cli}] AC-F1-5 result_path is non-null and the file exists`, typeof env?.result_path === 'string' && existsSync(env.result_path), env?.result_path);
+    check(`[${cli}] result_path is non-null and the file exists`, typeof env?.result_path === 'string' && existsSync(env.result_path), env?.result_path);
 
     if (typeof env?.result_path === 'string' && existsSync(env.result_path)) {
       const fileContent = readFileSync(env.result_path, 'utf8');
-      // AC-F1-6, corrected per arch-review M-1: compared against the
-      // adapter-extracted body (parsedRes.body), which for both stubs here
-      // is byte-identical to the raw fixture — not against `summary`.
-      check(`[${cli}] AC-F1-6 result file holds the full body, not the truncated summary`, fileContent === r.fixtureBody, `len file=${fileContent.length} len fixture=${r.fixtureBody.length}`);
+      // Compared against the adapter-extracted body (parsedRes.body), which
+      // for both stubs here is byte-identical to the raw fixture — not
+      // against `summary`, and not against the raw CLI stdout.
+      check(`[${cli}] result file holds the full body, not the truncated summary`, fileContent === r.fixtureBody, `len file=${fileContent.length} len fixture=${r.fixtureBody.length}`);
     }
 
     if (env?.summary_truncated === true) {
@@ -316,21 +322,21 @@ try {
       const lastChar = withoutMarker[withoutMarker.length - 1];
       const endsOnSentence = '.!?…。！？'.includes(lastChar) || lastChar === '\n';
       check(
-        `[${cli}] AC-F1-7 cut lands on a sentence boundary (or falls back to a whitespace boundary)`,
+        `[${cli}] cut lands on a sentence boundary (or falls back to a whitespace boundary)`,
         endsOnSentence || findCutBoundaryOk(withoutMarker, r.fixtureBody),
         JSON.stringify({ withoutMarker: withoutMarker.slice(-40) })
       );
     }
   }
 
-  console.log('\n3. AC-F1-8 — short response leaves summary_truncated unset (bytewise no-op path)');
+  console.log('\n3. Short response leaves summary_truncated unset (bytewise no-op path)');
   for (const cli of ['antigravity', 'codex']) {
     const r = runRescue(cli, 'SHORT', probeDir);
-    check(`[${cli}] AC-F1-8 no summary_truncated key at all (not even false)`, r.envelope && !('summary_truncated' in r.envelope), JSON.stringify(r.envelope));
+    check(`[${cli}] no summary_truncated key at all (not even false)`, r.envelope && !('summary_truncated' in r.envelope), JSON.stringify(r.envelope));
     check(`[${cli}] SHORT summary equals the fixture body verbatim (no clamping applied)`, r.envelope?.summary === r.fixtureBody, r.envelope?.summary);
   }
 
-  console.log('\n4. AC-F1-7 (whitespace fallback) — codex, no sentence-terminal punctuation in the fixture');
+  console.log('\n4. Whitespace-boundary fallback — codex, no sentence-terminal punctuation in the fixture');
   {
     const r = runRescue('codex', 'LONG_UNSENTENCED', probeDir);
     const env = r.envelope;
@@ -364,29 +370,29 @@ try {
 }
 
 // ---------------------------------------------------------------------------
-// AC-F1-9 — full-plugin grep for CCP-CTX-001 (see module header re: the two
-// known, out-of-scope-this-batch doc hits + core/errors.mjs's shared entry)
+// Full-plugin grep for CCP-CTX-001 (see module header re: the known doc
+// hits in commands/*.md + core/errors.mjs's shared error catalog entry)
 // ---------------------------------------------------------------------------
 
-console.log('\n6. AC-F1-9 — grep -rn "CCP-CTX-001" plugins/');
+console.log('\n6. Full-plugin grep for "CCP-CTX-001" — plugins/');
 {
   const grep = spawnSync('grep', ['-rn', 'CCP-CTX-001', join(REPO_ROOT, 'plugins')], { encoding: 'utf8' });
   const hits = (grep.stdout || '').trim().split('\n').filter(Boolean);
-  check('AC-F1-9 grep finds 0 hits (literal PRD wording)', hits.length === 0, `${hits.length} hit(s):\n    ${hits.join('\n    ')}`);
+  check('grep finds 0 hits for the literal string "CCP-CTX-001"', hits.length === 0, `${hits.length} hit(s):\n    ${hits.join('\n    ')}`);
   // The check above is expected to legitimately FAIL right now — see the
-  // module header. Emitter-side confirmation (the part this batch actually
-  // owns) instead:
+  // module header. Emitter-side confirmation (the part actually covered by
+  // the code these checks exercise) instead:
   const codeGrep = spawnSync('grep', ['-rln', 'CCP-CTX-001', join(SCRIPTS_DIR), join(REPO_ROOT, 'plugins', 'ccp', 'hooks')], { encoding: 'utf8' });
   const codeHits = (codeGrep.stdout || '').trim().split('\n').filter(Boolean).filter((f) => !f.endsWith('errors.mjs'));
   check('no emitter code (outside core/errors.mjs\'s shared catalog) references CCP-CTX-001', codeHits.length === 0, JSON.stringify(codeHits));
 }
 
 // ---------------------------------------------------------------------------
-// AC-F1-11 — schema + self-validator agreement (no JSON Schema engine
+// Schema + self-validator agreement (no JSON Schema engine
 // available in this repo — see module header)
 // ---------------------------------------------------------------------------
 
-console.log('\n7. AC-F1-11 — schema declaration + self-validator agreement');
+console.log('\n7. Schema declaration + self-validator agreement');
 {
   const schema = JSON.parse(readFileSync(SCHEMA_PATH, 'utf8'));
   const prop = schema.$defs?.successEnvelope?.properties?.summary_truncated;

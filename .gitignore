@@ -1,11 +1,15 @@
-# Claude Control Plane (CCP) — public repository .gitignore
+# Claude Control Plane (CCP) — .gitignore
+#
+# This is a single public repository: tracked means published. Exclusions are
+# therefore limited to two kinds of file — (a) things nobody needs in order to
+# develop this repository, and (b) things that carry secrets or personal data.
 
 # ─────────────────────────────────────────────────────────────
-# Workspace artifacts — excluded from public distribution
-# (planning, review, and development working files)
+# Workspace artifacts — planning, review, and development working files
 # ─────────────────────────────────────────────────────────────
 _workspace/
 _workspace_archive_*/
+ccp_report.md
 
 # ─────────────────────────────────────────────────────────────
 # Runtime artifacts — may contain user prompts / response bodies
@@ -26,17 +30,41 @@ _workspace/_probe/
 secrets.json
 
 # ─────────────────────────────────────────────────────────────
+# Machine-local context — carries vault paths, e-mail addresses and host
+# paths. The rules stay here even when the file is absent, so that a copy
+# reappearing on any machine is excluded from the first moment.
+# ─────────────────────────────────────────────────────────────
+CLAUDE.local.md
+WIKI.local.md
+.obsidian-doc.local.json
+
+# ─────────────────────────────────────────────────────────────
+# OMX runtime metrics — regenerated locally, never published
+# ─────────────────────────────────────────────────────────────
+.omx/
+
+# ─────────────────────────────────────────────────────────────
+# Claude Code project directory — deny by default.
+# The harness itself (agents, skills, rules, changelog, shared settings) is
+# tracked so that it travels with the repository. Everything else Claude Code
+# writes here — session state, per-user overrides, agent memory, archived
+# changelogs, shell snapshots — stays on the local machine, including files
+# that future versions may add.
+# ─────────────────────────────────────────────────────────────
+.claude/*
+!.claude/agents/
+!.claude/skills/
+!.claude/rules/
+!.claude/settings.json
+
+# ─────────────────────────────────────────────────────────────
 # Node / npm
 # ─────────────────────────────────────────────────────────────
 node_modules/
 npm-debug.log*
-
-# ─────────────────────────────────────────────────────────────
-# User-local Claude settings (project-level settings are committed,
-# only local overrides are excluded)
-# ─────────────────────────────────────────────────────────────
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
+yarn-debug.log*
+yarn-error.log*
+package-lock.json.bak
 
 # ─────────────────────────────────────────────────────────────
 # OS / IDE
@@ -44,6 +72,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 .vscode/
+.idea/
 *.swp
 *.swo
 *~

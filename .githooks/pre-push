@@ -1,0 +1,22 @@
+#!/bin/sh
+# Refuse to push anything but the trunk and release tags.
+#
+# `git push --all` and an explicit branch push are the two ways development
+# history reaches the public remote by accident. A single check on the
+# destination ref catches both, and costs nothing at push time because it
+# reads no file contents.
+#
+# Convenience only: --no-verify bypasses this.
+status=0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  case "$remote_ref" in
+    refs/heads/main|refs/tags/*) ;;
+    *)
+      echo "pre-push: refusing to push $remote_ref." >&2
+      echo "pre-push: this repository publishes refs/heads/main and refs/tags/* only." >&2
+      status=1
+      ;;
+  esac
+done
+exit $status

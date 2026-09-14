@@ -58,7 +58,7 @@ The `@gemini` / `@젬` / `@제미니` aliases are retained for backward compatib
 | 5,000 – 30,000 | otherwise | (proceed to axis C) | — |
 | > 30,000 | — | `antigravity` | `too_large` (long-context backend) |
 
-Token estimation: `words × 1.3` (see `token-budget-check` skill §2).
+Token estimation: `words × 1.3` — a deliberately conservative heuristic that needs no tokenizer and therefore works in every environment.
 
 ### C. Keyword matching
 
