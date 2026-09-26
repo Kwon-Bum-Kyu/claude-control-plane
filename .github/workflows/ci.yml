@@ -157,7 +157,7 @@ jobs:
             "tokens": {"input": 100, "cached": 0, "output": 50, "total": 150},
             "token_usage": {"input": 100, "cached": 0, "output": 50, "total": 150, "estimated": false},
             "summary_3lines": "ci seed job for harness-audit threshold gate",
-            "result_file_path": "_workspace/_jobs/ci-seed/result.txt",
+            "result_path": "_workspace/_jobs/ci-seed/result.txt",
             "exit_code": 0
           }
           JOB

@@ -7,26 +7,17 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+import { resolvePaths } from './core/paths.mjs';
+import { listJobs } from './core/jobs.mjs';
 
 // ---------------------------------------------------------------------------
 
-const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const PLUGIN_ROOT =
-  process.env.CLAUDE_PLUGIN_ROOT && process.env.CLAUDE_PLUGIN_ROOT.length > 0
-    ? resolve(process.env.CLAUDE_PLUGIN_ROOT)
-    : resolve(SCRIPT_DIR, '..');
-const REPO_ROOT = resolve(PLUGIN_ROOT, '..', '..');
-const JOBS_DIR =
-  process.env.CCP_JOBS_DIR && process.env.CCP_JOBS_DIR.length > 0
-    ? resolve(process.env.CCP_JOBS_DIR)
-    : resolve(REPO_ROOT, '_workspace', '_jobs');
-const AUDITS_DIR = resolve(REPO_ROOT, '_workspace', '_audits');
+const { PLUGIN_ROOT, PROJECT_ROOT, JOBS_DIR } = resolvePaths();
+const AUDITS_DIR = resolve(PROJECT_ROOT, '_workspace', '_audits');
 
 const SUMMARY_MAX_CHARS = 500;
 
@@ -91,42 +82,21 @@ function parseArgs(argv) {
 // ---------------------------------------------------------------------------
 
 function readJobs(sinceTs) {
-  if (!existsSync(JOBS_DIR)) return [];
-  const out = [];
-  let entries;
+  let jobs;
   try {
-    entries = readdirSync(JOBS_DIR);
+    jobs = listJobs(JOBS_DIR); // legacy result_file_path is normalized to result_path
   } catch {
-    return [];
+    return []; // an unreadable jobs dir is treated as empty (CCP-AUDIT-001)
   }
-  for (const id of entries) {
-    const dir = join(JOBS_DIR, id);
-    let st;
-    try {
-      st = statSync(dir);
-    } catch {
-      continue;
-    }
-    if (!st.isDirectory()) continue;
-    const metaPath = join(dir, 'meta.json');
-    if (!existsSync(metaPath)) continue;
-    let meta;
-    try {
-      meta = JSON.parse(readFileSync(metaPath, 'utf8'));
-    } catch {
-      continue;
-    }
-    if (sinceTs) {
-      const created = Date.parse(meta.created_at || '');
-      if (Number.isFinite(created) && created < sinceTs) continue;
-    }
-    out.push(meta);
-  }
-  return out;
+  if (!sinceTs) return jobs; // null, or NaN from a non-date --since: no filter
+  return jobs.filter((j) => {
+    const created = Date.parse(j.created_at || '');
+    return !Number.isFinite(created) || created >= sinceTs;
+  });
 }
 
 // ---------------------------------------------------------------------------
-// 7-category scoring
+// Category scoring
 // ---------------------------------------------------------------------------
 
 function scoreContextEfficiency(jobs) {
@@ -159,13 +129,13 @@ function scoreCostEfficiency(jobs) {
 
 function scoreRouterAccuracy() {
   // Cite the router report if present; otherwise N/A.
-  const report = resolve(REPO_ROOT, '_workspace', '04_router_report.md');
+  const report = resolve(PROJECT_ROOT, '_workspace', '04_router_report.md');
   if (!existsSync(report)) return { score: null, note: 'router report not written' };
   return { score: 5, note: 'router report completed' };
 }
 
 function scoreDoubleBilling(jobs) {
-  // Double-billing guard — meta.summary_3lines must be shorter than the result_file_path body size
+  // Double-billing guard — meta.summary_3lines must be shorter than the result_path body size
   if (jobs.length === 0) return { score: 0, n: 0, note: 'no jobs' };
   let safe = 0;
   for (const j of jobs) {
@@ -173,8 +143,8 @@ function scoreDoubleBilling(jobs) {
       safe++;
       continue;
     }
-    if (!j.result_file_path) continue;
-    const abs = resolve(REPO_ROOT, j.result_file_path);
+    if (!j.result_path) continue;
+    const abs = resolve(PROJECT_ROOT, j.result_path);
     if (!existsSync(abs)) continue;
     let bodyLen = 0;
     try {
@@ -305,7 +275,7 @@ function renderMarkdown({ scores, jobs, since, generatedAt }) {
   lines.push(`- Audit scope: ${since ? `since ${since}` : 'all jobs'}`);
   lines.push(`- Jobs scanned: ${jobs.length}`);
   lines.push('');
-  lines.push('## 7 Category Scores');
+  lines.push('## Category Scores');
   lines.push('');
   lines.push('| Category | Score (0-5) | Note |');
   lines.push('|---------|----------|------|');
@@ -316,7 +286,7 @@ function renderMarkdown({ scores, jobs, since, generatedAt }) {
   lines.push('## Spec SSOT');
   lines.push('- `plugins/ccp/commands/audit.md` (slash-command spec)');
   lines.push('- `plugins/ccp/schemas/envelope.schema.json` (envelope contract)');
-  lines.push('- README §4 (subagent isolation principle)');
+  lines.push('- docs/en/architecture.md in the CCP repository (subagent isolation principle)');
   return lines.join('\n');
 }
 
@@ -359,19 +329,22 @@ function main() {
   const generatedAt = new Date().toISOString();
   const tsForFile = generatedAt.replace(/[:.]/g, '').replace(/Z$/, 'Z');
 
-  mkdirSync(AUDITS_DIR, { recursive: true });
-  let resultRel;
+  // result_path (and the summary's "Report:" path) are absolute: the schema
+  // defines result_path as an absolute path, and PROJECT_ROOT may now differ
+  // from cwd.
+  let resultAbs;
   try {
+    mkdirSync(AUDITS_DIR, { recursive: true });
     if (args.format === 'json') {
-      resultRel = `_workspace/_audits/${tsForFile}.json`;
+      resultAbs = resolve(AUDITS_DIR, `${tsForFile}.json`);
       writeFileSync(
-        resolve(REPO_ROOT, resultRel),
+        resultAbs,
         JSON.stringify({ scores: scoreEntries, jobs_count: jobs.length, since: args.since ?? null, generated_at: generatedAt }, null, 2)
       );
     } else {
-      resultRel = `_workspace/_audits/${tsForFile}.md`;
+      resultAbs = resolve(AUDITS_DIR, `${tsForFile}.md`);
       writeFileSync(
-        resolve(REPO_ROOT, resultRel),
+        resultAbs,
         renderMarkdown({ scores: scoreEntries, jobs, since: args.since, generatedAt })
       );
     }
@@ -387,8 +360,8 @@ function main() {
   for (const [k, v] of Object.entries(scoreEntries)) flatScores[k] = v.score;
 
   emitSuccess({
-    summary: `Total score ${totalScore}/${maxScore}. ${jobs.length} jobs scanned. Report: ${resultRel}`,
-    result_path: resultRel,
+    summary: `Total score ${totalScore}/${maxScore}. ${jobs.length} jobs scanned. Report: ${resultAbs}`,
+    result_path: resultAbs,
     details: { scores: flatScores, jobs_count: jobs.length, since: args.since ?? null },
   });
 }

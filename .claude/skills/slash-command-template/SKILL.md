@@ -79,7 +79,7 @@ JSON envelope:
 | `/antigravity:status <job_id>` | background job 상태 확인 |
 | `/antigravity:result <job_id>` | background job 결과 회수 |
 | `/antigravity:setup` | Antigravity CLI 설치/인증 검증 |
-| `/ccp:audit` | harness-audit 실행 (7카테고리 점수) |
+| `/ccp:audit` | harness-audit 실행 (8카테고리 점수) |
 
 ## Why
 
