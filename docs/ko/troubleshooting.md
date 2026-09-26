@@ -1,10 +1,10 @@
 # 문제 해결
 
-이 문서는 CCP 를 쓰는 중에 만날 수 있는 에러 코드와 훅 안내 메시지, 그리고 setup 커맨드가 확인하는 항목을 정리합니다.
+이 문서에서는 CCP 사용 중 만나는 에러 코드와 훅 안내 메시지, setup 커맨드의 확인 항목을 정리합니다.
 
 ## 에러 코드
 
-모든 에러는 JSON envelope 의 `error.code` 값으로 나타납니다. 실패한 호출은 `result_path` 를 돌려주지 않습니다. 대신 `details` 안의 `stderr_head`나 `stdout_head`(코드에 따라 있는 경우), 또는 job 디렉터리(`_workspace/_jobs/<job_id>/`) 안의 로그 파일을 확인합니다. 어떤 필드와 로그를 봐야 하는지는 코드마다 다르며 아래 표의 "다음 행동" 칸에 적어 두었습니다. 에러 코드의 형식과 카탈로그 병합 규칙, envelope 구조의 세부 사항은 [아키텍처](./architecture.md)를 참고하십시오.
+모든 에러는 JSON envelope 의 `error.code` 값으로 표시됩니다. 실패한 호출은 `result_path` 를 돌려주지 않습니다. `details` 안의 `stderr_head`나 `stdout_head`(코드에 따라 있는 경우), 또는 job 디렉터리(`_workspace/_jobs/<job_id>/`)의 로그 파일을 확인합니다. 어떤 필드와 로그를 확인해야 하는지는 코드마다 다르며 아래 표의 "다음 행동" 칸에 적어 두었습니다. 에러 코드의 형식과 카탈로그 병합 규칙, envelope 구조의 세부 사항은 [아키텍처](./architecture.md)를 참고하십시오.
 
 | 코드 | 발생 CLI | 원인 | 다음 행동 | recovery |
 |------|----------|------|-----------|----------|
@@ -34,7 +34,7 @@
 
 ## 훅 안내 메시지
 
-다음 표식은 훅과 라우터가 텍스트에 직접 붙이는 안내입니다. 이 중 CCP-ROUTER-001 은 `router-decide.mjs` 가 JSON 에러 코드로도 쓰며, 그 경우는 위 에러 코드 표를 참고하십시오. 결정 로직과 조건의 자세한 내용은 [라우터](./router.md)를 참고하십시오.
+다음 표식은 훅과 라우터가 텍스트에 직접 덧붙이는 안내입니다. 이 중 CCP-ROUTER-001 은 `router-decide.mjs` 가 JSON 에러 코드로도 쓰며, 그 경우는 위 에러 코드 표를 참고하십시오. 결정 로직과 조건의 자세한 내용은 [라우터](./router.md)를 참고하십시오.
 
 - CCP-ROUTER-001: 라우팅 결정이 비효율적일 수 있다고 추천만 하는 표식입니다.
 - CCP-ROUTER-002: 라우터가 자동으로 위임한 결과의 요약 앞에 붙는 표식입니다.
@@ -49,7 +49,7 @@
 2. CLI 설치와 버전을 확인합니다. 미달이면 antigravity 는 CCP-SETUP-001, codex 는 설치 누락이면 CCP-SETUP-101, 버전 미달이면 CCP-SETUP-102 로 중단합니다.
 3. 인증을 실제 호출로 확인합니다. antigravity 는 60000ms, codex 는 30000ms 안에 응답이 없으면 시간 초과로 처리합니다.
 
-setup 이 확인하는 인증과 rescue 를 호출하기 직전에 확인하는 인증은 방식이 다릅니다. antigravity 는 rescue 호출마다 자격 증명이 존재하는지만 저비용으로 확인하고, 실제 CLI 호출로 인증을 확인하는 것은 setup 뿐입니다. codex 는 rescue 호출마다 실제로 인증 상태를 확인하는 호출을 수행합니다.
+setup 이 확인하는 인증과 rescue 호출 직전의 인증은 확인 방식이 다릅니다. antigravity 는 rescue 호출마다 자격 증명이 존재하는지만 저비용으로 확인하고, 실제 CLI 호출로 인증을 확인하는 것은 setup 뿐입니다. codex 는 rescue 호출마다 실제로 인증 상태를 확인하는 호출을 수행합니다.
 
 CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 참고하십시오.
 
@@ -73,3 +73,4 @@ CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 �
 - [라우터](./router.md)
 - [아키텍처](./architecture.md)
 - [README](../../README.md)
+

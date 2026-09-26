@@ -1,12 +1,12 @@
 # 라우터
 
-CCP 라우터는 사용자 프롬프트를 세 대상, 즉 Claude(메인 컨트롤 플레인), Antigravity, Codex 가운데 어디로 보낼지 결정합니다. 라우터의 결정 로직은 하나의 함수로 구현되어 있고, 추천 훅과 라우터 에이전트, 회귀 테스트가 이 함수를 함께 사용합니다. 그래서 이 문서에 적힌 결정 규칙과 실제 동작이 항상 일치합니다.
+CCP 라우터는 사용자 프롬프트를 세 대상, 즉 Claude(메인 컨트롤 플레인), Antigravity, Codex 가운데 어디로 보낼지 결정합니다. 라우터의 결정 로직은 하나의 함수로 구현되어 있고, 추천 훅과 라우터 에이전트, 회귀 테스트가 이 함수를 함께 사용합니다. 이 문서의 결정 규칙은 실제 동작과 일치합니다.
 
 ## 기본 동작
 
 사용자가 `/ccp:antigravity-rescue` 또는 `/ccp:codex-rescue` 슬래시 커맨드를 직접 실행하면 이 결정 로직을 거치지 않고 항상 해당 CLI 로 위임됩니다. 슬래시 커맨드가 아닌 일반 프롬프트가 주어졌을 때만 아래에 설명하는 4축 결정 순서가 적용됩니다.
 
-기본 상태에서 라우터의 결정은 자동으로 위임을 실행하지 않습니다. `UserPromptSubmit` 훅이 결정 결과를 안내 메시지로만 보여 주고, 실제 위임은 사용자가 안내를 보고 슬래시 커맨드를 직접 실행해야 이루어집니다. 결정을 자동으로 위임까지 이어지게 하는 방법은 "자동 라우팅 (opt-in)" 절에서 설명합니다.
+기본 상태에서 라우터의 결정은 자동으로 위임을 실행하지 않습니다. `UserPromptSubmit` 훅이 결정 결과를 안내 메시지로만 보여 주고, 실제 위임은 사용자가 안내를 확인한 뒤 슬래시 커맨드를 직접 실행해야 이루어집니다. 결정을 자동으로 위임까지 이어지게 하는 방법은 "자동 라우팅 (opt-in)" 절에서 설명합니다.
 
 ## 결정 순서
 
@@ -21,13 +21,13 @@ CCP 라우터는 사용자 프롬프트를 세 대상, 즉 Claude(메인 컨트�
 3. `--effort` 또는 `--sandbox workspace-write` 가 있으면 Codex 로 결정합니다.
 4. 코드 블록을 제거한 텍스트에서 매직 키워드가 일치하면 그 키워드가 가리키는 대상으로 결정합니다. 매직 키워드는 아래 "매직 키워드" 절에서 설명합니다.
 
-다음 명령으로 두 번째 조건을 직접 확인할 수 있습니다.
+다음 명령으로 두 번째 조건을 확인합니다.
 
 ```
 node plugins/ccp/scripts/lib/router-decide.mjs --prompt "이 코드 검토해줘 --force-claude"
 ```
 
-이 프롬프트는 `--force-claude` 가 있어 Claude 로 결정됩니다.
+이 프롬프트에는 `--force-claude` 가 있으므로 Claude 로 결정됩니다.
 
 ### 축 B: 입력 크기
 
@@ -56,18 +56,18 @@ node plugins/ccp/scripts/lib/router-decide.mjs --prompt "이 코드 검토해줘
 
 정확한 단어 목록은 코드가 기준입니다. 저장소의 `plugins/ccp/scripts/lib/router.mjs` 에서 확인할 수 있습니다.
 
-사전과 프롬프트를 대조할 때는 정보성 문맥을 걸러냅니다. 일치한 단어의 앞뒤 80자 안에 "이게 뭐야", "how to use", "explain" 처럼 설명을 요청하는 표현이 있으면 그 일치는 무시합니다. 이 판단은 영어, 한국어, 일본어, 중국어 표현을 모두 인식합니다. 다음 두 명령으로 차이를 확인할 수 있습니다.
+사전과 프롬프트를 대조할 때는 정보성 문맥을 걸러냅니다. 일치한 단어의 앞뒤 80자 안에 "이게 뭐야", "how to use", "explain" 처럼 설명을 요청하는 표현이 있으면 그 일치는 무시합니다. 이 판단은 영어, 한국어, 일본어, 중국어 표현을 모두 인식합니다. 다음 두 명령으로 결과 차이를 확인합니다.
 
 ```
 node plugins/ccp/scripts/lib/router-decide.mjs --prompt "코드 리뷰 부탁해"
 node plugins/ccp/scripts/lib/router-decide.mjs --prompt "리뷰가 무엇인가요 설명해주세요 궁금합니다 궁금합니다 궁금합니다"
 ```
 
-첫 번째 프롬프트는 Codex 사전과 일치해 Codex 로 결정됩니다. 두 번째 프롬프트는 같은 단어가 있어도 설명을 요청하는 문맥이므로 그 일치가 무시됩니다.
+첫 번째 프롬프트는 Codex 사전과 일치하므로 Codex 로 결정됩니다. 두 번째 프롬프트에는 같은 단어가 있지만 설명을 요청하는 문맥이므로 일치 결과를 무시합니다.
 
 ## 매직 키워드
 
-매직 키워드는 사용자가 크기나 사전 일치와 무관하게 원하는 대상을 직접 지정하는 표기입니다. 축 A 에서 슬래시 언급과 옵션 다음, 코드 블록을 제거한 뒤에 확인합니다.
+매직 키워드는 사용자가 크기나 사전 일치와 무관하게 원하는 대상을 직접 지정하는 표기입니다. 축 A 에서 슬래시 언급과 옵션을 확인한 다음, 코드 블록을 제거하고 매직 키워드를 확인합니다.
 
 - Antigravity: `@antigravity`, `@ag`, `@안티` (예전 표기 `@gemini`, `@젬`, `@제미니` 도 같은 대상으로 인식합니다.)
 - Codex: `@codex`, `@코덱`, `@코덱스`
@@ -78,25 +78,25 @@ node plugins/ccp/scripts/lib/router-decide.mjs --prompt "리뷰가 무엇인가�
 
 코드 블록도 매칭에서 제외합니다. 세 개의 백틱으로 감싼 코드 블록과 백틱으로 감싼 인라인 코드 안에 있는 매직 키워드는 무시합니다. 이 처리는 매직 키워드뿐 아니라 위 "키워드 사전" 절의 대조에도 똑같이 적용됩니다.
 
-다음 명령으로 앞쪽 경계 규칙을 직접 확인할 수 있습니다.
+다음 명령으로 앞쪽 경계 규칙을 확인합니다.
 
 ```
 node plugins/ccp/scripts/lib/router-decide.mjs --prompt "bob@agency 쪽에 전달할 문구 확인해줘"
 ```
 
-이 프롬프트는 `@ag` 가 이메일 주소 안에 있어 매직 키워드로 매치되지 않으므로 Antigravity 로 결정되지 않습니다.
+이 프롬프트에서 `@ag` 는 이메일 주소 안에 있으므로 매직 키워드로 인식하지 않으며, Antigravity 로도 결정하지 않습니다.
 
 ```
 node plugins/ccp/scripts/lib/router-decide.mjs --prompt "@codex 이 diff 좀 봐줘"
 ```
 
-이 프롬프트는 `@codex` 가 매직 키워드로 매치되어 축 A 에서 바로 Codex 로 결정됩니다.
+이 프롬프트에서는 `@codex` 를 매직 키워드로 인식해 축 A 에서 Codex 로 결정합니다.
 
 ## 자동 라우팅 (opt-in)
 
 자동 라우팅은 라우터의 결정을 훅의 안내로만 쓰지 않고 라우터 에이전트가 실제로 위임까지 실행하게 하는 설정입니다. 기본값은 꺼짐이며, 플러그인 매니페스트(`plugins/ccp/.claude-plugin/plugin.json`)의 `config.auto_routing` 값을 `true` 로 바꿔야 켜집니다.
 
-자동 라우팅이 켜져 있어도 헤드리스 사용이 확실하면 자동으로 위임하지 않습니다. 다음 세 가지 신호 가운데 하나라도 참이면 헤드리스로 확정합니다.
+자동 라우팅이 켜져 있어도 헤드리스 사용이 확실한 경우에는 위임하지 않습니다. 다음 세 가지 신호 중 하나라도 참이면 헤드리스로 판단합니다.
 
 - 환경 변수 `CI` 의 값이 `true` 또는 `1` 일 때
 - 환경 변수 `CLAUDE_CODE_NONINTERACTIVE` 의 값이 `1` 또는 `true` 일 때
@@ -131,9 +131,9 @@ node plugins/ccp/scripts/lib/router-decide.mjs --prompt "@codex 이 diff 좀 봐
 
 ## 헤드리스 경고
 
-헤드리스 경고는 자동 라우팅의 헤드리스 판정과 다른 별개의 판단입니다. 라우터가 Antigravity 또는 Codex 로 결정했고 훅이 안내 메시지를 보여 줄 때, 프롬프트에 헤드리스 사용을 의심할 표현이 있으면 안내 메시지 뒤에 `[CCP-META-WARN]` 표식이 붙은 문구가 추가로 붙습니다. 이 문구는 `--help` 같은 메타 탐색이나 Skill 에서 Agent 로 우회하는 방식 대신, `node plugins/ccp/scripts/codex-companion.mjs rescue --task <task>` 또는 `node plugins/ccp/scripts/antigravity-companion.mjs rescue --task <task>` 처럼 companion 스크립트를 직접 실행하라고 안내합니다.
+헤드리스 경고는 자동 라우팅의 헤드리스 판정과 별도로 판단합니다. 라우터가 Antigravity 또는 Codex 로 결정했고 훅이 안내 메시지를 보여 줄 때, 프롬프트에 헤드리스 사용을 의심할 표현이 있으면 안내 메시지 뒤에 `[CCP-META-WARN]` 표식이 붙은 문구를 추가합니다. 이 문구는 `--help` 같은 메타 탐색이나 Skill 에서 Agent 로 우회하는 방식 대신, `node plugins/ccp/scripts/codex-companion.mjs rescue --task <task>` 또는 `node plugins/ccp/scripts/antigravity-companion.mjs rescue --task <task>` 처럼 companion 스크립트를 직접 실행하라고 안내합니다.
 
-다음 조건 가운데 하나가 참이면 헤드리스 사용을 의심합니다. 다만 프롬프트에 `/ccp:codex-` 또는 `/ccp:antigravity-` 로 시작하는 슬래시 언급이 이미 있으면 아래 조건과 무관하게 의심하지 않습니다.
+다음 조건 가운데 하나가 참이면 헤드리스 사용을 의심합니다. 프롬프트에 `/ccp:codex-` 또는 `/ccp:antigravity-` 로 시작하는 슬래시 언급이 있으면 아래 조건과 관계없이 헤드리스로 의심하지 않습니다.
 
 - 단어 경계를 지킨 `headless`, `claude -p`, `automation`, `스크립트`, `자동화` 가 프롬프트에 있을 때. `cron` 은 뒤쪽 경계 없이 확인하므로 `crontab` 도 포함합니다.
 - 대문자로만 이루어진 단독 단어 `CI` 가 프롬프트에 있을 때. 소문자 `ci` 는 판정하지 않습니다.
@@ -148,4 +148,4 @@ node plugins/ccp/scripts/lib/router-decide.mjs --prompt "@codex 이 diff 좀 봐
 
 ## 다음 문서
 
-라우터가 위임하는 경로의 전체 구조는 [아키텍처](./architecture.md) 문서에서 설명합니다.
+[아키텍처](./architecture.md) 문서에서 라우터의 전체 위임 경로를 설명합니다.

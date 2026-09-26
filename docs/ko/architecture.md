@@ -1,6 +1,6 @@
 # 아키텍처
 
-CCP 는 다섯 개 원칙과 하나의 envelope 스키마로 구성됩니다. 이 문서는 원칙, 위임이 실제로 거치는 경로, companion 코어와 어댑터의 경계, 에러 코드와 envelope 검증 체계, job 경로 해석, 훅과 서브에이전트, 차용 코드 출처를 다룹니다. envelope 의 정확한 키 목록과 에러 코드 전수표는 각각 [슬래시 커맨드](./slash-commands.md) 와 [문제 해결](./troubleshooting.md) 문서를 참고하십시오.
+CCP 는 다섯 개 원칙과 하나의 envelope 스키마로 이뤄집니다. 이 문서는 원칙, 위임이 실제로 거치는 경로, companion 코어와 어댑터의 경계, 에러 코드와 envelope 검증 체계, job 경로 해석, 훅과 서브에이전트, 차용 코드 출처를 다룹니다. envelope 의 정확한 키 목록과 에러 코드 전수표는 각각 [슬래시 커맨드](./slash-commands.md) 와 [문제 해결](./troubleshooting.md) 문서를 참고하십시오.
 
 ## 원칙
 
@@ -10,11 +10,11 @@ CCP 는 위임 결과를 짧은 요약과 결과 파일 경로만으로 메인 �
 
 ### 서브에이전트 격리
 
-세 서브에이전트(`antigravity-rescue`, `codex-rescue`, `router`)는 모두 같은 네 가지 금지를 공유합니다: 파일을 직접 열람하지 않고, 정해진 명령이 표준출력에 남긴 envelope 을 원문 그대로 상위 호출자에게 반환하며, 그 내용을 독자적으로 판단하지 않고, 실패해도 재시도하거나 다른 수단으로 대체하지 않습니다. 코드와 프롬프트는 이 규율을 subagent isolation principle 이라고 부릅니다. 구체적인 도구 권한과 실행 명령은 아래 '위임 경로'와 '서브에이전트' 절에 있습니다.
+세 서브에이전트(`antigravity-rescue`, `codex-rescue`, `router`)는 모두 같은 네 가지 규칙을 따릅니다: 파일을 직접 열람하지 않고, 정해진 명령이 표준출력에 남긴 envelope 을 원문 그대로 상위 호출자에게 반환하며, 그 내용을 독자적으로 판단하지 않고, 실패해도 재시도하거나 다른 수단으로 대체하지 않습니다. 코드와 프롬프트에서는 이 규율을 subagent isolation principle 이라고 합니다. 구체적인 도구 권한과 실행 명령은 아래 '위임 경로'와 '서브에이전트' 절에 있습니다.
 
 ### 자동 fallback 금지
 
-위임이 실패해도 CCP 는 조용히 Claude 나 다른 CLI 로 재시도하지 않습니다. 대신 에러 envelope 의 `recovery` 값과 `action` 문구로 사용자가 다음에 무엇을 해야 하는지 알려주고, 사용자가 명시적으로 다시 호출해야 합니다. 훅도 같은 규율을 따라 슬래시 커맨드를 추천만 하고 대신 실행하지 않습니다. 코드와 프롬프트는 이 규율을 no-automatic-fallback principle 이라고 부릅니다. `recovery` 값의 구체적인 뜻은 아래 'envelope 과 에러 코드 체계' 절에 있습니다.
+위임이 실패해도 CCP 는 조용히 Claude 나 다른 CLI 로 재시도하지 않습니다. 대신 에러 envelope 의 `recovery` 값과 `action` 문구로 사용자가 다음에 무엇을 해야 하는지 알려주고, 사용자가 명시적으로 다시 호출해야 합니다. 훅도 같은 규율을 따라 슬래시 커맨드를 추천만 하고 대신 실행하지 않습니다. 코드와 프롬프트에서는 이 규율을 no-automatic-fallback principle 이라고 합니다. `recovery` 값의 구체적인 뜻은 아래 'envelope 과 에러 코드 체계' 절에 있습니다.
 
 ### 훅은 추천만
 
@@ -37,7 +37,7 @@ CCP 의 서브에이전트는 이 둘과 `router` 를 합쳐 세 개뿐입니다
 
 `router` 서브에이전트는 `tools`·`disallowedTools` 구성이 다른 두 서브에이전트와 같되 `Task` 도구까지 명시적으로 차단합니다. 사용자 프롬프트 제출 시 어떤 조건에서 `router-suggest.js` 훅이 판단을 이 서브에이전트에게 넘기는지는 아래 '훅' 절에 있습니다. 위임이 이 서브에이전트로 넘어가면 `node "${CLAUDE_PLUGIN_ROOT}/scripts/lib/router-decide.mjs" --prompt "<user prompt verbatim>" [--auto-routing on|off] [--no-auto-route]` 하나만 실행하고 그 결과 envelope 을 그대로 반환합니다. 결정 축과 판단 근거는 [라우터](./router.md) 문서가 다룹니다.
 
-companion 은 슬래시 커맨드나 서브에이전트를 거치지 않고 직접 실행할 수도 있습니다. `node plugins/ccp/scripts/companion.mjs <antigravity|codex> <subcommand> [...args]` 형태로 CLI 이름을 첫 인자로 주거나, CLI 를 고정한 별칭 스크립트(`antigravity-companion.mjs`, `codex-companion.mjs`)를 바로 실행합니다. `companion.mjs` 는 첫 인자로 받은 CLI 이름에 대응하는 어댑터 파일(`adapters/antigravity.mjs` 또는 `adapters/codex.mjs`)을 선택하는 역할만 합니다.
+companion 은 슬래시 커맨드나 서브에이전트를 거치지 않고 직접 실행할 수도 있습니다. `node plugins/ccp/scripts/companion.mjs <antigravity|codex> <subcommand> [...args]` 형태로 CLI 이름을 첫 인자로 주거나, CLI 를 고정한 별칭 스크립트(`antigravity-companion.mjs`, `codex-companion.mjs`)를 바로 실행합니다. `companion.mjs` 는 첫 인자로 받은 CLI 이름에 맞는 어댑터 파일(`adapters/antigravity.mjs` 또는 `adapters/codex.mjs`)을 선택하는 역할만 합니다.
 
 ## companion 코어와 어댑터
 
@@ -52,17 +52,17 @@ companion 은 공유 코어와 CLI 별 어댑터로 나뉩니다. 코어는 여�
 
 두 어댑터(`adapters/antigravity.mjs`, `adapters/codex.mjs`)는 각 CLI 에 고유한 값을 선언합니다. 지원 플래그와 거부 플래그, 명령줄을 만드는 함수(`buildArgs`), CLI 출력을 읽는 함수(`parseResult`), 타임아웃, 에러 카탈로그, 바이너리 경로 환경 변수 등입니다. 코어는 이 선언 값을 읽어 실행을 조율할 뿐이고, 어댑터가 선언하지 않은 값은 코어가 정한 안전한 기본값으로 대체합니다.
 
-이 대체가 실제로 어떻게 작동하는지 보여주는 두 사례가 있습니다.
+이 대체가 실제로 작동하는 사례는 두 가지입니다.
 
-첫째, codex 어댑터는 `timeouts.background` 로 240000ms 를 선언하지만, 코어의 `handleRescue` 는 포그라운드와 백그라운드를 가리지 않고 항상 `timeouts.foreground` 를 타임아웃 기본값으로 계산해 job 메타데이터에 저장합니다. 이 값이 항상 채워져 있으므로, 실제로 백그라운드 워커를 돌리는 `handleTaskWorker` 의 `timeouts.background` 폴백은 코드 경로상 절대 실행되지 않습니다. 결과적으로 codex 백그라운드 작업의 실효 타임아웃도 240000ms 가 아니라, antigravity 와 같은 600000ms 입니다.
+첫 번째로, codex 어댑터는 `timeouts.background` 로 240000ms 를 선언하지만, 코어의 `handleRescue` 는 포그라운드와 백그라운드를 가리지 않고 항상 `timeouts.foreground` 를 타임아웃 기본값으로 계산해 job 메타데이터에 저장합니다. 이 값이 항상 채워져 있어 실제로 백그라운드 워커를 돌리는 `handleTaskWorker` 의 `timeouts.background` 폴백은 코드 경로상 절대 실행되지 않습니다. 따라서 codex 백그라운드 작업의 실효 타임아웃도 240000ms 가 아니라, antigravity 와 같은 600000ms 입니다.
 
-둘째, job_id 형식 검증은 어댑터가 `validateJobId` 를 선언했는지에 따라 갈립니다. antigravity 는 UUID v4 정규식으로 실제 형식을 검사하지만, codex 는 이 함수를 선언하지 않아 코어가 값이 있으면 통과로 대체합니다. codex 의 job_id 는 형식 검증이 없다는 뜻입니다.
+두 번째로, job_id 형식 검증은 어댑터가 `validateJobId` 를 선언했는지에 따라 갈립니다. antigravity 는 UUID v4 정규식으로 실제 형식을 검사하지만, codex 는 이 함수를 선언하지 않아 코어가 값이 있으면 통과로 대체합니다. codex 의 job_id 는 형식 검증이 없다는 뜻입니다.
 
 두 어댑터가 선언해야 하는 필드 구성은 `tests/companion/contract-test.mjs` 가 매 실행마다 검사합니다. 어댑터가 선언하지 않은 필드를 코어가 요구하거나, 코어가 모르는 필드를 어댑터가 추가하면 이 테스트가 실패합니다.
 
 ## envelope 과 에러 코드 체계
 
-envelope 스키마는 JSON Schema draft-2020-12(https://json-schema.org/draft/2020-12/schema)를 따르고, 스키마 파일은 `plugins/ccp/schemas/envelope.schema.json` 이며 그 `$id` 값은 `https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json` 입니다. envelope 이 정확히 어떤 키를 가지는지, `details.mode` 가 어떤 값을 갖는지는 [슬래시 커맨드](./slash-commands.md) 문서의 응답 envelope 절을 참고하십시오.
+envelope 스키마는 JSON Schema draft-2020-12(https://json-schema.org/draft/2020-12/schema)를 따르고, 스키마 파일은 `plugins/ccp/schemas/envelope.schema.json` 이며 그 `$id` 값은 `https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json` 입니다. envelope 이 어떤 키를 갖는지, `details.mode` 가 어떤 값을 갖는지는 [슬래시 커맨드](./slash-commands.md) 문서의 응답 envelope 절을 참고하십시오.
 
 에러 코드 형식은 `CCP-<카테고리>-<NNN>` 입니다. 코드 전체를 훑으면 `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, `UNSUPPORTED` 카테고리가 관찰됩니다.
 
@@ -76,7 +76,7 @@ envelope 스키마는 JSON Schema draft-2020-12(https://json-schema.org/draft/20
 
 ## job 경로 해석
 
-job 이 저장되는 디렉터리(`JOBS_DIR`)는 다섯 단계 우선순위로 정해집니다. 절대 경로 환경 변수 `CCP_JOBS_DIR` 이 있으면 나머지 전부를 무시하고 이 값을 씁니다. 없으면 `CLAUDE_PROJECT_DIR` 을 보고, 그마저 없으면 `CLAUDE_PROJECT_ROOT` 를 봅니다. 둘 다 없으면 호출자가 넘긴 힌트(예: `SubagentStop` 훅이 stdin 으로 받은 `cwd`)를 쓰고, 그마저 없으면 마지막 폴백으로 `process.cwd()` 를 씁니다. 이 마지막 값은 항상 존재합니다.
+job 이 저장되는 디렉터리(`JOBS_DIR`)는 다섯 단계 우선순위를 따릅니다. 절대 경로 환경 변수 `CCP_JOBS_DIR` 이 있으면 나머지 전부를 무시하고 이 값을 씁니다. 없으면 `CLAUDE_PROJECT_DIR` 을 보고, 그마저 없으면 `CLAUDE_PROJECT_ROOT` 를 봅니다. 둘 다 없으면 호출자가 넘긴 힌트(예: `SubagentStop` 훅이 stdin 으로 받은 `cwd`)를 쓰고, 그마저 없으면 마지막 폴백으로 `process.cwd()` 를 씁니다. 마지막 값은 항상 존재합니다.
 
 `PLUGIN_ROOT`(플러그인 자체가 설치된 물리 경로)는 이 우선순위와 무관합니다. `CLAUDE_PLUGIN_ROOT` 환경 변수가 있으면 그 값을, 없으면 코드 파일 기준 두 단계 위 디렉터리를 씁니다. 마켓플레이스로 설치된 플러그인은 갱신될 때 이 디렉터리가 사라질 수 있으므로 job 경로 계산에는 쓰지 않습니다.
 
@@ -90,18 +90,18 @@ job 산출물 경로는 두 어댑터 모두 `JOBS_DIR` 기준의 절대 경로(
 
 CCP 는 네 개의 훅을 등록합니다. `UserPromptSubmit` 에는 `suggest-compact.js` 다음에 `router-suggest.js` 가 이 순서로 실행되고, `SubagentStop` 에는 `rescue-finalize.js`, `SessionStart` 에는 `boot-check.js`, `PreCompact` 에는 `suggest-compact.js` 가 등록되어 있습니다.
 
-- `boot-check.js`(`SessionStart`): Node.js 버전, agy 설치와 버전, 인증 상태를 미리 점검합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검이 세션 시작 자체를 막지는 않습니다.
+- `boot-check.js`(`SessionStart`): Node.js 버전, agy 설치와 버전, 인증 상태를 미리 점검합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검은 세션 시작을 막지 않습니다.
 - `router-suggest.js`(`UserPromptSubmit`): 라우팅 판단을 `[CCP-ROUTER-001]` 추천으로 주입합니다. `auto_routing` 이 켜져 있고 세션이 canonical 로 판정되면, 또는 판단이 애초에 `claude` 이면 아무 것도 주입하지 않습니다. 앞의 경우에는 그 판단을 `router` 서브에이전트에게 넘깁니다. 헤드리스 자동화가 의심되는 프롬프트에는 `[CCP-META-WARN]` 안내를 덧붙입니다.
 - `suggest-compact.js`(`UserPromptSubmit`, `PreCompact`): 컨텍스트 사용량이 임계치를 넘으면 `[CCP-COMPACT-001]` 안내로 수동 `/compact` 나 위임을 권합니다. `PreCompact` 시점에는 임계치와 무관하게 항상 안내합니다.
 - `rescue-finalize.js`(`SubagentStop`): antigravity job 중 상태가 계속 `running` 인 채로 시작 후 5분(300000ms) 이 지난 것을 찾아 `failed` 로 강제 종료 처리하고 `CCP-TIMEOUT-001` 을 기록합니다. codex 는 이 상태 키를 쓰지 않으므로 이 정리 대상이 아닙니다.
 
-네 훅 모두 실패해도 조용합니다. stdin 이 JSON 이 아니거나 처리 중 예외가 나면 빈 객체를 표준출력에 쓰고 그대로 종료해, 사용자의 입력 흐름을 막지 않습니다.
+네 훅은 모두 실패해도 조용히 처리됩니다. stdin 이 JSON 이 아니거나 처리 중 예외가 나면 빈 객체를 표준출력에 쓰고 그대로 종료해, 사용자의 입력 흐름을 막지 않습니다.
 
 ## 서브에이전트
 
 CCP 의 서브에이전트는 세 개뿐입니다: `antigravity-rescue`, `codex-rescue`, `router`. 셋 다 `tools:["Bash"]`, `model:haiku`, `background:false` 이고 `disallowedTools` 에 `mcp__*` 를 포함합니다. `router` 는 여기에 더해 `Task` 도구도 명시적으로 차단합니다.
 
-세 서브에이전트는 모두 정해진 명령 하나만 실행합니다(위임 경로 절 참고). 이들은 네 가지를 금지합니다: 파일을 직접 열람하지 않고, 명령이 돌려준 envelope 을 원문 그대로 상위 호출자에게 돌려주고, 그 결과를 독자적으로 판단하지 않으며, 실패해도 재시도하거나 다른 수단으로 대체하지 않습니다. 코드와 프롬프트는 이 규율을 subagent isolation principle 이라고 부릅니다.
+세 서브에이전트는 위임 경로 절에 적힌 명령 하나만 실행하며, 원칙 절의 '서브에이전트 격리'에서 설명한 네 가지 규칙을 따릅니다.
 
 ## 차용 코드
 
