@@ -71,7 +71,7 @@ function parseAgyLogMetrics(logText) {
 
 function buildRetryHint(task) {
   return {
-    renew: '/ccp:antigravity-setup --renew',
+    renew: '/ccp:antigravity-setup',
     fallback: `/ccp:antigravity-rescue --fallback-claude "${String(task || '').replace(/"/g, '\\"')}"`,
   };
 }
@@ -136,10 +136,15 @@ export default {
       background: { key: 'background', type: 'bool' },
       'fallback-claude': { key: 'fallbackClaude', type: 'bool' },
       'summary-only': { key: 'summaryOnly', type: 'bool' },
+      // Accepted and discarded: parsed into flags.renew but no handler reads
+      // it (setup has no renew-mode branch). Kept declared so an old call
+      // still parses cleanly instead of falling through to the positional list.
       renew: { key: 'renew', type: 'bool' },
       sandbox: { key: 'sandbox', type: 'bool' },
       'max-tokens': { key: 'maxTokens', type: 'int' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },
+      // Accepted and discarded: keeps an old call's value out of the delegated
+      // prompt (this parser folds undeclared flags into the prompt). Nothing reads it.
       'poll-interval-ms': { key: 'pollIntervalMs', type: 'int' },
       files: { key: 'files', type: 'string' },
       'job-id': { key: 'jobId', type: 'string' },
@@ -262,7 +267,7 @@ export default {
     },
     'CCP-AG-001': {
       message: 'Antigravity CLI failed to run',
-      action: 'Rerun with `--verbose` to inspect detailed logs, or retry with the main Claude agent.',
+      action: 'Check agy.log in the job directory (the job_id is in the error details), or retry with the main Claude agent.',
       recovery: 'retry',
     },
     'CCP-AG-002': {
@@ -460,7 +465,7 @@ export default {
     // an unknown flag rather than failing the delegated task itself — that's
     // an install/version problem, not a generic run failure, so route it to
     // the same code setup already uses for "not installed or too old" rather
-    // than the catch-all below (which only points at --verbose logs).
+    // than the catch-all below (which only points at the job's agy.log).
     if (/unknown (option|flag|argument)|unrecognized (option|flag)|invalid option/i.test(blob)) return 'CCP-SETUP-001';
     return 'CCP-AG-001';
   },

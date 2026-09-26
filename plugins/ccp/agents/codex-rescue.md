@@ -73,7 +73,7 @@ If the envelope carries `summary_truncated: true`, that means `summary` was cut 
 ```json
 {
   "error": {
-    "code": "CCP-XXX-NNN",
+    "code": "CCP-JOB-002",
     "message": "...",
     "action": "...",
     "recovery": "fallback_claude|retry|abort|user_action_required"

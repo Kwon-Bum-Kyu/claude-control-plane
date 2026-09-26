@@ -65,7 +65,7 @@ const MISSING_ARG = {
   rescue: { message: 'rescue requires a PROMPT argument', action: 'Call it as `/ccp:codex-rescue "<task>"`.' },
   status: { message: 'status requires a jobId argument', action: 'Call it as `/ccp:codex-status <job_id>`.' },
   result: { message: 'result requires a jobId argument', action: 'Call it as `/ccp:codex-result <job_id>`.' },
-  cancel: { message: 'cancel requires a jobId argument', action: 'Call it as `/ccp:codex-cancel <job_id>`.' },
+  cancel: { message: 'cancel requires a jobId argument', action: 'Call it as `codex-companion.mjs cancel <job_id>`.' },
 };
 
 export default {
@@ -108,8 +108,12 @@ export default {
       effort: { key: 'effort', type: 'string' },
       sandbox: { key: 'sandbox', type: 'string' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },
-      'poll-interval-ms': { key: 'pollIntervalMs', type: 'int' },
       'fallback-claude': { key: 'fallbackClaude', type: 'bool' },
+      // core/runtime.mjs#handleRescue reads flags.task directly (an explicit
+      // --task wins over the positional/prompt list); this dash-dash parser
+      // is fully generic and already parses --task without a table entry, so
+      // this exists only to keep the documentation/usage-generation list accurate.
+      task: { key: 'task', type: 'string' },
     },
     rejectFlags: [],
     // codex has no value-conditional flag guard today (that is antigravity's --files traversal check)
@@ -149,7 +153,7 @@ export default {
       recovery: 'fallback_claude',
     },
     'CCP-CODEX-001': { message: 'Failed to run Codex CLI', action: 'Check stderr logs or retry in Claude.', recovery: 'retry' },
-    'CCP-CODEX-002': { message: 'Could not find a valid JSONL event in the Codex response', action: 'Rerun with `--verbose` or check stderr logs.', recovery: 'retry' },
+    'CCP-CODEX-002': { message: 'Could not find a valid JSONL event in the Codex response', action: 'Check details.stdout_head (the first 200 characters Codex printed), then retry or handle it in Claude.', recovery: 'retry' },
     'CCP-JOB-002': { message: 'The job has not finished yet', action: 'Check `/ccp:codex-status <job_id>` and try again.', recovery: 'retry' },
     'CCP-JOB-004': { message: 'The result file is missing', action: 'Rerun with a new `/ccp:codex-rescue` call.', recovery: 'abort' },
     'CCP-JOB-409': { message: 'Cannot cancel in the current state', action: 'Check the job state and try again.', recovery: 'abort' },

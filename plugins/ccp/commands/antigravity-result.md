@@ -24,7 +24,7 @@ Retrieves the result of a job started with `/ccp:antigravity-rescue --background
 
 1. Validate the UUID v4 pattern.
 2. Call `antigravity-companion.mjs result <job_id>`.
-3. The companion verifies `meta.status==completed` and returns only an envelope with `result_file_path` plus a 3-line summary.
+3. The companion verifies `meta.status==completed` and returns only an envelope with `result_path` plus a 3-line summary.
 
 ## Invocation Pattern
 

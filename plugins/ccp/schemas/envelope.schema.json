@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/KBK/claude-control-plane/schemas/envelope.schema.json",
+  "$id": "https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json",
   "title": "CCP Companion Envelope",
   "description": "Single JSON format emitted on stdout by every CCP slash command and subagent. Both antigravity and codex companions self-validate before output. 6-key SSOT.",
   "type": "object",

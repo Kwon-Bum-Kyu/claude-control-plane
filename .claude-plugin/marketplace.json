@@ -13,7 +13,7 @@
     {
       "name": "ccp",
       "source": "./plugins/ccp",
-      "description": "Antigravity CLI wrapper + model router + ecc guardrails port.",
+      "description": "Delegates large-context work from Claude to the Antigravity and Codex CLIs — companion wrappers, 3-way model router, ecc guardrails.",
       "version": "0.4.0",
       "license": "MIT"
     }

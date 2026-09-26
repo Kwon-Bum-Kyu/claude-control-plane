@@ -1,6 +1,5 @@
 ---
 description: Verifies Antigravity CLI (`agy`) installation and authentication status, and shows install or re-auth guidance on failure.
-argument-hint: "[--renew]"
 allowed-tools:
   - Bash
 ---
@@ -12,12 +11,8 @@ Verifies Antigravity CLI installation and authentication status. On failure, it 
 ## Usage
 
 ```
-/ccp:antigravity-setup [--renew]
+/ccp:antigravity-setup
 ```
-
-| Argument | Description |
-|------|------|
-| `--renew` | Re-auth mode guidance (asks the user to run `agy` once to trigger keyring sign-in, or to set `ANTIGRAVITY_API_KEY`) |
 
 ## Behavior
 

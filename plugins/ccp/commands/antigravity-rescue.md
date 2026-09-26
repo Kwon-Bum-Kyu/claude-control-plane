@@ -20,7 +20,7 @@ Delegates work to an Antigravity CLI subagent to reduce main Claude context toke
 | `<task>` | Task description to delegate to Antigravity (required) |
 | `--background` | Detached async execution. Returns `job_id` immediately, then retrieve via `/ccp:antigravity-status` and `/ccp:antigravity-result` |
 | `--max-tokens N` | Response token cap (default 4000) — embedded as a soft prompt hint, since `agy` has no `--max-tokens` flag |
-| `--files <glob>` | File glob for Antigravity to reference (MVP: not yet wired into `--add-dir`) |
+| `--files <glob>` | Currently rejected — the companion always returns `CCP-INVALID-001` for `--files` today. `agy` has its own `--add-dir` CLI option for directory scoping, but this flag is not wired to it yet |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
 
 ## Behavior

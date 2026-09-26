@@ -123,7 +123,7 @@ After the router decides `antigravity` or `codex`, a failed delegation must NOT 
 
 | Model | Failure cause | User choices |
 |-------|---------------|--------------|
-| antigravity | auth invalid / quota | `/ccp:antigravity-setup --renew` or `/ccp:antigravity-rescue --fallback-claude "<task>"` |
+| antigravity | auth invalid / quota | `/ccp:antigravity-setup` or `/ccp:antigravity-rescue --fallback-claude "<task>"` |
 | codex | not authenticated | `codex login` then retry, or `/ccp:codex-rescue --fallback-claude "<task>"` |
 
 Reasons for forbidding auto-fallback:

@@ -35,7 +35,6 @@ import {
 } from './jobs.mjs';
 
 const MIN_NODE_MAJOR = 20;
-const DEFAULT_POLL_INTERVAL_MS = 2000;
 // Shared today (both adapters currently enforce the same 1500-token summary
 // cap); if a future adapter needs a different cap, this moves to an
 // adapter-declared field instead of staying a runtime constant.
@@ -510,7 +509,6 @@ function handleRescue(ctx, parsed) {
   const sandbox = flags.sandbox;
   const maxTokens = pickInt(flags, 'maxTokens', undefined);
   const timeoutMs = pickInt(flags, 'timeoutMs', adapter.timeouts.foreground, { min: 5000, max: 3600000 });
-  const pollIntervalMs = pickInt(flags, 'pollIntervalMs', DEFAULT_POLL_INTERVAL_MS, { min: 200 });
   const isBg = pickBool(flags, 'background', false);
   const params = { model, effort, sandbox, maxTokens, timeoutMs };
 
@@ -520,7 +518,7 @@ function handleRescue(ctx, parsed) {
     emitErr(ctx, adapter.auth.failureCode, { details: detailsOrNull(adapter.details.extraFor(subcommand, { reason: authCheck.reason, task: prompt })) });
   }
 
-  if (isBg) return runBackground(ctx, { prompt, cwd, params, pollIntervalMs });
+  if (isBg) return runBackground(ctx, { prompt, cwd, params });
   return runForeground(ctx, { prompt, cwd, params });
 }
 
