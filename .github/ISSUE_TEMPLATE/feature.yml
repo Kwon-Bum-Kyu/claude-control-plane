@@ -1,5 +1,5 @@
 name: 기능 제안
-description: CCP 에 추가할 기능이나 개선 사항을 제안합니다
+description: CCP에 추가할 기능이나 개선 사항을 제안합니다
 title: "[feat] "
 labels: ["enhancement"]
 body:
@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         신고하기 전에 먼저 기존 이슈를 검색해 주세요. 이미 같은 제안이 등록되어 있을 수 있습니다.
-        MVP 는 의도적으로 범위가 좁으므로, 사소하지 않은 추가 기능에는 범위를 정당화하는 근거가 필요합니다.
+        MVP는 의도적으로 범위가 좁으므로, 사소하지 않은 추가 기능에는 범위를 정당화하는 근거가 필요합니다.
 
   - type: textarea
     id: problem
@@ -54,7 +54,7 @@ body:
       label: 합격 기준
       description: 이 제안이 완료되었다는 것을 어떻게 확인하나요? 가능하면 측정 가능한 조건으로 적어 주세요.
       placeholder: |
-        - router-eval 에 케이스 5개가 추가되고 전부 통과합니다
+        - router-eval에 케이스 5개가 추가되고 전부 통과합니다
         - canonical 토큰 절감 효과가 기존 기준 대비 5% 이내로 유지됩니다
 
   - type: checkboxes
@@ -63,6 +63,6 @@ body:
       label: 아키텍처 원칙
       description: 이 제안이 건드리는 원칙이 있다면 표시해 주세요.
       options:
-        - label: "자동 fallback 금지 원칙: 위임 실패를 main Claude 로 자동 재시도하지 않습니다"
+        - label: "자동 fallback 금지 원칙: 위임 실패를 main Claude로 자동 재시도하지 않습니다"
         - label: "서브에이전트 격리 원칙: 서브에이전트가 메인 컨텍스트로 내용을 누출하지 않습니다"
         - label: 그 밖의 원칙(설명에 적어 주세요)

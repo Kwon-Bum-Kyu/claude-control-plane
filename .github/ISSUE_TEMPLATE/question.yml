@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        설치나 OAuth 문제라면 먼저 `/ccp:antigravity-setup` 과 `/ccp:codex-setup` 을 실행하고
+        설치나 OAuth 문제라면 먼저 `/ccp:antigravity-setup`과 `/ccp:codex-setup`을 실행하고
         그 출력을 아래에 포함해 주세요. 설치 시점 실패는 대부분 여기서 드러납니다.
 
   - type: textarea

@@ -83,7 +83,7 @@ Antigravity가 선언하는 서브커맨드는 `rescue`, `status`, `result`, `se
 
 `/ccp:audit`는 companion 경로를 쓰지 않고 harness-audit.js를 직접 실행하는 별도 커맨드입니다. job 경로 해석은 companion과 같은 규칙(`resolvePaths`)을 따르며, 보고서는 `_workspace/_audits/` 아래에 절대 경로로 기록됩니다. envelope의 `result_path`와 `summary`도 모두 절대 경로입니다.
 
-`--since`는 `YYYY-MM-DD` 형식만 받습니다. 그 밖의 값은 오류 없이 무시되고 모든 job 을 감사합니다. `--format`은 `md` 또는 `json`이며 기본값은 `md`입니다.
+`--since`는 `YYYY-MM-DD` 형식만 받습니다. 그 밖의 값은 오류 없이 무시되고 모든 job을 감사합니다. `--format`은 `md` 또는 `json`이며 기본값은 `md`입니다.
 
 예전 `result_file_path` 키만 가진 job 기록도 `result_path`로 자동 정규화되어 읽힙니다.
 
