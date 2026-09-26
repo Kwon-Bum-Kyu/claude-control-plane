@@ -6,7 +6,7 @@ CCP is built from five principles and one envelope schema. This document covers 
 
 ### Summary and path only
 
-CCP returns only a short summary and a result-file path to the main session for a delegation result. When the summary exceeds a certain length, it is automatically truncated, preferring a sentence boundary, and the fact that it was truncated is marked in the envelope. The raw response from the CLI used for delegation is never included in the summary and always stays on disk, and its path is returned along with the summary as `result_path`. The exact character-count cap and truncation rule are in the response-envelope section of the [Slash commands](./slash-commands.md) document.
+CCP returns only a short summary and a result-file path to the main session for a delegation result. When the summary exceeds a certain length, it is automatically truncated, preferring a sentence boundary, and the fact that it was truncated is marked in the envelope. The raw response from the CLI used for delegation is never included in the summary. When a result file is kept on disk, its path is returned along with the summary as `result_path`. A Codex foreground run keeps no result file unless the summary was truncated, and in that case `result_path` is `null`. The exact character-count cap and truncation rule are in the response-envelope section of the [Slash commands](./slash-commands.md) document.
 
 ### Subagent isolation
 
