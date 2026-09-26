@@ -1,37 +1,37 @@
-name: Question / Support
-description: Ask about CCP usage, router decisions, or troubleshooting
+name: 질문 / 지원 요청
+description: CCP 사용법, 라우터 결정, 문제 해결에 대해 질문합니다
 title: "[q] "
 labels: ["question"]
 body:
   - type: markdown
     attributes:
       value: |
-        For installation or OAuth issues, please run `/ccp:antigravity-setup` and `/ccp:codex-setup` first
-        and include their output below. Most install-time failures surface there.
+        설치나 OAuth 문제라면 먼저 `/ccp:antigravity-setup` 과 `/ccp:codex-setup` 을 실행하고
+        그 출력을 아래에 포함해 주세요. 설치 시점 실패는 대부분 여기서 드러납니다.
 
   - type: textarea
     id: question
     attributes:
-      label: Question
-      description: What are you trying to accomplish? What have you tried?
+      label: 질문
+      description: 무엇을 하려고 하시나요? 어떤 방법을 시도해 보셨나요?
     validations:
       required: true
 
   - type: textarea
     id: context
     attributes:
-      label: Relevant context
-      description: Slash command output, envelope JSON, audit report excerpt — anything that helps.
+      label: 관련 정보
+      description: 슬래시 커맨드 출력, envelope JSON, 감사 보고서 일부 등 도움이 될 만한 것을 적어 주세요.
       render: text
 
   - type: input
     id: node
     attributes:
-      label: Node.js version
+      label: Node.js 버전
       placeholder: v22.12.0
 
   - type: input
     id: claude_code
     attributes:
-      label: Claude Code version
+      label: Claude Code 버전
       placeholder: 1.x.x

@@ -118,7 +118,7 @@
       "Suggested-by",
       "Helped-by"
     ],
-    "_identityTrailersNote": "Git's standard identity trailers exist to carry an address, and this repo requires Signed-off-by on every commit. Only the address inside such a trailer line is exempt; anything else on the line, and any address elsewhere in the message, still fails."
+    "_identityTrailersNote": "Git's standard identity trailers exist to carry an address, and this repo recommends Signed-off-by on every commit. Only the address inside such a trailer line is exempt; anything else on the line, and any address elsewhere in the message, still fails."
   },
   "publicSurface": {
     "scope": [

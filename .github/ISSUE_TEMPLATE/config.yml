@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: Read the docs first
-    url: https://github.com/claude-control-plane/claude-control-plane/tree/main/docs/en
-    about: getting-started, router, slash-commands, troubleshooting, architecture (placeholder org name — update once the repository's final home is confirmed)
-  - name: Claude Code documentation
-    url: https://docs.claude.com/en/docs/claude-code/overview
-    about: Plugin system, hooks, subagents — upstream reference
+  - name: 문서를 먼저 확인해 주세요
+    url: https://github.com/Kwon-Bum-Kyu/claude-control-plane/tree/main/docs/ko
+    about: 시작하기, 라우터, 슬래시 커맨드, 문제 해결, 아키텍처 문서가 있습니다.
+  - name: Claude Code 문서
+    url: https://code.claude.com/docs/en/overview
+    about: 플러그인 시스템, 훅, 서브에이전트 등 상류 참고 문서입니다.
