@@ -33,10 +33,10 @@ The router applies four axes in priority order. The first matching axis wins.
 
 | Signal | Decision | reason |
 |--------|----------|--------|
-| `/ccp:antigravity-rescue` slash invocation | `antigravity` | `user_explicit_antigravity` |
-| `/ccp:codex-rescue` slash invocation | `codex` | `user_explicit_codex` |
+| `/ccp:antigravity-rescue` slash invocation (without `--fallback-claude`) | `antigravity` | `user_explicit_antigravity` |
+| `/ccp:codex-rescue` slash invocation (without `--fallback-claude`) | `codex` | `user_explicit_codex` |
 | `--fallback-claude` flag | `claude` | `user_explicit_claude` |
-| `--force-claude` flag (future) | `claude` | `user_explicit_claude` |
+| `--force-claude` flag | `claude` | `user_explicit_claude` |
 | `--effort` (codex-specific) | `codex` | `user_explicit_codex_option` |
 | `--sandbox workspace-write` | `codex` | `user_explicit_codex_option` |
 | Magic keyword `@antigravity` / `@ag` / `@안티` | `antigravity` | `user_explicit_antigravity_magic` |
@@ -45,7 +45,7 @@ The router applies four axes in priority order. The first matching axis wins.
 | Magic keyword `@claude` / `@클` / `@클로드` | `claude` | `user_explicit_claude_magic` |
 | Magic keyword `@auto` / `@자동` | (marker — fall through to B/C/D) | — |
 
-User-explicit signals invalidate every other axis. Magic keywords are matched after `removeCodeBlocks` so keywords inside code fences do not trigger.
+Rows are checked top to bottom. A slash invocation that also carries `--fallback-claude` skips the slash rows and resolves to `claude` through the `--fallback-claude` row. User-explicit signals invalidate every other axis. Magic keywords are matched after `removeCodeBlocks` so keywords inside code fences do not trigger.
 
 The `@gemini` / `@젬` / `@제미니` aliases are retained for backward compatibility after the upstream Gemini CLI EOL (2026-06-18) — they all route to the Antigravity backend now.
 
@@ -112,10 +112,12 @@ The router does not check CLI availability or authentication state at decision t
   "target": "claude" | "antigravity" | "codex",
   "reason": "user_explicit_antigravity | user_explicit_codex | user_explicit_codex_option | user_explicit_claude | user_explicit_antigravity_magic | user_explicit_codex_magic | user_explicit_claude_magic | too_small | mid_review_codex | mid_review_codex_oversized | too_large | main_context_bind | keyword_antigravity | keyword_codex | keyword_claude | keyword_antigravity_priority | keyword_codex_priority | keyword_claude_priority | default_conservative",
   "axis": "A" | "B" | "C" | "D",
-  "estimated_input_tokens": 12345,
-  "matched_keywords": ["review this PR", "audit diff"]
+  "tokens": 12345,
+  "matched": ["review this PR"]
 }
 ```
+
+`tokens` is present on input-size and fallback decisions, and `matched` on keyword and magic-keyword decisions; keyword decisions that resolve by priority carry per-class `hits` counts instead. `router-decide.mjs` wraps this object in a JSON envelope (see docs/en/router.md in the CCP repository).
 
 ## No-auto-fallback rule
 
