@@ -7,7 +7,7 @@
 [![Antigravity CLI](https://img.shields.io/badge/Antigravity%20CLI-%E2%89%A51.0.0-4285F4)](https://github.com/google/antigravity)
 [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-%E2%89%A50.122.0-000000)](https://github.com/openai/codex)
 
-📚 **문서**: [한국어](./docs/ko/getting-started.md) · [English](./docs/en/getting-started.md) · [English README](./README.md)
+📚 **문서**: [한국어](./docs/ko/getting-started.md) · [English](./docs/en/getting-started.md) · [English README](./README.en.md)
 
 ---
 
@@ -383,4 +383,4 @@ GitHub Issues 와 Pull Request 모두 환영합니다. 한국어·영어 어느 
 
 ---
 
-**License:** [MIT](./LICENSE) · 차용 라이선스: [`LICENSES/`](./LICENSES/) · 영어 README: [README.md](./README.md)
+**License:** [MIT](./LICENSE) · 차용 라이선스: [`LICENSES/`](./LICENSES/) · 영어 README: [README.en.md](./README.en.md)

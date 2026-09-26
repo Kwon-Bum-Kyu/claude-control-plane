@@ -7,7 +7,7 @@
 [![Antigravity CLI](https://img.shields.io/badge/Antigravity%20CLI-%E2%89%A51.0.0-4285F4)](https://github.com/google/antigravity)
 [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-%E2%89%A50.122.0-000000)](https://github.com/openai/codex)
 
-📚 **Docs**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md) · [README in Korean](./README.ko.md)
+📚 **Docs**: [English](./docs/en/getting-started.md) · [한국어](./docs/ko/getting-started.md) · [README in Korean](./README.md)
 
 ---
 
@@ -391,4 +391,4 @@ GitHub Issues and Pull Requests are welcome in either English or Korean. Branch 
 
 ---
 
-**License:** [MIT](./LICENSE) · Third-party license texts: [`LICENSES/`](./LICENSES/) · Korean README: [README.ko.md](./README.ko.md)
+**License:** [MIT](./LICENSE) · Third-party license texts: [`LICENSES/`](./LICENSES/) · Korean README: [README.md](./README.md)

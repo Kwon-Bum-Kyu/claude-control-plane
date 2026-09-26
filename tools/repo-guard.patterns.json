@@ -125,7 +125,7 @@
       "plugins/**",
       "docs/**",
       "README.md",
-      "README.ko.md",
+      "README.en.md",
       "CHANGELOG.md",
       "CONTRIBUTING.md",
       "LICENSE",

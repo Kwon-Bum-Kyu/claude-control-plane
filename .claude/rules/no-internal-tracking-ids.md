@@ -77,7 +77,7 @@
 plugins/**
 docs/**
 README.md
-README.ko.md
+README.en.md
 CHANGELOG.md
 CONTRIBUTING.md
 LICENSE
@@ -159,3 +159,4 @@ CI 잡 `guard-public-surface` (`.github/workflows/ci.yml`) 가 매 push·PR 에�
 | 2026-08-30 | §3.1 강제 준수 목록에 `tests/**` 추가 | 서브에이전트 출구 측 회귀 기준 런의 라이선스 검수가 지적: `tests/` 는 prod 레포에 포함되는 공개 표면인데 §3.1 에 명시되어 있지 않아 보수적 적용에 의존하고 있었다. 사용자 승인(G1, 2026-08-30) 후 명시. fixture 디렉터리·`tests/README.md`·검사 스크립트 주석에 §1 패턴 작성 금지. |
 | 2026-08-31 | §2 보존 대상에 "감사 대상 리포트 경로" 행 추가 (`_workspace/04_router_report.md`·`_workspace/04_token_report.md`) | 출구 측 격리 하니스 런의 인계 사항 해소. `harness-audit.js:162` 와 `ci.yml:107·132·134` 에 이 경로가 이미 등장하는데, §1.2 `_workspace/...` 패턴에 형식상 걸리면서 §2 예외로 등재되어 있지 않았다. 감사가 사용자 호스트에서 실제로 읽는 runtime 성격의 경로이고 파일 자체는 `.gitignore` 로 추적 0 이므로 보존 대상으로 확정. |
 | 2026-09-07 | 단일 공개 레포 전환 반영. (ㄱ) §2 보존 표에서 `.obsidian-doc.local.json` 행 삭제 — 파일이 삭제되어 "변환 시점 가드 SSOT" 근거가 소멸. (ㄴ) §3 전제 갱신 — 추적 = 공개이므로 §3.2 의 의미를 "비공개 보장"에서 "§1 패턴 작성 허용"으로 재정의. (ㄷ) §3.2 제외 목록을 `.claude/rules/**` 에서 `.claude/**` 로 확장하고 `CLAUDE.md`·`tools/repo-guard.patterns.json` 추가. (ㄹ) §3.1 목록을 CI 검사 범위와 1:1 로 정렬 — 실재하지 않는 `NOTICE`·`ATTRIBUTION.md` 제거, `README.ko.md`·`tools/repo-guard.mjs` 추가, `.gitignore` 미포함. (ㅁ) §1.1 의 `Step`·`Principle` 두 패턴에 CI 미적용 표시와 사유 기록. (ㅂ) §5.3 을 미적용에서 활성으로 전환. | dev 레포와 공개 레포를 하나로 합치면서 `.claude/**`·`CLAUDE.md`·`tests/**` 가 공개 대상이 되었다. 사용자 결정으로 하네스 추적 ID 노출은 감수하되, 룰이 스스로 말하는 전제를 사실과 맞추고 룰 목록과 기계 검사의 범위를 일치시켰다. |
+| 2026-09-26 | §3.1 목록의 `README.ko.md` 를 `README.en.md` 로 교체 | 문서 메인 언어를 한국어로 전환하면서 `README.md` 가 한국어판, `README.en.md` 가 영어 번역본이 되었다. `tools/repo-guard.patterns.json` 의 scope 도 같은 커밋에서 맞췄다. |

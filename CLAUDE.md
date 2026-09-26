@@ -4,7 +4,7 @@
 
 ## 핵심 목표
 
-Claude Control Plane (CCP) 은 Claude 를 메인 컨트롤 플레인으로 두고 Antigravity CLI (`agy`) 와 Codex CLI 를 서브에이전트로 위임 호출하는 Claude Code 플러그인이다. 플러그인 본체는 `plugins/ccp/`, 마켓플레이스 루트는 `.claude-plugin/marketplace.json` 이며 Node.js 20 이상이 필요하다.
+Claude Control Plane (CCP) 은 Claude 를 메인 컨트롤 플레인으로 두고 Antigravity CLI (`agy`) 와 Codex CLI 를 서브에이전트로 위임 호출하는 Claude Code 플러그인이다. 플러그인 본체는 `plugins/ccp/`, 마켓플레이스 루트는 `.claude-plugin/marketplace.json` 이며 Node.js 20.19 이상(22 계열은 22.7 이상)이 필요하다. 훅과 감사 스크립트가 `.js` 확장자로 ESM 을 쓰므로 모듈 자동 감지가 있는 버전이어야 한다.
 
 풀려는 문제는 하나다. 큰 컨텍스트(코드베이스·로그·문서)를 Claude 혼자 처리하면 메인 세션의 토큰이 빠르게 소진된다. 그래서 그 작업을 외부 CLI 에 위임하고, 메인 세션에는 500자 이하의 요약과 결과 파일 경로만 돌려주어 메인 컨텍스트의 토큰 누적을 격리한다. 설계 판단은 전부 이 격리를 지키는 쪽으로 내린다.
 
@@ -51,7 +51,7 @@ SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromp
 
 ### 커맨드 네임스페이스와 문서 대칭
 
-커맨드 파일의 stem 이 곧 커맨드 이름이다 (`commands/audit.md` → `/ccp:audit`). 네임스페이스는 `/ccp:*` 하나이며, 대상 CLI 는 `antigravity-`·`codex-` 접두사로 구분한다. `docs/en/` 과 `docs/ko/` 는 같은 파일명으로 쌍을 이루고 `README.md` 와 `README.ko.md` 도 마찬가지이므로, 한쪽을 고치면 다른 쪽도 맞춘다.
+커맨드 파일의 stem 이 곧 커맨드 이름이다 (`commands/audit.md` → `/ccp:audit`). 네임스페이스는 `/ccp:*` 하나이며, 대상 CLI 는 `antigravity-`·`codex-` 접두사로 구분한다. 문서는 한국어가 원본이다. `docs/ko/` 가 원본이고 `docs/en/` 은 같은 파일명의 영어 번역본이며, `README.md`(한국어)와 `README.en.md`(영어)도 같은 관계이므로, 한쪽을 고치면 다른 쪽도 맞춘다.
 
 ### 차용 코드의 출처 표기
 
@@ -100,4 +100,4 @@ node plugins/ccp/scripts/harness-audit.js --format json [--since YYYY-MM-DD]    
 
 ### 커밋
 
-이 저장소는 공개 레포 하나라서 추적되는 파일은 push 하는 순간 공개된다. 커밋 메시지는 Conventional Commits 형식의 한국어 제목 한 줄로 쓴다. `commit-msg` 훅과 CI 가 메시지 안의 Claude Code 세션 URL 과 세션 식별자 트레일러, 커밋 SHA, 신원 트레일러 밖의 이메일 주소를 거부하므로 넣지 않는다. `pre-push` 훅은 `main` 과 태그 외의 ref push 를 거부하며, `git push --all` 은 쓰지 않는다.
+이 저장소는 공개 레포 하나라서 추적되는 파일은 push 하는 순간 공개된다. 커밋 메시지는 Conventional Commits 형식의 한국어 제목 한 줄로 쓴다. `commit-msg` 훅과 CI 가 메시지 안의 Claude Code 세션 URL 과 세션 식별자 트레일러, 커밋 SHA, 신원 트레일러 밖의 이메일 주소를 거부하므로 넣지 않는다. `pre-push` 훅은 원격이 공개 레포일 때 `main` 과 태그 외의 ref push 를 거부하고(포크로 가는 push 는 제한하지 않는다), `git push --all` 은 쓰지 않는다.
