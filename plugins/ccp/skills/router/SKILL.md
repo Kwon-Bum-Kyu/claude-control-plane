@@ -5,14 +5,14 @@ description: "CCP model router — 3-way delegation decision logic for Claude (m
 
 # CCP Router — 3-way Routing Skill (Claude / Antigravity / Codex)
 
-Decides whether to delegate work from the main Claude context. Acceptance criterion: overall accuracy ≥ 98% on the regression dataset, with per-class precision/recall ≥ 0.93.
+Decides whether to delegate work from the main Claude context. Acceptance criterion: zero misclassifications on the regression dataset (`tests/router/router-eval.mjs`).
 
 **v0.3 scope:**
 - The 4-axis algorithm in this SKILL.md is mirrored in code by `plugins/ccp/scripts/lib/router.mjs`. Both the recommendation hook and the regression suite import that single module (single SSOT).
 - **Recommendation hook active**: `hooks/router-suggest.js` injects the decision as a system reminder on UserPromptSubmit (`[CCP-ROUTER-001]`). When the decision is `claude`, it is a no-op.
 - **Canonical auto-routing (opt-in)**: in canonical interactive sessions, set `plugin.json#config.auto_routing: true` to let the router agent dispatch automatically (see docs/en/router.md in the CCP repository). Default is `false`.
 - **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/ccp:antigravity-rescue` / `/ccp:codex-rescue`).
-- Regression dataset: 70 cases (codex / antigravity / claude classes + boundary false-positive guards).
+- Regression dataset: `tests/router/router-eval.mjs` (codex / antigravity / claude classes + boundary false-positive guards). CI requires zero misclassifications.
 
 ## Trigger conditions
 
@@ -95,13 +95,13 @@ The following keywords override every codex / antigravity match because they sig
 | Multiple matches (excluding bind) | priority codex > antigravity > claude | `keyword_<chosen>_priority` |
 | No match | (proceed to axis D) | — |
 
-### D. Fallback (default)
+### D. Conservative default
 
 | Situation | Decision | reason |
 |-----------|----------|--------|
-| Decision is codex but codex CLI is missing or unauthenticated | `claude` | `fallback_codex_unavailable` |
-| Decision is antigravity but `agy` auth is invalid / quota-exceeded / CLI missing | `claude` | `fallback_antigravity_unavailable` |
 | All previous axes undecided | `claude` | `default_conservative` |
+
+The router does not check CLI availability or authentication state at decision time; that is a separate, post-decision concern. If the chosen backend later fails to authenticate or run, the adapter surfaces its own error code (`CCP-OAUTH-001`, `CCP-OAUTH-101`, etc., see docs/en/troubleshooting.md in the CCP repository) with a `recovery` hint, and the router's `classify()` result is not revisited.
 
 **Conservative default**: when in doubt, route to the main Claude. A wrong delegation triggers the router-misclassification cost.
 
@@ -110,7 +110,7 @@ The following keywords override every codex / antigravity match because they sig
 ```json
 {
   "target": "claude" | "antigravity" | "codex",
-  "reason": "user_explicit_antigravity | user_explicit_codex | user_explicit_codex_option | user_explicit_claude | user_explicit_antigravity_magic | user_explicit_codex_magic | user_explicit_claude_magic | too_small | mid_review_codex | too_large | keyword_antigravity | keyword_codex | keyword_claude | keyword_codex_priority | keyword_antigravity_priority | fallback_codex_unavailable | fallback_antigravity_unavailable | default_conservative",
+  "reason": "user_explicit_antigravity | user_explicit_codex | user_explicit_codex_option | user_explicit_claude | user_explicit_antigravity_magic | user_explicit_codex_magic | user_explicit_claude_magic | too_small | mid_review_codex | mid_review_codex_oversized | too_large | main_context_bind | keyword_antigravity | keyword_codex | keyword_claude | keyword_antigravity_priority | keyword_codex_priority | keyword_claude_priority | default_conservative",
   "axis": "A" | "B" | "C" | "D",
   "estimated_input_tokens": 12345,
   "matched_keywords": ["review this PR", "audit diff"]
@@ -149,12 +149,12 @@ In `claude -p` headless invocations, when the router recommends antigravity/code
 
 ### Guard
 
-- `hooks/router-suggest.js` detects keywords such as `headless`, `claude -p`, `script`, `automation` on UserPromptSubmit and adds a `[CCP-META-WARN]` notice.
+- `hooks/router-suggest.js` detects keywords such as `headless`, `claude -p`, `automation`, `cron`, the Korean words for "script" and "automation", and a standalone uppercase `CI` on UserPromptSubmit and adds a `[CCP-META-WARN]` notice.
 - When the user/script invokes a slash command (`/ccp:antigravity-rescue` etc.), the headless suspicion is cleared and only the standard `[CCP-ROUTER-001]` recommendation is emitted.
 
 ## Accuracy measurement procedure
 
-Use the 70-case regression dataset that ships with this repo (codex / antigravity / claude classes + boundary false-positive guards).
+Use the regression dataset that ships with this repo, `tests/router/router-eval.mjs` (codex / antigravity / claude classes + boundary false-positive guards).
 
 ```
 accuracy = (prediction == ground-truth label) / total
@@ -162,16 +162,18 @@ accuracy = (prediction == ground-truth label) / total
 
 Acceptance criteria:
 
-| Metric | Threshold |
-|--------|-----------|
-| Overall accuracy | ≥ 98% (1 miss allowed) |
-| Clear-case accuracy | 100% |
-| Boundary-case accuracy (alt label allowed) | ≥ 80% |
-| False-positive guard accuracy | 100% |
-| Claude / Antigravity / Codex precision and recall | ≥ 0.93 each |
+The pass/fail gate is **zero misclassifications** (a boundary case counts as correct when it matches its alternate label). The script also prints a diagnostic table that is not part of the gate:
+
+| Diagnostic metric | Printed threshold |
+|-------------------|-------------------|
+| Overall accuracy | ≥ 80% |
+| Clear-case accuracy (exact) | ≥ 90% |
+| Boundary-case accuracy (alt label allowed) | ≥ 60% |
+| False-positive guard accuracy (exact) | 100% |
+| Claude / Antigravity / Codex precision and recall | ≥ 0.75 each |
 | Confusion matrix | 3×3 (claude / antigravity / codex) |
 
-If a metric falls below threshold, follow this remediation order:
+If any case is misclassified, follow this remediation order:
 1. Augment the keyword dictionary with the misclassified core terms.
 2. Adjust thresholds (5K → 8K, or 30K → 25K).
 3. Re-label the boundary cases.
