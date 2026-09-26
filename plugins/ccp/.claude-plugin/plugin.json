@@ -9,6 +9,6 @@
   "keywords": ["claude-code", "plugin", "antigravity", "codex", "router", "control-plane"],
   "config": {
     "auto_routing": false,
-    "_doc": "When true, canonical interactive sessions automatically delegate to antigravity/codex via the router agent (deterministic-router pattern). Headless (claude -p, CI) remains recommendation-only — see README §5.3. Default false to pre-empt double-billing. Opt-in only."
+    "_doc": "When true, canonical interactive sessions automatically delegate to antigravity/codex via the router agent (deterministic-router pattern). Headless (claude -p, CI) remains recommendation-only — see docs/en/router.md in the CCP repository. Default false to pre-empt double-billing. Opt-in only."
   }
 }

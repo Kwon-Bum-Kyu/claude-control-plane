@@ -10,7 +10,7 @@ Decides whether to delegate work from the main Claude context. Acceptance criter
 **v0.3 scope:**
 - The 4-axis algorithm in this SKILL.md is mirrored in code by `plugins/ccp/scripts/lib/router.mjs`. Both the recommendation hook and the regression suite import that single module (single SSOT).
 - **Recommendation hook active**: `hooks/router-suggest.js` injects the decision as a system reminder on UserPromptSubmit (`[CCP-ROUTER-001]`). When the decision is `claude`, it is a no-op.
-- **Canonical auto-routing (opt-in)**: in canonical interactive sessions, set `plugin.json#config.auto_routing: true` to let the router agent dispatch automatically (see README §5.3). Default is `false`.
+- **Canonical auto-routing (opt-in)**: in canonical interactive sessions, set `plugin.json#config.auto_routing: true` to let the router agent dispatch automatically (see docs/en/router.md in the CCP repository). Default is `false`.
 - **No headless auto-delegation**: in headless mode the recommendation is shown only — the user must invoke the slash command directly (`/ccp:antigravity-rescue` / `/ccp:codex-rescue`).
 - Regression dataset: 70 cases (codex / antigravity / claude classes + boundary false-positive guards).
 
@@ -196,4 +196,4 @@ The router is the core logic that determines CCP's token-saving effect. The 4-ax
 
 ## References
 
-- README §5 (router behavior) · §5.3 (canonical auto-routing opt-in)
+- docs/en/router.md in the CCP repository (router behavior, canonical auto-routing opt-in)

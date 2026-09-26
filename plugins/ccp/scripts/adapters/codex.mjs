@@ -158,7 +158,7 @@ export default {
     'CCP-JOB-004': { message: 'The result file is missing', action: 'Rerun with a new `/ccp:codex-rescue` call.', recovery: 'abort' },
     'CCP-JOB-409': { message: 'Cannot cancel in the current state', action: 'Check the job state and try again.', recovery: 'abort' },
     'CCP-TIMEOUT-001': { message: 'Codex response timed out', action: 'Retry or run asynchronously with `--background`.', recovery: 'retry' },
-    'CCP-UNSUPPORTED-101': { message: 'This option is not supported by codex', action: 'See the compatibility matrix (README §Model Compatibility).', recovery: 'abort' },
+    'CCP-UNSUPPORTED-101': { message: 'This option is not supported by codex', action: 'See docs/en/slash-commands.md in the CCP repository for per-CLI flag support.', recovery: 'abort' },
   },
 
   details: {

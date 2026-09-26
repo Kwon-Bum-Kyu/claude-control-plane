@@ -7,7 +7,7 @@ allowed-tools:
 
 # /ccp:antigravity-rescue
 
-Delegates work to an Antigravity CLI subagent to reduce main Claude context tokens. Only a 3-line summary and result file path are returned to the main agent (double-billing prevention — see README §4).
+Delegates work to an Antigravity CLI subagent to reduce main Claude context tokens. Only a 3-line summary and result file path are returned to the main agent (double-billing prevention — see docs/en/architecture.md in the CCP repository).
 
 ## Usage
 

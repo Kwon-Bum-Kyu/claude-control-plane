@@ -5,7 +5,7 @@
 // Responsibility split between hook and router agent:
 //   - auto_routing OFF (default) → hook injects recommendation
 //   - auto_routing ON + canonical → hook is NOOP (router agent handles dispatch via
-//     description-based auto-invocation — see README §5.3)
+//     description-based auto-invocation — see docs/en/router.md in the CCP repository)
 //   - auto_routing ON + headless detected → hook still injects recommendation
 //     (router agent does NOT auto-delegate; multi-signal OR detection)
 //   - decision === 'claude' → noop in both modes

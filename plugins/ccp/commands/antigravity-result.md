@@ -7,7 +7,7 @@ allowed-tools:
 
 # /ccp:antigravity-result
 
-Retrieves the result of a job started with `/ccp:antigravity-rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (double-billing prevention — see README §4).
+Retrieves the result of a job started with `/ccp:antigravity-rescue --background`. **Raw result content is not included in the envelope**, and only the file path is returned to prevent it from flowing into main context (double-billing prevention — see docs/en/architecture.md in the CCP repository).
 
 ## Usage
 

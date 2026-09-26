@@ -34,7 +34,7 @@ Rationale: the `words × 1.3` heuristic is sufficiently conservative and works i
 | 75% – 90% | WARNING (`CCP-COMPACT-001`) | "75% reached — compact manually with `/compact`, or delegate large tasks via `/ccp:antigravity-rescue`." |
 | ≥ 90% | CRITICAL (`CCP-COMPACT-001`) | "90% imminent — `/compact` or `/ccp:antigravity-rescue --background` recommended." |
 
-`decision: "block"` is never used — the user flow is not interrupted (Principle 4).
+`decision: "block"` is never used — the user flow is not interrupted (no-automatic-fallback principle).
 
 ## No auto `/compact` rule
 
@@ -61,4 +61,4 @@ Automatic compaction is intentionally not in scope for v0.x.
 
 - `plugins/ccp/hooks/suggest-compact.js` (hook implementation)
 - `plugins/ccp/scripts/core/budget.mjs:checkContextBudget` (companion output guard, shared by every CLI adapter)
-- README §4 (subagent isolation principle — no automatic fallback)
+- docs/en/architecture.md in the CCP repository (subagent isolation, no automatic fallback)

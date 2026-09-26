@@ -105,4 +105,4 @@ The Bash pattern is whitelisted in the project's `.claude/settings.json` under `
 - `plugins/ccp/schemas/envelope.schema.json` (`details.mode === "router"` branch)
 - `plugins/ccp/scripts/lib/router-decide.mjs` (single Bash entry point)
 - `plugins/ccp/scripts/lib/router.mjs` (4-axis classifier — shared SSOT)
-- README §5.3 (canonical auto-routing opt-in)
+- docs/en/router.md in the CCP repository (canonical auto-routing opt-in)

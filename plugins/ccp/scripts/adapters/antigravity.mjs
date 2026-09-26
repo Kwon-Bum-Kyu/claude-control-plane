@@ -156,13 +156,13 @@ export default {
       {
         flag: '--effort',
         message: '`--effort` is not supported by Antigravity',
-        action: 'Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.',
+        action: 'See docs/en/slash-commands.md in the CCP repository for per-CLI flag support, and use Codex-only options with `/ccp:codex-rescue`.',
         details: { unsupported_flag: '--effort', suggested: '/ccp:codex-rescue' },
       },
       {
         flag: '--write',
         message: '`--write` is not supported by Antigravity',
-        action: 'Check the compatibility matrix (README §Model Compatibility), and use Codex-only options with `/ccp:codex-rescue`.',
+        action: 'See docs/en/slash-commands.md in the CCP repository for per-CLI flag support, and use Codex-only options with `/ccp:codex-rescue`.',
         details: { unsupported_flag: '--write', suggested: '/ccp:codex-rescue' },
       },
     ],

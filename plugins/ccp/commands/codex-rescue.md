@@ -7,7 +7,7 @@ allowed-tools:
 
 # /ccp:codex-rescue
 
-Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Only a summary and result file path are returned to the main agent (double-billing prevention — see README §4).
+Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Only a summary and result file path are returned to the main agent (double-billing prevention — see docs/en/architecture.md in the CCP repository).
 
 ## Usage
 
@@ -85,7 +85,7 @@ See the `errors` block in `plugins/ccp/scripts/adapters/codex.mjs` for the full 
 
 ## Model Compatibility
 
-Codex-specific options such as `--effort`, `--sandbox`, and `--write` follow the compatibility matrix (README §Model Compatibility). Antigravity rejects them (`CCP-INVALID-001`).
+Codex-only options such as `--effort` and `--sandbox <mode>` are listed per CLI in docs/en/slash-commands.md in the CCP repository. Antigravity rejects `--effort` with `CCP-INVALID-001`.
 
 ## Acceptance Criteria
 

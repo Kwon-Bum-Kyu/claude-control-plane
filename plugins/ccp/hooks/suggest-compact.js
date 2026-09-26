@@ -2,7 +2,7 @@
 // CCP — suggest-compact hook
 // Events: UserPromptSubmit, PreCompact
 // Behavior: recommend voluntary compaction to the user when context reaches the 75% threshold (info).
-// Never auto-runs /compact (no automatic fallback — see README §4).
+// Never auto-runs /compact (no automatic fallback — see docs/en/architecture.md in the CCP repository).
 
 import { readFileSync, statSync, existsSync } from 'node:fs';
 
