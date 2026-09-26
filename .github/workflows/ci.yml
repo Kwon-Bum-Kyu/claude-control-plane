@@ -73,7 +73,7 @@ jobs:
               fail=1
             fi
           done < <(find plugins/ccp/hooks -type f -name '*.js')
-          # harness-audit.js is a CommonJS-style .js entry point
+          # harness-audit.js uses ESM syntax in a .js file (relies on Node's module syntax detection)
           node --check plugins/ccp/scripts/harness-audit.js || fail=1
           exit $fail
 
@@ -89,7 +89,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: run router-eval (must be 70/70 = 100%)
+      - name: run router-eval (0 misclassifications)
         run: node tests/router/router-eval.mjs
 
   router-suggest:
@@ -104,7 +104,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: run router-suggest hook regression (≥18/19, 95%)
+      - name: run router-suggest hook regression (0 failures)
         run: node tests/router/router-suggest-test.mjs
 
   companion-contract:
@@ -119,10 +119,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - name: run companion golden envelope diff (must be 29/29, diff 0)
+      - name: run companion golden envelope diff (diff 0)
         run: node tests/companion/golden/diff.mjs --cli all
-      - name: run companion core-contract test (mock adapter, must be 15/15)
+      - name: run companion core-contract test (mock adapter, 0 failures)
         run: node tests/companion/contract-test.mjs
+      - name: run summary-truncation probe (0 failures)
+        run: node tests/companion/truncation-probe.mjs
 
   audit:
     name: harness-audit (>= 33/40)
@@ -164,7 +166,7 @@ jobs:
           # Router accuracy report — proxy for the human-written report at
           # _workspace/04_router_report.md, which is gitignored on a clean
           # checkout. audit only checks that the file exists.
-          echo "# Router report (CI seed) — 70/70 PASS" > _workspace/04_router_report.md
+          echo "# Router report (CI seed)" > _workspace/04_router_report.md
           out=$(node plugins/ccp/scripts/harness-audit.js --format json)
           echo "$out"
           echo "$out" | node -e '

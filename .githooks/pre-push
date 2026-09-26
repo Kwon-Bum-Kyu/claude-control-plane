@@ -1,12 +1,22 @@
 #!/bin/sh
-# Refuse to push anything but the trunk and release tags.
+# Refuse to push anything but the trunk and release tags — but only toward
+# this project's public repository.
 #
 # `git push --all` and an explicit branch push are the two ways development
 # history reaches the public remote by accident. A single check on the
 # destination ref catches both, and costs nothing at push time because it
 # reads no file contents.
 #
+# The remote is matched by owner/repo path only (host ignored, case
+# insensitive), so an SSH host alias still matches. When the remote does not
+# match — a personal fork, for example — every ref is let through unchecked;
+# this hook only guards the one repository that is actually public. If the
+# repository is ever renamed, this check goes silent and lets all pushes
+# through (fail-open) until the pattern below is updated to match.
+#
 # Convenience only: --no-verify bypasses this.
+printf '%s\n' "$2" | grep -Eiq '[:/]Kwon-Bum-Kyu/claude-control-plane(\.git)?/?$' || exit 0
+
 status=0
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   [ -z "$remote_ref" ] && continue
