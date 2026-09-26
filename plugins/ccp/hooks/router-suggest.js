@@ -30,12 +30,18 @@ const SLASH_HINT = {
 // observed in headless benchmark runs that erased delegation savings.
 // If there is no sign of a direct user slash call and automation keywords appear,
 // append one recommended pattern line.
-const HEADLESS_HINT = /headless|claude\s*-p|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654|automation|cron|CI/i;
+// Automation hints, case-insensitive and matched as whole words so ordinary
+// words that merely contain them ("decide" contains "ci") do not trigger.
+// `cron` keeps no trailing boundary so "crontab" still counts.
+const HEADLESS_HINT = /\bheadless\b|claude\s*-p\b|\bautomation\b|\bcron|\uC2A4\uD06C\uB9BD\uD2B8|\uC790\uB3D9\uD654/i;
+// "CI" only as an uppercase standalone word; lowercase "ci" is too common
+// inside ordinary words to mean anything.
+const HEADLESS_HINT_CI = /\bCI\b/;
 const SLASH_PRESENT = /\/ccp:(?:codex|antigravity)-/;
 
 function isLikelyHeadless(promptText) {
   if (SLASH_PRESENT.test(promptText)) return false;
-  return HEADLESS_HINT.test(promptText);
+  return HEADLESS_HINT.test(promptText) || HEADLESS_HINT_CI.test(promptText);
 }
 
 // Multi-signal OR for confident headless detection.

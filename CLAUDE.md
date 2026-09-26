@@ -70,8 +70,8 @@ node tools/repo-guard.mjs bootstrap   # .githooks/ 를 core.hooksPath 로 등록
 ### 테스트 (CI 와 동일. 실제 CLI·네트워크 없이 전부 스텁으로 실행된다)
 
 ```bash
-node tests/router/router-eval.mjs                  # 3-way 분류기 72케이스. 오분류 0건이어야 통과
-node tests/router/router-suggest-test.mjs          # router-suggest 훅 19시나리오. 오분류 0건이어야 통과
+node tests/router/router-eval.mjs                  # 3-way 분류기 75케이스. 오분류 0건이어야 통과
+node tests/router/router-suggest-test.mjs          # router-suggest 훅 21시나리오. 오분류 0건이어야 통과
 node tests/companion/contract-test.mjs             # 어댑터 계약 15항목 (52키 동결, mock 어댑터가 실제 core 를 구동)
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 29시나리오. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목

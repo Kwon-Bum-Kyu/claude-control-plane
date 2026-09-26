@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CCP router accuracy regression — 72-case 3-way classifier.
+// CCP router accuracy regression — 75-case 3-way classifier.
 //
 // The 4-axis algorithm specified in plugins/ccp/skills/router/SKILL.md is
 // mirrored by plugins/ccp/scripts/lib/router.mjs. This script and
@@ -106,6 +106,11 @@ const DATASET = [
   { id: 'F19', input: '@gemini summarize the README', expected: 'antigravity', deciding_axis_expected: 'A' },
   // F20 — 매직 키워드가 코드 블록 안에 있으면 false positive 차단 (axis A 미발동)
   { id: 'F20', input: '아래 코드 한 줄 수정\n```\n// @젬 example here\n```\nconfig.ts 의 첫 줄 변경', expected: 'claude', deciding_axis_expected: 'C' },
+
+  // F21~F23 — 매직 키워드 경계 매칭 회귀 (findMagicKeyword 앞/뒷경계)
+  { id: 'F21', input: 'bob@agency 에게 보낼 문구 수정해줘', expected: 'claude', deciding_axis_expected: 'C' },
+  { id: 'F22', input: '@ag로 이 디렉토리 전체 정리해줘', expected: 'antigravity', deciding_axis_expected: 'A' },
+  { id: 'F23', input: '@agent 설정 파일 수정해줘', expected: 'claude', deciding_axis_expected: 'C' },
 
   // N02~N03 — 네임스페이스 치환 회귀 고정.
   // N-1·N-4 의 취지는 갱신된 G02·S9 로 이미 커버되어 신규 항목을 추가하지 않는다.

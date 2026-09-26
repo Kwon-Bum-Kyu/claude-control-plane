@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// CCP router-suggest hook regression — 19 scenarios.
+// CCP router-suggest hook regression — 21 scenarios.
 //
 // Coverage:
 //   - Recommendation baseline (S1~S6): 6 scenarios
-//   - Headless heuristic (S7~S9): 3 scenarios
+//   - Headless heuristic (S7~S9, S20~S21): 5 scenarios
 //   - Hook ↔ router-agent split responsibility + envelope defense (S10~S19): 10 scenarios
 //
-// Pass threshold: 19/19 (0 misclassifications — a partial-credit threshold
+// Pass threshold: 21/21 (0 misclassifications — a partial-credit threshold
 // would let a real regression in this exact suite, e.g. the slash-dedup
 // fix, pass silently).
 // Run: node tests/router/router-suggest-test.mjs
@@ -122,6 +122,18 @@ const CASES = [
     label: 'headless: explicit slash overrides headless keyword → no META-WARN',
     run: () => runHook({ input: { prompt: '/ccp:antigravity-rescue headless 자동화로 이 디렉토리 요약' } }),
     expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
+  },
+  {
+    id: 'S20-decide-substring-not-headless',
+    label: 'headless boundary: "decide" contains "ci" but is not the standalone word CI → no META-WARN',
+    run: () => runHook({ input: { prompt: 'summarize the whole codebase and decide which modules to split' } }),
+    expect: (out) => /CCP-ROUTER-001/.test(out) && !/CCP-META-WARN/.test(out),
+  },
+  {
+    id: 'S21-CI-standalone-word',
+    label: 'headless boundary: standalone uppercase "CI" word → META-WARN',
+    run: () => runHook({ input: { prompt: 'CI 에서 돌릴 이 디렉토리 전체 요약' } }),
+    expect: (out) => /CCP-ROUTER-001/.test(out) && /CCP-META-WARN/.test(out),
   },
 
   // === Hook ↔ router-agent split + envelope defense (S10~S19) ===

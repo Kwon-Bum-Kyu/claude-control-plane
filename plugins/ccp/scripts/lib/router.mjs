@@ -84,9 +84,17 @@ const KW_MAGIC_CODEX = ['@codex', '@코덱', '@코덱스'];
 const KW_MAGIC_CLAUDE = ['@claude', '@클', '@클로드'];
 const KW_MAGIC_AUTO = ['@auto', '@자동']; // not a target — triggers default 4-axis classification
 
+// A magic keyword counts only as its own token: not preceded by a word
+// character or . + - (so an e-mail-like "bob@agency..." never matches "@ag"),
+// and, for ASCII keywords, not followed by a word character or "-" (so
+// "@agent" does not match "@ag").
+// ponytail: Korean keywords get no trailing boundary because particles attach
+// directly ("@코덱스로"), so "@클래스" still matches "@클". A per-keyword
+// particle list would close that if it ever matters.
 function findMagicKeyword(text, dict) {
   for (const kw of dict) {
-    if (text.includes(kw)) return kw;
+    const tail = isAsciiTrigger(kw) ? '(?![\\w-])' : '';
+    if (new RegExp(`(?<![\\w.+-])${kw}${tail}`).test(text)) return kw;
   }
   return null;
 }
