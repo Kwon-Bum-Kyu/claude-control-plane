@@ -1,88 +1,76 @@
 # Troubleshooting
 
-Every CCP error has a `CCP-<CATEGORY>-<NNN>` code, a one-line `message`, an `action` telling you what to type next, and a `recovery` enum. This page lists the codes you will most likely see, grouped by surface.
+This document summarizes the error codes and hook notices you encounter while using CCP, and what the setup command checks.
 
-## Antigravity-side errors
+## Error codes
 
-| Code | Frequency | What to do |
-|---|:---:|---|
-| `CCP-OAUTH-001` | very high | Run `agy` once to trigger OAuth (or set `ANTIGRAVITY_API_KEY`), then re-run `/ccp:antigravity-setup` |
-| `CCP-SETUP-001` | very high | `curl -fsSL https://antigravity.google/cli/install.sh | bash` |
-| `CCP-SETUP-002` | high | Install Node.js 20+ (nvm recommended) |
-| `CCP-GEMINI-001` | high | Retry shortly, or use `/ccp:antigravity-rescue --fallback-claude` |
-| `CCP-ROUTER-001` | medium | Run `/ccp:audit` to inspect the router's decision |
-| `CCP-COMPACT-001` | medium | Run `/compact` manually |
-| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/ccp:antigravity-status <job_id>` to recheck job state |
+Every error is shown as the `error.code` value in the JSON envelope. A failed call does not return `result_path`. Check `stderr_head` or `stdout_head` inside `details` (present depending on the code), or the log files in the job directory (`_workspace/_jobs/<job_id>/`). Which field and log to check differs by code, and is written in the "Next action" column of the table below. For the error-code format, the catalog-merge rule, and details of the envelope structure, see [Architecture](./architecture.md).
 
-## Codex-side errors
+| Code | CLI | Cause | Next action | recovery |
+|------|----------|------|-----------|----------|
+| CCP-INVALID-001 | Shared | Argument parsing failed. Passing an unsupported flag is also rejected with this code. See [Slash commands](./slash-commands.md) for which flag is rejected on which CLI | Check the usage and retry | abort |
+| CCP-JOB-001 | Shared | The specified job_id could not be found. codex also handles corrupted job metadata with this code (it does not use CCP-JOB-003) | Double-check the job_id | abort |
+| CCP-JOB-002 | Shared | The job has not finished yet. codex represents both queued and running states with this single code | Check the status with the status command, then retry | retry |
+| CCP-JOB-003 | antigravity | The job metadata is corrupted (codex handles the same situation with CCP-JOB-001) | Delete the job directory and create a new job | abort |
+| CCP-JOB-004 | Shared | The result file is missing. codex represents every not-completed state (failure, cancellation, and so on) with this code | Call rescue again | abort |
+| CCP-JOB-409 | codex | Cannot cancel in the current state (antigravity has no cancel subcommand, so it never reaches this code) | Check the job status and retry | abort |
+| CCP-TIMEOUT-001 | Shared | The CLI response did not finish in time. If a background job goes unresponsive for over 5 minutes, the hook that detects subagent termination may also forcibly terminate it with this code | Retry, or run asynchronously with `--background` | retry |
+| CCP-SETUP-002 | Shared | The Node.js major version is below the requirement | Install or upgrade Node.js and run again. See [Getting started](./getting-started.md) for the exact minimum version | abort |
+| CCP-SETUP-001 | antigravity | agy is not installed, or its version is below the minimum requirement | Install with `curl -fsSL https://antigravity.google/cli/install.sh \| bash` or upgrade with `agy update`, confirm `~/.local/bin` is in PATH, then run `/ccp:antigravity-setup` again | abort |
+| CCP-OAUTH-001 | antigravity | antigravity authentication is missing or invalid | Authenticate by running `agy` interactively once, or switch to `/ccp:antigravity-rescue --fallback-claude "<original task>"`. See [Getting started](./getting-started.md) for the authentication-related environment variables | fallback |
+| CCP-AG-001 | antigravity | The antigravity CLI run failed (the default classification for other failures) | Check `agy.log` in the job directory (the job_id is in the error details), or retry with the main Claude agent | retry |
+| CCP-AG-002 | antigravity | The antigravity free-tier quota was exceeded | Retry later, or use `--fallback-claude` | fallback |
+| CCP-API-001 | Currently does not occur | Declared in the catalog to mean the Claude Code version is below CCP's requirement, but no code actually checks this condition | Not applicable | abort |
+| CCP-SETUP-101 | codex | The Codex CLI is not installed | Install with `brew install codex` or `npm install -g @openai/codex` and run again | abort |
+| CCP-SETUP-102 | codex | The Codex CLI version is below the minimum requirement | Upgrade the Codex CLI and run again. See [Getting started](./getting-started.md) for the exact minimum version | abort |
+| CCP-OAUTH-101 | codex | Codex authentication is required. codex actually checks the authentication state on every rescue call | Run `codex login`, or use `--fallback-claude` | fallback_claude |
+| CCP-CODEX-001 | codex | The Codex CLI run failed. Every non-timeout failure is classified under this single code | For a background job, check `stderr.log` in the job directory; otherwise, retry from Claude | retry |
+| CCP-CODEX-002 | codex | No valid JSONL event was found in the Codex response | Check `details.stdout_head` (the first 200 characters), then retry or handle it in Claude | retry |
+| CCP-UNSUPPORTED-101 | Currently does not occur (codex) | Declared in the catalog to mean an option codex does not support, but codex's reject list is empty, so no call site actually emits this code | Not applicable | abort |
+| CCP-AUDIT-001 | Audit (`/ccp:audit`) | There is no job data to audit | Adjust the `--since` range and retry | abort |
+| CCP-AUDIT-002 | Audit (`/ccp:audit`) | Running the audit script failed (including a failure to write the report) | Retry later, or check the log | retry |
+| CCP-INVALID-001 | Router (`router-decide.mjs`) | Ran without `--prompt` and without `prompt` on standard input (exit code 2) | Give `--prompt "<text>"`, or pass `{"prompt":"..."}` over standard input | user_action_required |
+| CCP-ROUTER-001 | Router (`router-decide.mjs`) | An exception occurred during routing classification (exit code 3) | Do not rely on auto-routing; delegate directly with the slash command | abort |
 
-| Code | Frequency | What to do |
-|---|:---:|---|
-| `CCP-OAUTH-101` | very high | Run `codex login`, then re-run `/ccp:codex-setup` |
-| `CCP-SETUP-101` | very high | `brew install codex` or `npm install -g @openai/codex` |
-| `CCP-SETUP-102` | high | `brew upgrade codex` (need >= 0.122.0) |
-| `CCP-CODEX-001` | high | Inspect stderr in `result_path`, retry, or `--fallback-claude` |
-| `CCP-CODEX-002` | medium | JSONL parse failure -- retry with `--verbose` and check stderr |
-| `CCP-JOB-001` ... `CCP-JOB-004` | medium | `/ccp:codex-status <job_id>` to recheck |
-| `CCP-JOB-409` | low | Job is in a state that cannot be cancelled; check status and retry |
-| `CCP-INVALID-001` | low | A Codex-only flag (`--effort`, `--sandbox`, `--write`) was passed to `/ccp:antigravity-rescue`. Use `/ccp:codex-rescue` instead. |
+## Hook notices
 
-## Shared errors
+The following markers are notices that hooks and the router attach directly to text. Among these, CCP-ROUTER-001 is also used by `router-decide.mjs` as a JSON error code; for that case, see the error-code table above. For the details of the decision logic and conditions, see [Router](./router.md).
 
-| Code | Frequency | What to do |
-|---|:---:|---|
-| `CCP-TIMEOUT-001` | high | Retry, or run with `--background` (foreground default is 600s) |
-| `CCP-AUDIT-001` / `CCP-AUDIT-002` | low | Adjust `--since` window or check the script log |
+- CCP-ROUTER-001: a marker that only suggests the routing decision may be inefficient.
+- CCP-ROUTER-002: a marker prepended to the summary of a result the router auto-delegated.
+- CCP-META-WARN: a warning marker appended to a prompt suspected of headless automation.
+- CCP-COMPACT-001: a notice marker attached when context usage exceeds the threshold.
 
-The full catalog is the `errors` block inside `plugins/ccp/scripts/adapters/antigravity.mjs` and `adapters/codex.mjs` (merged with the shared codes in `core/errors.mjs`).
+## What setup checks
+
+`/ccp:antigravity-setup` and `/ccp:codex-setup` check in the following order.
+
+1. Checks the Node.js major version. If it is under 20, it stops with CCP-SETUP-002; it only looks at the major version, not the patch version (20.19, 22.7, and so on).
+2. Checks the CLI's installation and version. If it falls short, antigravity stops with CCP-SETUP-001; codex stops with CCP-SETUP-101 if not installed, or CCP-SETUP-102 if the version falls short.
+3. Checks authentication with an actual call. If there is no response within 60000ms for antigravity or 30000ms for codex, it is treated as a timeout.
+
+The authentication setup checks and the authentication right before a rescue call are checked differently. antigravity only cheaply checks, on every rescue call, whether credentials exist; only setup verifies authentication with an actual CLI call. codex performs a call that actually checks the authentication state on every rescue call.
+
+For the CLI installation and authentication commands themselves, see [Getting started](./getting-started.md).
 
 ## FAQ
 
-**What are the free-tier limits?**
-Antigravity has two distinct authentication modes with different quotas:
-- **OAuth (Antigravity Code Assist for individuals, CLI default):** 60 RPM / 1,000 RPD aggregated across all models; default routing is Flash-class.
-- **API key (AI Studio):** per-model independent limits — `gemini-2.5-flash` 10 RPM / 250 RPD, `gemini-2.5-flash-lite` 15 RPM / 1,000 RPD, etc.
-- As of 2026-04, the free tier covers Flash-class models only (`gemini-3-flash-preview`, `gemini-3.1-flash-lite-preview`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`); `gemini-2.5-pro` requires a paid Google AI Pro/Ultra subscription. Exact values follow Google's current policy.
+- **What happens if I give `--write` to antigravity?** antigravity has declared `--write` as an unsupported flag, so it is always rejected with CCP-INVALID-001 regardless of the value. codex does not declare `--write`, so giving a value is silently ignored and produces no error.
+- **Why is `--effort` rejected when given to antigravity?** antigravity has registered `--effort` as an unsupported flag, so it is always rejected with CCP-INVALID-001 regardless of the value. codex actually reflects this value in its CLI call.
+- **I gave `--summary-only`, but the summary length stayed the same.** It is currently a no-op. Only antigravity declares this flag, and no handler reads this value.
+- **`result_path` came back as null.** During a codex foreground rescue, when the summary is not truncated, no job record is left, so `result_path` is null. antigravity always leaves a job record even in the foreground, so the value is filled in.
+- **The timeout for a codex background job differs from what I expected.** If `--timeout-ms` is not given separately, codex uses the same default for both foreground and background. A background-only default is declared, but it is not used in the execution path. See [Slash commands](./slash-commands.md) for the exact default.
+- **The audit (`/ccp:audit`) score is lower than expected.** An environment installed from the marketplace may not have a `LICENSES/` directory, which can lower the borrowed-code documentation score. This is a difference due to the installation method, not a code defect.
 
-Codex: bound to your ChatGPT plan quota. Plus/Pro/Business/Enterprise include Codex; Free/Go include limited Codex Mini access (subject to change). Quotas have been token-based since 2026-04-02. Exact values follow OpenAI policy.
+## Reporting a bug
 
-**How long do OAuth tokens last?**
-Codex auto-refreshes during active sessions; if idle for ~8 days the credentials go stale and a re-login is needed. Google Antigravity OAuth has its own expiry (verify locally as policy may change). On expiry, `CCP-OAUTH-001` / `CCP-OAUTH-101` surface automatically.
+If this document does not resolve it, file an issue in the repository's issue tracker. See [CONTRIBUTING.md](../../CONTRIBUTING.md) for how to write an issue and the list of labels that actually exist. When filing, including the command you ran, the error code you received, and the job_id (if any) helps narrow down the cause faster.
 
-**`npm i -g` fails with permission errors.**
-Use nvm to manage Node, or prefix with `sudo`. nvm is recommended.
+## Next
 
-**No browser available for login.**
-- Antigravity: set `ANTIGRAVITY_API_KEY` (https://aistudio.google.com/apikey).
-- Codex: `codex login --device-auth` (device-code flow), or `printenv OPENAI_API_KEY | codex login --with-api-key`.
+- [Getting started](./getting-started.md)
+- [Slash commands](./slash-commands.md)
+- [Router](./router.md)
+- [Architecture](./architecture.md)
+- [README](../../README.en.md)
 
-**`--effort` is rejected by the Antigravity side.**
-That is intentional. `--effort` is Codex-only. Use `/ccp:codex-rescue --effort high -- "<task>"`. See the [compatibility matrix](./slash-commands.md#three-way-compatibility).
-
-**Codex hangs reading stdin.**
-The companion forces `stdio: ['ignore', ...]` to prevent this. If you call `codex exec` manually, append `</dev/null`.
-
-**`Reading additional input from stdin...` appears on stderr.**
-Normal Codex CLI behavior. Harmless -- the companion absorbs it.
-
-## Setup checks
-
-Both setup commands are idempotent. Run them whenever you suspect environment drift:
-
-```text
-/ccp:antigravity-setup            # Node + Antigravity CLI + OAuth
-/ccp:antigravity-setup --renew    # also re-prompts for OAuth
-/ccp:codex-setup         # Node + Codex CLI + OAuth
-```
-
-Each prints the version it detected; mismatches against the documented minimums (`Node >= 20`, `Antigravity >= 1.0.0`, `Codex >= 0.122.0`) are flagged with a `CCP-SETUP-*` code.
-
-## When to file a bug
-
-If an error code is missing, the action does not match what the message says, or a `CCP-CODEX-*` / `CCP-GEMINI-*` repeats after retry, file a bug using the issue template. Include the envelope JSON and the output of `/ccp:antigravity-setup` and `/ccp:codex-setup`.
-
-## Related reading
-
-- [Router behavior](./router.md) for `CCP-ROUTER-001`
-- [Slash command reference](./slash-commands.md) for `CCP-INVALID-001`
-- [Architecture](./architecture.md) for the seven principles, including no-auto-fallback (Principle 4)
