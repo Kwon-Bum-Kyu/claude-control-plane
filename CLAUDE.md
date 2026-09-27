@@ -27,11 +27,11 @@ Claude Control Plane (CCP) 은 Claude 를 메인 컨트롤 플레인으로 두�
 scripts/companion.mjs <cli>            <cli> 를 adapters/<cli>.mjs 로 해석하는 일만 한다
 scripts/<cli>-companion.mjs            어댑터를 고정한 얇은 별칭. settings.json 허용 패턴과 문서 참조를 유지하려고 남아 있다
 scripts/core/runtime.mjs               모든 부수효과 (stdout·exit·파일·spawn) 와 작업 디스패치. CLI 이름을 알지 못한다
-scripts/core/{args,jobs,process,paths,envelope,errors,budget}.mjs
+scripts/core/{args,jobs,process,paths,envelope,errors,budget,mcp}.mjs
 scripts/adapters/{antigravity,codex}.mjs   순수 값만 반환하는 CLI 선언 (인자 구성·결과 파싱·토큰 계산·에러 카탈로그)
 ```
 
-어댑터 계약은 정확히 52개의 리프 키로 동결되어 있고, `runtime.mjs#assertAdapter` 가 미지의 키와 필수 키 누락을 거부한다. `contract-test.mjs` 가 mock 어댑터로 "코어 무변경 확장" 을 증명하므로, 계약에 키를 더하는 변경은 두 어댑터·`runtime.mjs` 의 `CONTRACT` 상수·계약 테스트를 함께 고쳐야 한다.
+어댑터 계약은 정확히 55개의 리프 키로 동결되어 있고, `runtime.mjs#assertAdapter` 가 미지의 키와 필수 키 누락을 거부한다. `contract-test.mjs` 가 mock 어댑터로 "코어 무변경 확장" 을 증명하므로, 계약에 키를 더하는 변경은 두 어댑터·`runtime.mjs` 의 `CONTRACT` 상수·계약 테스트를 함께 고쳐야 한다.
 
 envelope 은 `plugins/ccp/schemas/envelope.schema.json` 이 SSOT 이다 (`summary` 500자 이하, `result_path`, `tokens`, `exit_code`, `details.mode`. 에러는 `error.{code,message,action,recovery}`). 요약이 한도를 넘으면 core 가 문장 경계에서 자르고 `summary_truncated: true` 를 표시하며, 전문은 `result_path` 에 남는다. 에러 코드는 `CCP-<카테고리>-<NNN>` 형식으로, `core/errors.mjs` 의 공통 카탈로그와 어댑터의 `errors` 를 병합해 쓴다.
 
@@ -72,8 +72,8 @@ node tools/repo-guard.mjs bootstrap   # .githooks/ 를 core.hooksPath 로 등록
 ```bash
 node tests/router/router-eval.mjs                  # 3-way 분류기 75케이스. 오분류 0건이어야 통과
 node tests/router/router-suggest-test.mjs          # router-suggest 훅 21시나리오. 오분류 0건이어야 통과
-node tests/companion/contract-test.mjs             # 어댑터 계약 15항목 (52키 동결, mock 어댑터가 실제 core 를 구동)
-node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 29시나리오. diff 0 이어야 통과
+node tests/companion/contract-test.mjs             # 어댑터 계약 39항목 (55키 동결, mock 어댑터가 실제 core 를 구동)
+node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
 ```
 

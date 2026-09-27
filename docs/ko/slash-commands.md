@@ -8,11 +8,11 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 
 | 커맨드 | 설명 | 인자 |
 |---|---|---|
-| `/ccp:antigravity-rescue` | Antigravity CLI(agy)에 대용량 요약·분석 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]` |
+| `/ccp:antigravity-rescue` | Antigravity CLI(agy)에 대용량 요약·분석 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:antigravity-status` | `--background`로 만든 Antigravity job의 현재 상태를 확인합니다. | `<job_id>` |
 | `/ccp:antigravity-result` | 완료된 Antigravity 백그라운드 job의 결과를 가져옵니다. | `<job_id> [--summary-only]` |
 | `/ccp:antigravity-setup` | Antigravity CLI(agy)의 설치와 인증 상태를 확인하고, 실패하면 설치나 재인증 안내를 보여줍니다. | 없음 |
-| `/ccp:codex-rescue` | 코드 리뷰, 버그 조사, diff 분석처럼 Codex가 강점을 갖는 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude]` |
+| `/ccp:codex-rescue` | 코드 리뷰, 버그 조사, diff 분석처럼 Codex가 강점을 갖는 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:codex-status` | `--background`로 만든 Codex job의 현재 상태를 확인합니다. | `<job_id>` |
 | `/ccp:codex-result` | 완료된 Codex 백그라운드 job의 결과를 가져옵니다. | `<job_id>` |
 | `/ccp:codex-setup` | Codex CLI의 설치와 OAuth 인증 상태를 확인하고, 실패하면 설치나 재인증 안내를 보여줍니다. | `""`(인자 없음) |
@@ -26,6 +26,7 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 |---|---|---|---|
 | `--background` | bool 플래그입니다. 참이면 `runBackground`를, 아니면 `runForeground`를 호출합니다(두 CLI가 공유하는 core 로직입니다). | 동일합니다. | false |
 | `--fallback-claude` | bool 플래그입니다. 참이면 companion 호출을 건너뛰고 `mode: "fallback_claude"` 성공 envelope을 즉시 반환합니다. | 같은 흐름을 타지만 `details.mode`는 서브커맨드와 무관하게 항상 `codex`입니다. | false |
+| `--mcp NAME[,NAME...]` | 문자열입니다. 위임 직전에 `agy mcp list`로 등록 목록을 한 번 조회해, 적은 MCP 서버가 모두 등록되어 있고 활성 상태인지 확인합니다. 하나라도 미등록이거나 비활성이거나 목록을 읽지 못하면 `CCP-MCP-001`로 중단합니다. 값은 공백 뒤에 적습니다(`--mcp a,b`처럼). | 같은 흐름이며 조회 명령만 `codex mcp list --json`입니다. | 없음(주지 않으면 확인하지 않습니다) |
 | `--sandbox` | 값 없는 bool 플래그입니다. 존재하면 agy 호출에 값 없이 `--sandbox`만 덧붙입니다. | 문자열 열거형입니다(`read-only`, `workspace-write`, `danger-full-access`). 빈 값이나 불리언으로 주면 `read-only`로 정규화되어 `-s <mode>`로 전달됩니다. | Antigravity는 끄면 붙지 않습니다. Codex는 `read-only`입니다. |
 | `--max-tokens N` | 정수입니다. 프롬프트 뒤에 "(Answer within N tokens if possible)" 힌트를 덧붙이는 소프트 제약이며, agy 자체 플래그는 아닙니다. | 선언하지 않습니다. `buildArgs` 시그니처에 `maxTokens` 파라미터가 없어 값을 줘도 완전히 버려집니다. | 4000(Antigravity 전용) |
 | `--timeout-ms N` | 정수입니다. 포그라운드·백그라운드 요청 모두 이 값으로 타임아웃을 계산합니다(두 CLI가 공유하는 core 로직입니다). | 동일합니다. | 600000(허용 범위 5000~3600000) |
@@ -35,6 +36,8 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 | `--write` | bool 플래그로 선언되어 있지만, 값과 무관하게 항상 `CCP-INVALID-001`("`--write` is not supported by Antigravity")로 거부합니다. | 선언도, 거부 등록도 하지 않습니다. 값이 `flags.write`로 파싱은 되지만 `buildArgs`가 전혀 읽지 않아 조용히 무시됩니다(에러 envelope 없이). | 없음 |
 | `--cwd DIR` | 선언하지 않습니다. `buildArgs` 시그니처에 `cwd` 파라미터가 없습니다. | 문자열입니다. `-C <dir>`로 codex exec에 전달됩니다. | Codex는 `process.cwd()`입니다. |
 | `--model NAME` | 선언하지 않습니다. 모델 선택 플래그가 없습니다. | 문자열입니다. `-m <model>`로 codex exec에 전달되며, 생략하면 codex CLI 자체 기본 모델을 씁니다. | 없음(생략 시 codex 자체 기본값) |
+
+`--mcp` 값은 쉼표로 구분한 MCP 서버 이름 목록입니다. 각 이름의 앞뒤 공백과 빈 항목은 버리고, 중복된 이름은 한 번만 확인합니다. 이름은 영문자나 숫자로 시작하고 영문자, 숫자, `.`, `_`, `-`만 쓸 수 있습니다. 이 규칙을 어기거나 값이 비어 있으면 `CCP-INVALID-001`로 거부합니다. 등록 목록과는 대소문자를 구분해 정확히 일치하는지 비교합니다. `--fallback-claude`와 함께 주면 값 검사와 확인을 모두 건너뜁니다. 백그라운드 호출도 job을 만들기 전에 같은 확인을 거치며, 확인에 실패하면 `job_id` 대신 에러 envelope을 돌려줍니다. CCP는 안내한 등록·활성화 명령을 직접 실행하지 않습니다. 조회 결과 원문은 인증 헤더 같은 비밀을 담을 수 있으므로 서버 이름과 활성 여부만 읽고, 어디에도 저장하거나 출력하지 않습니다.
 
 Codex rescue 호출은 `-- "실제 과제 문자열"`처럼 구분자를 씁니다. 이 구분자 뒤에 오는 모든 토큰은 옵션이 아니라 위치 인자, 즉 프롬프트로 취급됩니다.
 
