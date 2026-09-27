@@ -303,4 +303,82 @@ export const SCENARIOS = [
     title: 'setup — stub binary reports installed + a content-classifiable "not logged in" probe failure (antigravity)',
     runs: [{ cli: 'antigravity', args: ['setup'], stubMode: 'invalid_auth', authOk: true }],
   },
+  {
+    id: 'rescue-mcp-registered-background',
+    title: 'rescue --background --mcp alpha — the one named server is registered and enabled, so background dispatch proceeds normally',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--background', '--mcp', 'alpha', 'x'], stubMode: 'ok', authOk: true },
+      { cli: 'codex', args: ['rescue', '--background', '--mcp', 'alpha', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-missing',
+    title:
+      'rescue --mcp gamma — named MCP server is not registered in the target CLI, stops with CCP-MCP-001 before delegation ' +
+      '(the antigravity flag declaration keeps --mcp out of the prompt, so this run is also the only guard against a future declaration-removal regression)',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'gamma', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'gamma', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-disabled',
+    title: 'rescue --mcp beta — named MCP server is registered but disabled, stops with CCP-MCP-001 naming the enable command',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'beta', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'beta', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-multiple',
+    title: 'rescue --mcp alpha,beta,gamma — one registered/enabled, one disabled, one missing: the gap report lists both the missing and disabled names',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'alpha,beta,gamma', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'alpha,beta,gamma', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-background-missing',
+    title: 'rescue --background --mcp gamma — the pre-check runs before any job is dispatched, so a background call fails with the same envelope as foreground',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--background', '--mcp', 'gamma', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--background', '--mcp', 'gamma', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-list-unreadable',
+    title: 'rescue --mcp alpha — the target CLI prints something other than the expected MCP list format, stops with CCP-MCP-001 (list_error: unparseable)',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'alpha', 'x'], stubMode: 'mcp_unreadable' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'alpha', '--', 'x'], stubMode: 'mcp_unreadable' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-list-failed',
+    title: 'rescue --mcp alpha — the MCP list command exits non-zero, stops with CCP-MCP-001 (list_error: exit_nonzero)',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'alpha', 'x'], stubMode: 'not_installed' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'alpha', '--', 'x'], stubMode: 'not_installed' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-invalid-value',
+    title:
+      'rescue --mcp with a value that fails the name pattern, and rescue with a trailing --mcp that has no value at all — both rejected with ' +
+      'CCP-INVALID-001 before any list lookup runs',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--mcp', 'alpha;x', 'x'], stubMode: 'ok' },
+      { cli: 'antigravity', args: ['rescue', 'x', '--mcp'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--mcp', 'alpha;x', '--', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--mcp', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
+  {
+    id: 'rescue-mcp-fallback-claude',
+    title: 'rescue --fallback-claude --mcp gamma — fallback to main Claude skips the MCP pre-check entirely, same success envelope as without --mcp',
+    runs: [
+      { cli: 'antigravity', args: ['rescue', '--fallback-claude', '--mcp', 'gamma', 'x'], stubMode: 'ok' },
+      { cli: 'codex', args: ['rescue', '--fallback-claude', '--mcp', 'gamma', '--', 'x'], stubMode: 'ok' },
+    ],
+  },
 ];
