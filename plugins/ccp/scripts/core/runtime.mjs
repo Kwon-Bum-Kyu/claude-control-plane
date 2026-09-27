@@ -25,6 +25,7 @@ import { emitSuccess, emitBackground, emitError } from './envelope.mjs';
 import { clampSummaryAtBoundary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
 import { parseArgsForAdapter, normalizeFlagName, pickInt, pickString, pickBool } from './args.mjs';
 import { runSync, spawnDetachedWorker, isAlive, killPid } from './process.mjs';
+import { parseMcpNames, classifyMcpList, compareMcp, mcpNotReadyText, mcpListErrorText, MCP_FLAG_INVALID } from './mcp.mjs';
 import {
   readJobMeta,
   lookupJobMeta,
@@ -44,8 +45,8 @@ const SUMMARY_TOKEN_CAP = 1500;
 // assertAdapter — shallow contract check (no separate adapter JSON Schema file;
 // adapters are build-time constants written by contributors, not runtime input)
 //
-// The contract is frozen at exactly 52 leaf keys (32 declarative + 20
-// function — 17 required, 3 optional). CONTRACT below is the enumerable
+// The contract is frozen at exactly 55 leaf keys (33 declarative + 22
+// function — 19 required, 3 optional). CONTRACT below is the enumerable
 // source of truth: every namespace lists exactly the keys an adapter may
 // declare under it, and assertAdapter rejects anything outside that set
 // (unknown-key check) as well as anything missing from the required subset.
@@ -54,7 +55,7 @@ const SUMMARY_TOKEN_CAP = 1500;
 // ---------------------------------------------------------------------------
 
 const CONTRACT = {
-  top: ['id', 'bin', 'version', 'auth', 'supports', 'argStyle', 'timeouts', 'result', 'errors', 'details', 'knownViolations', 'messages'],
+  top: ['id', 'bin', 'version', 'auth', 'supports', 'argStyle', 'timeouts', 'result', 'errors', 'details', 'knownViolations', 'messages', 'mcp'],
   topFunctions: ['buildArgs', 'parseResult', 'tokensFrom', 'estimateTokens', 'summarize', 'classifyFailure'],
   bin: ['envVar', 'candidates', 'fallback'],
   version: ['args', 'pattern', 'min', 'notInstalledCode', 'tooOldCode'],
@@ -69,7 +70,7 @@ const CONTRACT = {
     optionalFunctions: ['validateJobId'],
     // Only present on adapters whose argStyle is 'task-flag' (parseTaskFlagArgs
     // consults it) — 'dash-dash' adapters never need it. Not part of the
-    // 52-key tally; documented here only so the unknown-key check knows it's legitimate.
+    // 55-key tally; documented here only so the unknown-key check knows it's legitimate.
   },
   timeouts: ['foreground', 'background', 'authProbe'],
   result: ['fileName', 'pathStyle', 'logFileName', 'persistForeground'],
@@ -84,6 +85,10 @@ const CONTRACT = {
     optional: ['versionTooOld', 'preflightSummary'],
     requiredFunctions: ['nextAction', 'missingArg', 'retryHint', 'statusSummary', 'usage'],
   },
+  mcp: {
+    required: ['listArgs'],
+    requiredFunctions: ['parseList', 'installCommand'],
+  },
 };
 
 const REQUIRED_ADAPTER_FUNCTIONS = CONTRACT.topFunctions;
@@ -92,9 +97,10 @@ const REQUIRED_NESTED_FUNCTIONS = [
   ...CONTRACT.supports.requiredFunctions.map((fn) => ['supports', fn]),
   ...CONTRACT.details.requiredFunctions.map((fn) => ['details', fn]),
   ...CONTRACT.messages.requiredFunctions.map((fn) => ['messages', fn]),
+  ...CONTRACT.mcp.requiredFunctions.map((fn) => ['mcp', fn]),
 ];
-// 6 top-level + 11 nested = 17 required functions total (matches the frozen
-// contract's 20 function fields = 17 required + 3 optional: messages.versionTooOld,
+// 6 top-level + 13 nested = 19 required functions total (matches the frozen
+// contract's 22 function fields = 19 required + 3 optional: messages.versionTooOld,
 // messages.preflightSummary, supports.validateJobId — called with `?.()` since
 // only one shipped adapter needs each and a forced stub on the other would be
 // dead code with no verifiable behavior).
@@ -144,6 +150,7 @@ export function assertAdapter(adapter) {
     ...CONTRACT.messages.optional,
     ...CONTRACT.messages.requiredFunctions,
   ]);
+  assertKnownKeys(tag, 'mcp', adapter.mcp, [...CONTRACT.mcp.required, ...CONTRACT.mcp.requiredFunctions]);
   if (adapter.supports && 'flagSpec' in adapter.supports) {
     throw new Error(`assertAdapter[${tag}]: supports.flagSpec was absorbed into supports.flags (Record<name,{key,type}>) — remove it`);
   }
@@ -161,6 +168,10 @@ export function assertAdapter(adapter) {
   }
   if (!RESCUE_GATE_ENUM.has(adapter.auth?.rescueGate)) {
     throw new Error(`assertAdapter[${tag}]: auth.rescueGate must be 'detect' or 'probe'`);
+  }
+  const listArgs = adapter.mcp?.listArgs;
+  if (!Array.isArray(listArgs) || listArgs.length === 0 || !listArgs.every((a) => typeof a === 'string' && a.length > 0)) {
+    throw new Error(`assertAdapter[${tag}]: mcp.listArgs must be a non-empty string array`);
   }
 
   for (const fn of REQUIRED_ADAPTER_FUNCTIONS) {
@@ -286,6 +297,33 @@ function checkRescueAuth(adapter, bin, timeoutMs) {
     return { ok: !!method, method, reason: method ? null : 'not_detected', detail: '' };
   }
   return probeAuth(adapter, bin, timeoutMs);
+}
+
+/**
+ * Opt-in MCP pre-check for rescue (`--mcp a,b`), run once before the auth gate
+ * and before the foreground/background split, so a failure never creates a job.
+ * The raw list output can carry credentials (e.g. HTTP auth headers): it goes to
+ * the adapter's parser and nowhere else — not into details, logs, or disk.
+ * @param {object} ctx       run() context
+ * @param {unknown} rawValue  flags.mcp as parsed
+ * @param {string} cwd       same cwd the delegated CLI will run in
+ * @returns {void}           returns only when every named server is registered and enabled; otherwise emits and exits
+ */
+function checkRescueMcp(ctx, rawValue, cwd) {
+  const { adapter } = ctx;
+  const names = parseMcpNames(rawValue);
+  if (!names) emitErr(ctx, 'CCP-INVALID-001', MCP_FLAG_INVALID);
+  const run = runSync({ bin: ctx.bin, args: adapter.mcp.listArgs, cwd, timeoutMs: adapter.timeouts.authProbe });
+  const { list, listError } = classifyMcpList(run, adapter.mcp.parseList);
+  const base = baseDetails(adapter, 'rescue', {});
+  if (listError) {
+    const listCommand = `${adapter.bin.fallback} ${adapter.mcp.listArgs.join(' ')}`;
+    emitErr(ctx, 'CCP-MCP-001', { ...mcpListErrorText(names, listError, listCommand), details: { ...base, mcp: { list_error: listError } } });
+  }
+  const gaps = compareMcp(names, list);
+  if (gaps.missing.length > 0 || gaps.disabled.length > 0) {
+    emitErr(ctx, 'CCP-MCP-001', { ...mcpNotReadyText(gaps, adapter.mcp.installCommand), details: { ...base, mcp: gaps } });
+  }
 }
 
 function readTextFileSafe(path) {
@@ -511,6 +549,9 @@ function handleRescue(ctx, parsed) {
   const timeoutMs = pickInt(flags, 'timeoutMs', adapter.timeouts.foreground, { min: 5000, max: 3600000 });
   const isBg = pickBool(flags, 'background', false);
   const params = { model, effort, sandbox, maxTokens, timeoutMs };
+
+  // Opt-in: only a call that names MCP servers pays for the list lookup.
+  if (Object.hasOwn(flags, 'mcp')) checkRescueMcp(ctx, flags.mcp, cwd);
 
   const authCheck = checkRescueAuth(adapter, ctx.bin, adapter.timeouts.authProbe);
   if (!authCheck.ok) {

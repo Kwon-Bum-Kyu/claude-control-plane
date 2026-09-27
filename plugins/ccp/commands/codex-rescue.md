@@ -1,6 +1,6 @@
 ---
 description: Delegates work that Codex is strong at, such as code review, bug investigation, and diff analysis, to reduce main Claude context tokens.
-argument-hint: <task> [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude]
+argument-hint: <task> [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 allowed-tools:
   - Bash
 ---
@@ -12,7 +12,7 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 ## Usage
 
 ```
-/ccp:codex-rescue <task> [--background] [--model NAME] [--effort low|medium|high] [--sandbox read-only|workspace-write|danger-full-access] [--cwd DIR] [--timeout-ms N] [--fallback-claude]
+/ccp:codex-rescue <task> [--background] [--model NAME] [--effort low|medium|high] [--sandbox read-only|workspace-write|danger-full-access] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 | Argument | Description |
@@ -25,20 +25,24 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 | `--cwd DIR` | Codex working root (`-C` mapping) |
 | `--timeout-ms N` | Foreground response timeout (default 600000). Passed to worker metadata for background jobs |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
+| `--mcp NAME[,NAME...]` | Before delegating, run `codex mcp list --json` once and stop with `CCP-MCP-001` if any named MCP server is not registered, is disabled, or the list cannot be read. Comma-separated; each name starts with a letter or digit and uses only letters, digits, `.`, `_`, `-`. Skipped together with `--fallback-claude` |
+
+If the task depends on a specific MCP server in Codex (for example a browser-automation server), add `--mcp <name>` so a missing or disabled server is reported before delegation instead of the delegated task failing quietly.
 
 ## Behavior
 
 1. If `--fallback-claude` is present, return a fallback envelope immediately and skip companion invocation.
-2. Preflight: run `codex login status` (30s timeout). Emit `CCP-OAUTH-101` if not authenticated.
-3. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed). Parse 4 JSONL events into summary, tokens, and thread_id.
-4. Background: spawn a detached worker through `core/runtime.mjs:runBackground` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
+2. If `--mcp` is present, run `codex mcp list --json` once (30s timeout) and compare it with the named servers. Stop with `CCP-MCP-001` if any is not registered or disabled, or if the list cannot be read. Only server names and enabled states are read from the list output; it is never stored or echoed. A `--background` call goes through this step too, before any job is created.
+3. Preflight: run `codex login status` (30s timeout). Emit `CCP-OAUTH-101` if not authenticated.
+4. Foreground: call `codex exec --json --skip-git-repo-check -s <sandbox> -C <cwd> "<task>"` (stdin forcibly closed). Parse 4 JSONL events into summary, tokens, and thread_id.
+5. Background: spawn a detached worker through `core/runtime.mjs:runBackground` (file-fd stdio). Return `{job_id, status:"queued"}` immediately.
 
 ## Invocation Pattern
 
 The `codex-rescue` subagent (`agents/codex-rescue.md`) invokes the following single Bash pattern.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort LEVEL] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] -- "<task>"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort LEVEL] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] -- "<task>"
 ```
 
 ## Output (Foreground Success)
@@ -78,6 +82,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [
 | `CCP-OAUTH-101` | fallback_claude | Use `AskUserQuestion` to offer re-auth, fallback, or cancel |
 | `CCP-CODEX-001` | retry | Point to stderr logs and retry in main Claude |
 | `CCP-CODEX-002` | retry | No JSONL response — rerun with verbose output |
+| `CCP-MCP-001` | abort | Show the `action` commands (register or enable the MCP server) to the user, who runs them and then calls again. Do not run them on the user's behalf |
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 

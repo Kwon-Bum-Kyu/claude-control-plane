@@ -1,6 +1,7 @@
 // CCP — shared error catalog + adapter overlay merge (CLI-neutral)
 // Codes here are the ones conceptually shared across CLIs (job lookup,
-// argument parsing, timeouts, context budget, Node version). An adapter's own
+// argument parsing, timeouts, context budget, Node version, the rescue MCP
+// pre-check). An adapter's own
 // `errors` field always wins on key collision — the adapter catalog
 // overwrites the shared one so CLI-specific wording, e.g. a different slash
 // name in `action`, is preserved.
@@ -44,6 +45,11 @@ export const SHARED_ERROR_CATALOG = {
   'CCP-SETUP-002': {
     message: 'Node.js version is below the requirement',
     action: 'Install Node.js 20+ and rerun.',
+    recovery: 'abort',
+  },
+  'CCP-MCP-001': {
+    message: 'A required MCP server is not ready',
+    action: 'Register or enable the MCP server in the target CLI, then rerun.',
     recovery: 'abort',
   },
 };

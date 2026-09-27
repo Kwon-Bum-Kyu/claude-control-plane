@@ -24,6 +24,10 @@ const FALLBACK_HINT = ' To retry with the main Claude agent, re-enter the origin
 // Opt-out values for CCP_AGY_SKIP_PERMISSIONS, case-insensitive. Any other
 // value (including unset) keeps the default: auto-approve attached.
 const SKIP_PERMISSIONS_OPT_OUT_VALUES = new Set(['0', 'false', 'no']);
+const ANSI_SGR_RE = /\x1b\[[0-9;]*m/g;
+// `agy mcp list` prints this single sentence instead of a table when nothing is registered.
+const MCP_NONE_RE = /^no mcp servers configured\.?$/i;
+const MCP_HEADER_RE = /^NAME\s+TYPE\s+STATUS\b/;
 // Prevention layer for the summary-truncation problem core/runtime.mjs now
 // handles (sentence-boundary cut + summary_truncated flag + full body saved
 // to result_path): asking the delegated model to lead with its own short
@@ -151,6 +155,9 @@ export default {
       task: { key: 'task', type: 'string' },
       effort: { key: 'effort', type: 'bool' },
       write: { key: 'write', type: 'bool' },
+      // Must stay declared: this parser folds undeclared flags into the prompt,
+      // which would silently skip the MCP pre-check instead of running it.
+      mcp: { key: 'mcp', type: 'string' },
     },
     rejectFlags: [
       {
@@ -395,6 +402,28 @@ export default {
     },
     // static string, not a function — neither adapter interpolates ctx into it.
     fallbackSummary: 'Main Claude fallback path — companion call skipped',
+  },
+
+  // MCP pre-check for `rescue --mcp`. Only name/enabled are read from the
+  // table; the COMMAND/URL column can carry credentials.
+  mcp: {
+    listArgs: ['mcp', 'list'],
+    parseList(stdout) {
+      const lines = String(stdout).replace(ANSI_SGR_RE, '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (lines.length === 1 && MCP_NONE_RE.test(lines[0])) return [];
+      const header = lines.findIndex((l) => MCP_HEADER_RE.test(l));
+      if (header === -1) return null;
+      const out = [];
+      for (const line of lines.slice(header + 1)) {
+        const [name, , status] = line.split(/\s+/);
+        if (status !== 'enabled' && status !== 'disabled') return null;
+        out.push({ name, enabled: status === 'enabled' });
+      }
+      return out;
+    },
+    installCommand(name) {
+      return { register: `agy mcp add ${name} <command> [args...]`, enable: `agy mcp enable ${name}` };
+    },
   },
 
   buildArgs({ prompt, maxTokens, logFile, sandbox }) {
