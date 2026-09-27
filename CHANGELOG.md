@@ -65,7 +65,7 @@
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
 [Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.1...HEAD
-[v0.4.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.0...v0.4.1
+[v0.4.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.3.0
 [v0.2.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.2.2
