@@ -21,9 +21,20 @@
 //                    content-based probe-failure classification path
 //                    (distinct from a bare non-zero exit with no recognizable
 //                    message, which old_version/not_installed don't reach anyway)
+//   mcp_unreadable — `mcp list` prints text that is not the expected table
+//                    (exit 0), everything else behaves like `ok`
+//
+// `mcp list` (all modes except not_installed/mcp_unreadable): prints a table
+// with two anonymized entries. Only NAME/STATUS are ever read by the
+// adapter's parser; the canary in the COMMAND/URL column proves that.
 
 const mode = process.env.CCP_GOLDEN_AGY_MODE || 'ok';
 const argv = process.argv.slice(2);
+
+const MCP_LIST_TABLE =
+  'NAME   TYPE   STATUS    COMMAND/URL\n' +
+  'alpha  stdio  enabled   fixture-server\n' +
+  'beta   http   disabled  https://example.invalid/mcp?key=canary-0000\n';
 
 function out(text) {
   process.stdout.write(text);
@@ -38,6 +49,18 @@ if (argv.includes('--version')) {
     process.exit(0);
   }
   out('agy version 1.2.0\n');
+  process.exit(0);
+}
+
+if (argv[0] === 'mcp' && argv[1] === 'list') {
+  if (mode === 'not_installed') {
+    process.exit(1);
+  }
+  if (mode === 'mcp_unreadable') {
+    out('unexpected output\n');
+    process.exit(0);
+  }
+  out(MCP_LIST_TABLE);
   process.exit(0);
 }
 

@@ -5,16 +5,27 @@
 // without any CLI actually installed on the capture host.
 //
 // Modes:
-//   not_installed — --version fails
+//   not_installed  — --version fails; `mcp list --json` also fails (no
+//                    output, exit 1) so a missing binary reads the same way
+//                    on both paths
 //   old_version    — --version prints a version below MIN_CODEX_VERSION
 //   ok             — --version prints a supported version; `login status`
 //                    succeeds; `exec --json ...` prints a valid JSONL event
 //                    stream (unlike antigravity, the codex companion writes
 //                    result files under CCP_JOBS_DIR, so a real success
 //                    path is safe to simulate here)
+//   mcp_unreadable — `mcp list --json` prints text that is not the expected
+//                    JSON array (exit 0), everything else behaves like `ok`
 
 const mode = process.env.CCP_GOLDEN_CODEX_MODE || 'ok';
 const argv = process.argv.slice(2);
+
+// Only server names and enabled states ever leave the adapter's parser; the
+// canary here proves that. Anonymized fixture only — never a real server name
+// or credential.
+const MCP_LIST_JSON =
+  '[{"name":"alpha","enabled":true,"transport":{"type":"stdio","command":"fixture-server --key canary-0000"}},' +
+  '{"name":"beta","enabled":false,"transport":{"type":"streamable_http","url":"https://example.invalid/mcp","http_headers":{"Authorization":"Bearer canary-0000"}}}]';
 
 function out(text) {
   process.stdout.write(text);
@@ -29,6 +40,18 @@ if (argv.includes('--version')) {
     process.exit(0);
   }
   out('codex-cli 0.130.0\n');
+  process.exit(0);
+}
+
+if (argv[0] === 'mcp' && argv[1] === 'list') {
+  if (mode === 'not_installed') {
+    process.exit(1);
+  }
+  if (mode === 'mcp_unreadable') {
+    out('unexpected output\n');
+    process.exit(0);
+  }
+  out(MCP_LIST_JSON + '\n');
   process.exit(0);
 }
 

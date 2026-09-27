@@ -28,8 +28,8 @@ Antigravity와 Codex는 각각 하나의 어댑터 파일(`adapters/antigravity.
 
 `/ccp:antigravity-rescue`와 `/ccp:codex-rescue`는 각각 이름이 같은 서브에이전트(`antigravity-rescue`, `codex-rescue`)를 거쳐 실행됩니다. 두 서브에이전트는 `tools:["Bash"]`, `disallowedTools:["mcp__*"]`, `model:haiku`, `background:false`로 선언되어 있습니다. 각 서브에이전트가 실행하는 명령은 하나로 고정되어 있습니다.
 
-- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]`
-- `codex-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] -- "<task>"`
+- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]`
+- `codex-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] -- "<task>"`
 
 서브에이전트는 이 명령이 표준출력에 남긴 envelope을 그대로 상위 호출자에게 반환합니다. 내용을 해석하거나 재시도하지 않습니다.
 
@@ -48,9 +48,10 @@ companion은 공유 코어와 CLI 별 어댑터로 나뉩니다. 코어는 여�
 - `core/errors.mjs`: 공유 에러 카탈로그와 어댑터 카탈로그를 병합합니다.
 - `core/jobs.mjs`: job 메타데이터를 읽고 쓰며 세션 범위로 걸러냅니다.
 - `core/args.mjs`: 플래그를 파싱합니다.
+- `core/mcp.mjs`: rescue의 `--mcp` 값을 검사하고, 어댑터가 읽어 낸 MCP 서버 목록과 대조해 안내 문구를 만듭니다.
 - `core/runtime.mjs`: 서브커맨드별 처리, 실패 분류, 백그라운드 작업 실행을 담당합니다.
 
-두 어댑터(`adapters/antigravity.mjs`, `adapters/codex.mjs`)는 각 CLI에 고유한 값을 선언합니다. 지원 플래그와 거부 플래그, 명령줄을 만드는 함수(`buildArgs`), CLI 출력을 읽는 함수(`parseResult`), 타임아웃, 에러 카탈로그, 바이너리 경로 환경 변수 등입니다. 코어는 이 선언 값을 읽어 실행을 조율합니다. 어댑터가 값을 선언하지 않으면 코어의 안전한 기본값을 사용합니다.
+두 어댑터(`adapters/antigravity.mjs`, `adapters/codex.mjs`)는 각 CLI에 고유한 값을 선언합니다. 지원 플래그와 거부 플래그, 명령줄을 만드는 함수(`buildArgs`), CLI 출력을 읽는 함수(`parseResult`), MCP 서버 목록을 조회하는 인자와 그 목록을 읽고 조치 명령을 만드는 함수(`mcp`), 타임아웃, 에러 카탈로그, 바이너리 경로 환경 변수 등입니다. 코어는 이 선언 값을 읽어 실행을 조율합니다. 어댑터가 값을 선언하지 않으면 코어의 안전한 기본값을 사용합니다.
 
 이 대체가 실제로 작동하는 사례는 두 가지입니다.
 
@@ -60,13 +61,15 @@ companion은 공유 코어와 CLI 별 어댑터로 나뉩니다. 코어는 여�
 
 두 어댑터가 선언해야 하는 필드 구성은 `tests/companion/contract-test.mjs`가 매 실행마다 검사합니다. 코어가 어댑터 미선언 필드를 요구하거나 어댑터가 코어에 없는 필드를 추가하면 테스트가 실패합니다.
 
+rescue에 `--mcp`를 주면 코어는 `--fallback-claude` 처리 직후, 인증 확인과 포그라운드·백그라운드 분기보다 먼저 MCP 사전 확인을 한 번 실행합니다. 어댑터가 선언한 `mcp.listArgs`로 대상 CLI의 등록 목록을 조회하고, `mcp.parseList`가 돌려준 서버 이름과 활성 여부만으로 선언된 이름을 대조합니다. 미등록, 비활성, 목록 판독 실패는 모두 `CCP-MCP-001` 하나로 중단하고, 어느 경우인지는 `details.mcp`로 구분합니다. 사용자가 실행할 명령은 어댑터의 `mcp.installCommand`가 만든 자리표시자 명령이며, 코어는 이 명령을 실행하지 않습니다. 조회 원문은 인증 헤더 같은 비밀을 담을 수 있어 `mcp.parseList`에만 넘기고 로그, job 디렉터리, envelope 어디에도 남기지 않습니다. 이 확인은 job 디렉터리를 만들기 전에 끝나므로, 확인에 실패한 호출은 디스크에 산출물을 남기지 않습니다.
+
 ## envelope과 에러 코드 체계
 
 envelope 스키마는 JSON Schema draft-2020-12(https://json-schema.org/draft/2020-12/schema)를 따르고, 스키마 파일은 `plugins/ccp/schemas/envelope.schema.json`이며 그 `$id` 값은 `https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json`입니다. envelope이 어떤 키를 갖는지, `details.mode`가 어떤 값을 갖는지는 [슬래시 커맨드](./slash-commands.md) 문서의 응답 envelope 절을 참고하십시오.
 
-에러 코드 형식은 `CCP-<카테고리>-<NNN>`입니다. 코드 전체를 훑으면 `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, `UNSUPPORTED` 카테고리가 관찰됩니다.
+에러 코드 형식은 `CCP-<카테고리>-<NNN>`입니다. 코드 전체를 훑으면 `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, `UNSUPPORTED`, `MCP` 카테고리가 관찰됩니다.
 
-두 어댑터는 공유 에러 카탈로그를 상속한 뒤 자신의 카탈로그로 병합합니다. 병합 규칙은 `{ ...공유 카탈로그, ...어댑터 카탈로그 }`이고, 키가 겹치면 어댑터 쪽 문구가 항상 이깁니다. 공유 카탈로그 중 `CCP-SETUP-002`(Node.js 버전 미달) 하나만 어느 어댑터도 재정의하지 않고 공유 문구를 그대로 씁니다.
+두 어댑터는 공유 에러 카탈로그를 상속한 뒤 자신의 카탈로그로 병합합니다. 병합 규칙은 `{ ...공유 카탈로그, ...어댑터 카탈로그 }`이고, 키가 겹치면 어댑터 쪽 문구가 항상 이깁니다. 공유 카탈로그 중 `CCP-MCP-001`(MCP 사전 확인)은 어느 어댑터도 재정의하지 않습니다. 이 코드의 `message`와 `action`은 호출 지점에서 상태별 문구로 채워집니다.
 
 `recovery` 값의 뜻은 다음과 같습니다. `retry`는 같은 요청을 그대로 다시 시도하면 해결될 수 있다는 뜻입니다. `abort`는 재시도로 해결되지 않으니 사용자가 다른 조치를 해야 한다는 뜻입니다. `fallback_claude`는 그 CLI 위임을 포기하고 `--fallback-claude`로 메인 Claude에게 넘기라는 뜻입니다. `user_action_required`는 사용자가 입력이나 설정을 고친 뒤 다시 실행해야 한다는 뜻이며, 현재는 `router-decide.mjs`가 입력이 없을 때 이 값을 씁니다. 스키마에서 유효한 `recovery` enum은 이 네 값입니다.
 

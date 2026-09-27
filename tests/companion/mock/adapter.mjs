@@ -2,7 +2,7 @@
 //
 // This file is the deliverable for the extension-contract proof ("adding a
 // new CLI = one adapter file, zero core diff"): it is written using *only*
-// the 52 leaf keys the frozen adapter contract defines (see core/runtime.mjs's
+// the 55 leaf keys the frozen adapter contract defines (see core/runtime.mjs's
 // CONTRACT). No core/*.mjs file was touched to make this adapter
 // work — if that ever stops being true, the contract has a gap and needs a
 // judged (a)/(b)/(c) field addition, not a workaround here.
@@ -95,6 +95,22 @@ export default {
     },
     usage(visibleSubcommands) {
       return `Usage: mock-cli <${visibleSubcommands.join('|')}> ...`;
+    },
+  },
+
+  mcp: {
+    listArgs: ['--mcp-list'],
+    parseList(stdout) {
+      const out = [];
+      for (const line of String(stdout).split('\n').filter(Boolean)) {
+        const [name, state] = line.split(' ');
+        if (!name || (state !== 'on' && state !== 'off')) return null;
+        out.push({ name, enabled: state === 'on' });
+      }
+      return out;
+    },
+    installCommand(name) {
+      return { register: `mock-cli mcp add ${name} <command>`, enable: `mock-cli mcp enable ${name}` };
     },
   },
 

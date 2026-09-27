@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 추가
+
+- `/ccp:codex-rescue`와 `/ccp:antigravity-rescue`에 `--mcp NAME[,NAME...]` 플래그를 추가했습니다. 위임 직전에 대상 CLI의 MCP 서버 등록 목록을 확인해, 적은 서버가 미등록이거나 비활성이거나 목록을 읽지 못하면 새 공용 에러 코드 `CCP-MCP-001`로 중단하고 직접 실행할 등록·활성화 명령을 안내합니다. 이에 따라 어댑터 계약에 `mcp.listArgs`, `mcp.parseList`, `mcp.installCommand`를 추가해 리프 키가 55개가 되었습니다.
+
 ### 수정
 
 - `/ccp:audit`가 companion과 같은 job 경로와 결과 키(`result_path`)를 읽도록 고쳤습니다.

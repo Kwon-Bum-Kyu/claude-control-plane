@@ -79,7 +79,7 @@ export function clampSummaryAtBoundary(text, maxChars = DEFAULT_SUMMARY_MAX_CHAR
  * chars for antigravity or ~1,154 words for codex, both far past where the
  * length axis already trips at 500 chars. It stays in the contract (removing
  * it would drop `estimateTokens` to zero callers, shrinking the frozen
- * 52-key adapter contract) but is effectively inert today. Re-evaluate it if
+ * 55-key adapter contract) but is effectively inert today. Re-evaluate it if
  * `maxChars` grows past ~6,000 or an estimator formula changes.
  * @param {string} text
  * @param {object} opts

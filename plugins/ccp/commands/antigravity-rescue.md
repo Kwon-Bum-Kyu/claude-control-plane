@@ -1,6 +1,6 @@
 ---
 description: Delegates heavy summarization, analysis, and large-context processing to Antigravity CLI (`agy`) to reduce main Claude context tokens.
-argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]
+argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
 allowed-tools:
   - Bash
 ---
@@ -12,7 +12,7 @@ Delegates work to an Antigravity CLI subagent to reduce main Claude context toke
 ## Usage
 
 ```
-/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]
+/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 | Argument | Description |
@@ -22,13 +22,17 @@ Delegates work to an Antigravity CLI subagent to reduce main Claude context toke
 | `--max-tokens N` | Response token cap (default 4000) — embedded as a soft prompt hint, since `agy` has no `--max-tokens` flag |
 | `--files <glob>` | Currently rejected — the companion always returns `CCP-INVALID-001` for `--files` today. `agy` has its own `--add-dir` CLI option for directory scoping, but this flag is not wired to it yet |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
+| `--mcp NAME[,NAME...]` | Before delegating, run `agy mcp list` once and stop with `CCP-MCP-001` if any named MCP server is not registered, is disabled, or the list cannot be read. Comma-separated; each name starts with a letter or digit and uses only letters, digits, `.`, `_`, `-`. Put the value after a space, as in `--mcp a,b`. Skipped together with `--fallback-claude` |
+
+If the task depends on a specific MCP server in Antigravity (for example a browser-automation server), add `--mcp <name>` so a missing or disabled server is reported before delegation instead of the delegated task failing quietly.
 
 ## Behavior
 
 1. If `--fallback-claude` is present, return a `mode: "fallback_claude"` envelope immediately and skip companion invocation.
-2. Preflight: the companion verifies Node.js ≥ v20 and `agy --version` ≥ 1.0.0. Authentication relies on `agy`'s keyring silent-auth or `ANTIGRAVITY_API_KEY`.
-3. Foreground: synchronous execution. The companion runs `agy --log-file <jobLog> -p <task>`, stores `result.md`, and returns an envelope with a 3-line summary plus character-based token estimates (`tokens.estimated: true`).
-4. Background: creates a detached child process, persists `_workspace/_jobs/<uuid>/{meta.json,result.md,stderr.log,agy.log}`, and returns `{job_id, status: "queued"}` within 1 second.
+2. If `--mcp` is present, run `agy mcp list` once (60s timeout) and compare it with the named servers. Stop with `CCP-MCP-001` if any is not registered or disabled, or if the list cannot be read. Only server names and enabled states are read from the list output; it is never stored or echoed. A `--background` call goes through this step too, before any job is created.
+3. Preflight: the companion verifies Node.js ≥ v20 and `agy --version` ≥ 1.0.0. Authentication relies on `agy`'s keyring silent-auth or `ANTIGRAVITY_API_KEY`.
+4. Foreground: synchronous execution. The companion runs `agy --log-file <jobLog> -p <task>`, stores `result.md`, and returns an envelope with a 3-line summary plus character-based token estimates (`tokens.estimated: true`).
+5. Background: creates a detached child process, persists `_workspace/_jobs/<uuid>/{meta.json,result.md,stderr.log,agy.log}`, and returns `{job_id, status: "queued"}` within 1 second.
 
 ## Security Notice — Automatic Tool-Permission Approval
 
@@ -43,7 +47,7 @@ To disable auto-approval entirely, set `CCP_AGY_SKIP_PERMISSIONS=0` (also accept
 Invoked through the `antigravity-rescue` subagent with the following single Bash pattern.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 ## Output (Foreground Success)
@@ -77,6 +81,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<t
 | `CCP-SETUP-002` | abort | Show Node.js ≥ v20 install guidance |
 | `CCP-OAUTH-001` | fallback | Use `AskUserQuestion` to offer re-auth (run `agy` once), set `ANTIGRAVITY_API_KEY`, `/ccp:antigravity-rescue --fallback-claude`, or cancel |
 | `CCP-AG-002` | fallback | Explain quota limits and offer main-Claude fallback |
+| `CCP-MCP-001` | abort | Show the `action` commands (register or enable the MCP server) to the user, who runs them and then calls again. Do not run them on the user's behalf |
 | `CCP-INVALID-001` | abort | Show usage |
 | `CCP-TIMEOUT-001` | retry | Retry or recommend `--background` |
 

@@ -8,11 +8,11 @@ CCP provides 9 slash commands under the `/ccp:` namespace. Each command file's s
 
 | Command | Description | Arguments |
 |---|---|---|
-| `/ccp:antigravity-rescue` | Delegates large-scale summarization and analysis work to the Antigravity CLI (agy), reducing the main Claude context's token usage. | `<task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]` |
+| `/ccp:antigravity-rescue` | Delegates large-scale summarization and analysis work to the Antigravity CLI (agy), reducing the main Claude context's token usage. | `<task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:antigravity-status` | Checks the current status of an Antigravity job created with `--background`. | `<job_id>` |
 | `/ccp:antigravity-result` | Retrieves the result of a completed Antigravity background job. | `<job_id> [--summary-only]` |
 | `/ccp:antigravity-setup` | Checks the Antigravity CLI (agy)'s install and authentication status, and shows install or re-authentication guidance on failure. | None |
-| `/ccp:codex-rescue` | Delegates work Codex is strong at (code review, bug investigation, diff analysis), reducing the main Claude context's token usage. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude]` |
+| `/ccp:codex-rescue` | Delegates work Codex is strong at (code review, bug investigation, diff analysis), reducing the main Claude context's token usage. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:codex-status` | Checks the current status of a Codex job created with `--background`. | `<job_id>` |
 | `/ccp:codex-result` | Retrieves the result of a completed Codex background job. | `<job_id>` |
 | `/ccp:codex-setup` | Checks the Codex CLI's install and OAuth authentication status, and shows install or re-authentication guidance on failure. | `""`(no arguments) |
@@ -26,6 +26,7 @@ The flags `/ccp:antigravity-rescue` and `/ccp:codex-rescue` accept are as follow
 |---|---|---|---|
 | `--background` | A bool flag. If true, calls `runBackground`; otherwise `runForeground` (shared core logic between both CLIs). | Same. | false |
 | `--fallback-claude` | A bool flag. If true, skips the companion call and immediately returns a success envelope with `mode: "fallback_claude"`. | Takes the same path, but `details.mode` is always `codex` regardless of subcommand. | false |
+| `--mcp NAME[,NAME...]` | A string. Right before delegating, runs `agy mcp list` once and checks that every named MCP server is registered and enabled. If any is not registered, is disabled, or the list cannot be read, stops with `CCP-MCP-001`. Put the value after a space, as in `--mcp a,b`. | The same flow; only the list command is `codex mcp list --json`. | None (no check unless given) |
 | `--sandbox` | A valueless bool flag. If present, appends bare `--sandbox` (no value) to the agy call. | A string enum (`read-only`, `workspace-write`, `danger-full-access`). An empty value or a boolean is normalized to `read-only` and passed as `-s <mode>`. | Antigravity: not attached unless given. Codex: `read-only`. |
 | `--max-tokens N` | An integer. A soft constraint that appends an "(Answer within N tokens if possible)" hint after the prompt; not an agy flag itself. | Not declared. `buildArgs`'s signature has no `maxTokens` parameter, so a value is entirely discarded if given. | 4000(Antigravity only) |
 | `--timeout-ms N` | An integer. Both foreground and background requests compute their timeout from this value (shared core logic between both CLIs). | Same. | 600000(allowed range 5000-3600000) |
@@ -35,6 +36,8 @@ The flags `/ccp:antigravity-rescue` and `/ccp:codex-rescue` accept are as follow
 | `--write` | Declared as a bool flag, but always rejects with `CCP-INVALID-001`("`--write` is not supported by Antigravity") regardless of the value. | Neither declared nor registered as rejected. The value is parsed into `flags.write`, but `buildArgs` never reads it, so it is silently ignored(no error envelope). | None |
 | `--cwd DIR` | Not declared. `buildArgs`'s signature has no `cwd` parameter. | A string. Passed to codex exec as `-C <dir>`. | Codex is `process.cwd()`. |
 | `--model NAME` | Not declared. There is no model-selection flag. | A string. Passed to codex exec as `-m <model>`; if omitted, uses the codex CLI's own default model. | None(uses the codex CLI's own default if omitted) |
+
+The `--mcp` value is a comma-separated list of MCP server names. Leading and trailing spaces and empty items are dropped, and a repeated name is checked only once. A name must start with a letter or digit and may contain only letters, digits, `.`, `_`, and `-`. A value that breaks this rule, or an empty value, is rejected with `CCP-INVALID-001`. Names are compared with the registered list by exact, case-sensitive match. When given together with `--fallback-claude`, both the value check and the pre-check are skipped. A background call goes through the same pre-check before any job is created, and returns an error envelope instead of a `job_id` if the check fails. CCP never runs the register or enable command it suggests. Because the raw list output can contain secrets such as authentication headers, only server names and enabled states are read from it, and it is never stored or printed anywhere.
 
 Codex rescue calls use a separator like `-- "the actual task string"`. Every token after this separator is treated as a positional argument, i.e. the prompt, not an option.
 

@@ -7,8 +7,8 @@
 // CCP original code carried over from codex-companion.mjs, which was never itself
 // part of the codex-plugin-cc import — only buildArgs() below traces back upstream.
 //
-// Fields on this adapter follow the frozen 52-key adapter contract (32
-// declarative + 20 function — see core/runtime.mjs's CONTRACT and assertAdapter).
+// Fields on this adapter follow the frozen 55-key adapter contract (33
+// declarative + 22 function — see core/runtime.mjs's CONTRACT and assertAdapter).
 // messages.fallbackSummary is a plain string, not a function: neither
 // adapter interpolates ctx into its --fallback-claude summary text.
 
@@ -114,6 +114,8 @@ export default {
       // is fully generic and already parses --task without a table entry, so
       // this exists only to keep the documentation/usage-generation list accurate.
       task: { key: 'task', type: 'string' },
+      // Documentation/usage list only — the dash-dash parser reads --mcp without it.
+      mcp: { key: 'mcp', type: 'string' },
     },
     rejectFlags: [],
     // codex has no value-conditional flag guard today (that is antigravity's --files traversal check)
@@ -227,6 +229,27 @@ export default {
     // the --fallback-claude short-circuit's summary text (CLI-specific wording, preserved
     // as-is). Static string, not a function — neither adapter interpolates ctx into it.
     fallbackSummary: 'fallback-claude: This task should be handled by main Claude.',
+  },
+
+  // MCP pre-check for `rescue --mcp`. The list output can carry credentials
+  // (transport.http_headers), so only name/enabled are copied out.
+  mcp: {
+    listArgs: ['mcp', 'list', '--json'],
+    parseList(stdout) {
+      let entries;
+      try { entries = JSON.parse(stdout); } catch { return null; }
+      if (!Array.isArray(entries)) return null;
+      const out = [];
+      for (const e of entries) {
+        if (!e || typeof e.name !== 'string' || e.name === '') return null;
+        if (e.enabled !== undefined && typeof e.enabled !== 'boolean') return null;
+        out.push({ name: e.name, enabled: e.enabled !== false }); // codex defaults enabled to true
+      }
+      return out;
+    },
+    installCommand(name) {
+      return { register: `codex mcp add ${name} -- <command> [args...]`, enable: `codex mcp enable ${name}` };
+    },
   },
 
   buildArgs({ prompt, cwd, model, effort, sandbox, skipGitRepoCheck }) {

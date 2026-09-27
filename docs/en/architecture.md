@@ -28,8 +28,8 @@ Antigravity and Codex are each declared by a single adapter file (`adapters/anti
 
 `/ccp:antigravity-rescue` and `/ccp:codex-rescue` each run through the like-named subagent (`antigravity-rescue`, `codex-rescue`). Both subagents are declared with `tools:["Bash"]`, `disallowedTools:["mcp__*"]`, `model:haiku`, `background:false`. Each of them runs exactly one fixed command.
 
-- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude]`
-- `codex-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] -- "<task>"`
+- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]`
+- `codex-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] -- "<task>"`
 
 The subagent only returns the envelope this command leaves on stdout to the caller as-is; it does not interpret the content or retry.
 
@@ -48,9 +48,10 @@ The companion is split into a shared core and a per-CLI adapter. The core is mad
 - `core/errors.mjs`: merges the shared error catalog with the adapter catalog.
 - `core/jobs.mjs`: reads and writes job metadata, and filters it by session scope.
 - `core/args.mjs`: parses flags.
+- `core/mcp.mjs`: checks the rescue `--mcp` value, compares it with the MCP server list the adapter read, and builds the guidance text.
 - `core/runtime.mjs`: handles per-subcommand processing, failure classification, and running background jobs.
 
-The two adapters (`adapters/antigravity.mjs`, `adapters/codex.mjs`) declare values specific to each CLI: supported flags and rejected flags, the function that builds the command line (`buildArgs`), the function that reads CLI output (`parseResult`), timeouts, the error catalog, the binary-path environment variable, and so on. The core only reads these declared values to coordinate execution, and substitutes a safe default set by the core itself for any value an adapter does not declare.
+The two adapters (`adapters/antigravity.mjs`, `adapters/codex.mjs`) declare values specific to each CLI: supported flags and rejected flags, the function that builds the command line (`buildArgs`), the function that reads CLI output (`parseResult`), the MCP server-list arguments and the functions that read that list and build the fix-up commands (`mcp`), timeouts, the error catalog, the binary-path environment variable, and so on. The core only reads these declared values to coordinate execution, and substitutes a safe default set by the core itself for any value an adapter does not declare.
 
 There are two cases where this substitution actually takes effect.
 
@@ -60,13 +61,15 @@ Second, whether job_id format validation happens depends on whether the adapter 
 
 `tests/companion/contract-test.mjs` checks the field composition both adapters must declare on every run. This test fails if the core requires a field an adapter did not declare, or if an adapter adds a field the core does not know about.
 
+When a rescue call is given `--mcp`, the core runs the MCP pre-check once, right after handling `--fallback-claude` and before the authentication check and the foreground/background split. It lists the target CLI's registered servers with the adapter's `mcp.listArgs`, and compares the declared names using only the server names and enabled states that `mcp.parseList` returns. Not registered, disabled, and an unreadable list all stop with the single code `CCP-MCP-001`, and `details.mcp` tells them apart. The commands the user should run are placeholder commands built by the adapter's `mcp.installCommand`, and the core never runs them. Because the raw list output can contain secrets such as authentication headers, it is passed only to `mcp.parseList` and is never left in logs, job directories, or the envelope. The check finishes before any job directory is created, so a call that fails it leaves nothing on disk.
+
 ## Envelope and error-code scheme
 
 The envelope schema follows JSON Schema draft-2020-12 (https://json-schema.org/draft/2020-12/schema). The schema file is `plugins/ccp/schemas/envelope.schema.json`, and its `$id` value is `https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json` itself. For which keys the envelope has and which values `details.mode` can take, see the response-envelope section of the [Slash commands](./slash-commands.md) document.
 
-The error-code format is `CCP-<CATEGORY>-<NNN>`. Scanning all the codes, the categories `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, and `UNSUPPORTED` are observed.
+The error-code format is `CCP-<CATEGORY>-<NNN>`. Scanning all the codes, the categories `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, `UNSUPPORTED`, and `MCP` are observed.
 
-Both adapters inherit the shared error catalog and then merge it with their own catalog. The merge rule is `{ ...the shared catalog, ...the adapter catalog }`, and when a key overlaps, the adapter's wording always wins. Of the shared catalog, only `CCP-SETUP-002` (Node.js version below the minimum) is not overridden by either adapter and keeps the shared wording as-is.
+Both adapters inherit the shared error catalog and then merge it with their own catalog. The merge rule is `{ ...the shared catalog, ...the adapter catalog }`, and when a key overlaps, the adapter's wording always wins. Of the shared catalog, `CCP-MCP-001` (MCP pre-check) is not overridden by either adapter; its `message` and `action` are filled in with state-specific wording at the call site.
 
 The `recovery` values mean the following. `retry` means retrying the same request as-is may resolve it. `abort` means retrying will not resolve it, so the user must take a different action. `fallback_claude` means giving up on delegating to that CLI and handing it to the main Claude with `--fallback-claude`. `user_action_required` means the user must fix the input or configuration and run it again; currently `router-decide.mjs` uses this value when there is no input. These four values are the valid `recovery` enum the schema defines.
 
