@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.4.1] - 2026-09-27
+
 ### 추가
 
 - `/ccp:codex-rescue`와 `/ccp:antigravity-rescue`에 `--mcp NAME[,NAME...]` 플래그를 추가했습니다. 위임 직전에 대상 CLI의 MCP 서버 등록 목록을 확인해, 적은 서버가 미등록이거나 비활성이거나 목록을 읽지 못하면 새 공용 에러 코드 `CCP-MCP-001`로 중단하고 직접 실행할 등록·활성화 명령을 안내합니다. 이에 따라 어댑터 계약에 `mcp.listArgs`, `mcp.parseList`, `mcp.installCommand`를 추가해 리프 키가 55개가 되었습니다.
@@ -62,7 +64,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.1...HEAD
+[v0.4.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.0
 [v0.3.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.3.0
 [v0.2.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.2.2
