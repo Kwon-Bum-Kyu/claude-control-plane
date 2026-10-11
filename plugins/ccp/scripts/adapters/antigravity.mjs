@@ -287,11 +287,6 @@ export default {
       action: 'Use the main Claude agent on the next call, or use the `--force-claude` option.',
       recovery: 'abort',
     },
-    'CCP-COMPACT-001': {
-      message: 'Context usage has exceeded 75%',
-      action: 'Manually compact the session with `/compact`, or delegate large work to `/ccp:antigravity-rescue`.',
-      recovery: 'abort',
-    },
     'CCP-API-001': {
       message: 'Your Claude Code version is below the CCP requirement',
       action: 'Update Claude Code to the latest version, then try again.',
