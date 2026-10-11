@@ -40,7 +40,6 @@ The following markers are notices that hooks and the router attach directly to t
 - CCP-ROUTER-001: a marker that only suggests the routing decision may be inefficient.
 - CCP-ROUTER-002: a marker prepended to the summary of a result the router auto-delegated.
 - CCP-META-WARN: a warning marker appended to a prompt suspected of headless automation.
-- CCP-COMPACT-001: a notice marker attached when context usage exceeds the threshold.
 
 ## What setup checks
 

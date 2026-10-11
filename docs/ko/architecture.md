@@ -18,7 +18,7 @@ CCP는 위임 결과로 짧은 요약과 결과 파일 경로만 메인 세션�
 
 ### 훅은 추천만
 
-네 개 훅은 모두 사용자 입력을 대신 처리하지 않습니다. 세션 시작, 프롬프트 제출, 컨텍스트 압축 직전, 서브에이전트 종료 시점에 안내나 표식을 덧붙일 뿐, `/compact`나 슬래시 위임을 대신 실행하지 않습니다. 자세한 목록은 아래 '훅' 절에 있습니다.
+세 개 훅은 모두 사용자 입력을 대신 처리하지 않습니다. 세션 시작, 프롬프트 제출, 서브에이전트 종료 시점에 안내나 표식을 덧붙일 뿐, 슬래시 위임을 대신 실행하지 않습니다. 자세한 목록은 아래 '훅' 절에 있습니다.
 
 ### CLI 하나에 어댑터 하나
 
@@ -91,14 +91,13 @@ job 산출물 경로는 두 어댑터 모두 `JOBS_DIR` 기준의 절대 경로(
 
 ## 훅
 
-CCP는 네 개의 훅을 등록합니다. `UserPromptSubmit` 에는 `suggest-compact.js` 다음에 `router-suggest.js`가 이 순서로 실행되고, `SubagentStop` 에는 `rescue-finalize.js`, `SessionStart` 에는 `boot-check.js`, `PreCompact` 에는 `suggest-compact.js`가 등록되어 있습니다.
+CCP는 세 개의 훅을 등록합니다. `UserPromptSubmit` 에는 `router-suggest.js`, `SubagentStop` 에는 `rescue-finalize.js`, `SessionStart` 에는 `boot-check.js`가 등록되어 있습니다. 컨텍스트 사용량 경고는 Claude Code가 자체 제공하므로 CCP는 별도 훅을 두지 않습니다.
 
 - `boot-check.js`(`SessionStart`): Node.js 버전, agy 설치와 버전, 인증 상태를 미리 점검합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검은 세션 시작을 막지 않습니다.
 - `router-suggest.js`(`UserPromptSubmit`): 라우팅 판단을 `[CCP-ROUTER-001]` 추천으로 주입합니다. `auto_routing`이 켜져 있고 세션이 canonical로 판정되면, 또는 판단이 애초에 `claude`이면 아무 것도 주입하지 않습니다. 앞의 경우에는 그 판단을 `router` 서브에이전트에게 넘깁니다. 헤드리스 자동화가 의심되는 프롬프트에는 `[CCP-META-WARN]` 안내를 덧붙입니다.
-- `suggest-compact.js`(`UserPromptSubmit`, `PreCompact`): 컨텍스트 사용량이 임계치를 넘으면 `[CCP-COMPACT-001]` 안내로 수동 `/compact`나 위임을 권합니다. `PreCompact` 시점에는 임계치와 무관하게 항상 안내합니다.
 - `rescue-finalize.js`(`SubagentStop`): antigravity job 중 상태가 계속 `running` 인 채로 시작 후 5분(300000ms)이 지난 것을 찾아 `failed`로 강제 종료 처리하고 `CCP-TIMEOUT-001`을 기록합니다. codex는 이 상태 키를 사용하지 않으므로 정리 대상에서 제외됩니다.
 
-네 훅은 실패를 조용히 처리합니다. stdin이 JSON 형식이 아니거나 처리 중 예외가 발생하면 빈 객체를 표준출력에 쓰고 종료합니다. 사용자의 입력 흐름은 막지 않습니다.
+세 훅은 실패를 조용히 처리합니다. stdin이 JSON 형식이 아니거나 처리 중 예외가 발생하면 빈 객체를 표준출력에 쓰고 종료합니다. 사용자의 입력 흐름은 막지 않습니다.
 
 ## 서브에이전트
 
@@ -121,8 +120,6 @@ Apache-2.0으로 차용된 파일 5개는 모두 openai/codex-plugin-cc(업스�
 | `plugins/ccp/scripts/adapters/codex.mjs` | codex-plugin-cc `plugins/codex/scripts/lib/args.mjs`(`buildArgs` 함수만) | Apache-2.0 |
 | `plugins/ccp/scripts/adapters/antigravity.mjs` | 없음(CCP 자체 코드) | 해당 없음 |
 | `plugins/ccp/scripts/harness-audit.js` | everything-claude-code의 `harness-audit.js` 포트 | MIT |
-| `plugins/ccp/hooks/suggest-compact.js` | everything-claude-code | MIT |
-| `plugins/ccp/skills/context-budget/SKILL.md` | everything-claude-code | MIT |
 | `plugins/ccp/scripts/lib/magic-keywords.mjs` | oh-my-claudecode | MIT |
 
 `LICENSES/` 디렉터리에는 각 상류의 라이선스 원문 4개(`codex-plugin-cc-Apache-2.0.txt`, `codex-plugin-cc-NOTICE.txt`, `everything-claude-code-MIT.txt`, `oh-my-claudecode-MIT.txt`)가 들어 있습니다. 라이선스 조건과 부기 문단 원문은 저장소의 `LICENSE` 파일과 [CONTRIBUTING](../../CONTRIBUTING.md) 문서를 참고하십시오.

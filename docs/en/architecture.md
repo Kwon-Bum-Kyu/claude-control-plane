@@ -18,7 +18,7 @@ Even when delegation fails, CCP does not silently retry with Claude or another C
 
 ### Hooks recommend only
 
-None of the four hooks run the user's input flow on the user's behalf. They only attach a notice or marker at session start, prompt submission, right before context compaction, and subagent termination; they do not run `/compact` or a slash delegation in the user's place. The detailed list is in the 'Hooks' section below.
+None of the three hooks run the user's input flow on the user's behalf. They only attach a notice or marker at session start, prompt submission, and subagent termination; they do not run a slash delegation in the user's place. The detailed list is in the 'Hooks' section below.
 
 ### One adapter per CLI
 
@@ -91,14 +91,13 @@ Job artifact paths are exposed by both adapters as absolute paths relative to `J
 
 ## Hooks
 
-CCP registers four hooks. For `UserPromptSubmit`, `suggest-compact.js` runs first, then `router-suggest.js` runs next, in that order; `rescue-finalize.js` is registered for `SubagentStop`, `boot-check.js` for `SessionStart`, and `suggest-compact.js` for `PreCompact`.
+CCP registers three hooks: `router-suggest.js` for `UserPromptSubmit`, `rescue-finalize.js` for `SubagentStop`, and `boot-check.js` for `SessionStart`. Claude Code provides its own context-usage warning, so CCP does not ship a separate hook for it.
 
 - `boot-check.js` (`SessionStart`): pre-checks the Node.js version, whether agy is installed and its version, and the authentication state. If it finds a problem, it only shows a notice; if there is no problem, it does nothing. This check does not block session start.
 - `router-suggest.js` (`UserPromptSubmit`): injects the routing decision as a `[CCP-ROUTER-001]` suggestion. If `auto_routing` is on and the session is judged canonical, or if the decision is `claude` in the first place, it injects nothing. In the former case, it hands that decision to the `router` subagent. It appends a `[CCP-META-WARN]` notice to a prompt suspected of headless automation.
-- `suggest-compact.js` (`UserPromptSubmit`, `PreCompact`): when context usage exceeds the threshold, it recommends a manual `/compact` or delegation with a `[CCP-COMPACT-001]` notice. At the `PreCompact` point, it always shows the notice regardless of the threshold.
 - `rescue-finalize.js` (`SubagentStop`): finds antigravity jobs that have stayed `running` for 5 minutes (300000ms) since they started, forcibly marks them `failed`, and records `CCP-TIMEOUT-001`. codex does not use this status key, so it is not a target of this cleanup.
 
-All four hooks fail quietly. If stdin is not JSON or an exception occurs during processing, they write an empty object to stdout and exit as-is, so the user's input flow is not blocked.
+All three hooks fail quietly. If stdin is not JSON or an exception occurs during processing, they write an empty object to stdout and exit as-is, so the user's input flow is not blocked.
 
 ## Subagents
 
@@ -121,8 +120,6 @@ All 5 files borrowed under Apache-2.0 come from openai/codex-plugin-cc (upstream
 | `plugins/ccp/scripts/adapters/codex.mjs` | codex-plugin-cc `plugins/codex/scripts/lib/args.mjs` (only the `buildArgs` function) | Apache-2.0 |
 | `plugins/ccp/scripts/adapters/antigravity.mjs` | None (CCP's own code) | Not applicable |
 | `plugins/ccp/scripts/harness-audit.js` | Port of everything-claude-code's `harness-audit.js` | MIT |
-| `plugins/ccp/hooks/suggest-compact.js` | everything-claude-code | MIT |
-| `plugins/ccp/skills/context-budget/SKILL.md` | everything-claude-code | MIT |
 | `plugins/ccp/scripts/lib/magic-keywords.mjs` | oh-my-claudecode | MIT |
 
 The `LICENSES/` directory contains the 4 upstream license originals (`codex-plugin-cc-Apache-2.0.txt`, `codex-plugin-cc-NOTICE.txt`, `everything-claude-code-MIT.txt`, `oh-my-claudecode-MIT.txt`). For the license terms and the original attribution paragraph text, see the repository's `LICENSE` file and the [CONTRIBUTING](../../CONTRIBUTING.md) document.

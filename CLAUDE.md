@@ -47,7 +47,7 @@ job 경로는 `core/paths.mjs` 가 결정한다. 우선순위는 `CCP_JOBS_DIR` 
 
 ### 훅 (`plugins/ccp/hooks/hooks.json`)
 
-SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `suggest-compact.js` + `router-suggest.js`, PreCompact `suggest-compact.js` (컨텍스트 75% 임계 안내), SubagentStop `rescue-finalize.js` (5분 넘게 running 상태인 job 을 failed 로 정리). 네 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
+SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `router-suggest.js`, SubagentStop `rescue-finalize.js` (5분 넘게 running 상태인 job 을 failed 로 정리). 컨텍스트 사용량 경고 훅은 두지 않는다. Claude Code 가 자체 경고와 statusline 사용량 표시를 제공하고, 창 크기(200K/1M) 를 훅이 알 수 없어 중복 구현이 어긋나기 때문이다. 세 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
 
 ### 커맨드 네임스페이스와 문서 대칭
 
@@ -55,7 +55,7 @@ SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromp
 
 ### 차용 코드의 출처 표기
 
-`core/{args,jobs,process,runtime}.mjs` 와 `adapters/codex.mjs` 는 codex-plugin-cc (Apache-2.0) 코드를 포함하며, 파일 선두 주석에 상류 파일·커밋·수정 내역을 선언한다. `hooks/suggest-compact.js`·`skills/context-budget/`·`scripts/harness-audit.js` 는 everything-claude-code (MIT), `scripts/lib/magic-keywords.mjs` 는 oh-my-claudecode (MIT) 차용이다. 이 파일들을 편집할 때 선두 주석을 지우지 않고, 새 차용을 추가하면 `LICENSES/` 에 원문을 넣는다.
+`core/{args,jobs,process,runtime}.mjs` 와 `adapters/codex.mjs` 는 codex-plugin-cc (Apache-2.0) 코드를 포함하며, 파일 선두 주석에 상류 파일·커밋·수정 내역을 선언한다. `scripts/harness-audit.js` 는 everything-claude-code (MIT), `scripts/lib/magic-keywords.mjs` 는 oh-my-claudecode (MIT) 차용이다. 이 파일들을 편집할 때 선두 주석을 지우지 않고, 새 차용을 추가하면 `LICENSES/` 에 원문을 넣는다.
 
 ## 주요 명령어
 
