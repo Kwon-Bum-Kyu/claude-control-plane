@@ -28,9 +28,9 @@ plugin-root/
         │   ├── antigravity-companion.mjs
         │   └── harness-audit.js
         ├── hooks/
-        │   └── suggest-compact.js
+        │   └── router-suggest.js
         └── skills/
-            └── context-budget/
+            └── router/
                 └── SKILL.md
 ```
 

@@ -6,6 +6,10 @@
 
 ## [Unreleased]
 
+### 제거
+
+- 컨텍스트 사용량 경고 훅 `suggest-compact.js`와 `context-budget` 스킬, 에러 카탈로그의 `CCP-COMPACT-001` 항목을 제거했습니다. 훅은 컨텍스트 창을 200K로 가정해 1M 창이 기본인 현재 모델에서 사용량을 잘못 계산했고, Claude Code가 컨텍스트 경고와 statusline 사용량 표시를 자체 제공하므로 플러그인이 같은 기능을 중복할 이유가 없어졌습니다. `PreCompact` 시점의 안내는 Claude Code가 그 이벤트의 `additionalContext` 출력을 받지 않아 실제로는 전달되지 않던 상태였습니다. 위임 추천은 `router-suggest.js`가 계속 담당합니다.
+
 ## [v0.4.1] - 2026-09-27
 
 ### 추가
