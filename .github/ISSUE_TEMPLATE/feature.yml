@@ -39,7 +39,7 @@ body:
       options:
         - 라우터(4축 결정)
         - 슬래시 커맨드(`/ccp:antigravity-*` 또는 `/ccp:codex-*`)
-        - 훅(UserPromptSubmit / PreCompact / SessionStart / SubagentStop)
+        - 훅(UserPromptSubmit / SessionStart / SubagentStop)
         - companion 스크립트(Antigravity 또는 Codex)
         - 감사(`/ccp:audit`)
         - 서브에이전트(antigravity-rescue / codex-rescue / router)
