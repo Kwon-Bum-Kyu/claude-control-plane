@@ -2,7 +2,9 @@
 // Upstream commit 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Licensed under the Apache License 2.0 — see LICENSES/codex-plugin-cc-Apache-2.0.txt
 // Modified by CCP contributors: unified dispatch/cancel/snapshot interface emitting the
-// shared JSON envelope; subcommand routing driven by adapter declarations.
+// shared JSON envelope; subcommand routing driven by adapter declarations; timeout
+// detection keyed on spawnSync's ETIMEDOUT so a CLI that exits cleanly on SIGTERM
+// is still reported as a timeout; per-path timeout defaults (foreground/background).
 //
 // This is the single generic entry point every companion routes through.
 // It knows about *operation names* (setup, rescue, status, result, cancel,
@@ -546,7 +548,10 @@ function handleRescue(ctx, parsed) {
   // interpreting (and defaulting) its own shape.
   const sandbox = flags.sandbox;
   const maxTokens = pickInt(flags, 'maxTokens', undefined);
-  const timeoutMs = pickInt(flags, 'timeoutMs', adapter.timeouts.foreground, { min: 5000, max: 3600000 });
+  // Left undefined when the flag is absent: the foreground run and the
+  // background worker each fall back to their own declared default
+  // (timeouts.foreground / timeouts.background), which differ for some adapters.
+  const timeoutMs = pickInt(flags, 'timeoutMs', undefined, { min: 5000, max: 3600000 });
   const isBg = pickBool(flags, 'background', false);
   const params = { model, effort, sandbox, maxTokens, timeoutMs };
 
@@ -561,6 +566,15 @@ function handleRescue(ctx, parsed) {
 
   if (isBg) return runBackground(ctx, { prompt, cwd, params });
   return runForeground(ctx, { prompt, cwd, params });
+}
+
+// A spawnSync timeout surfaces as error.code === 'ETIMEDOUT'. The child is
+// sent SIGTERM; one that dies from it reports signal 'SIGTERM' and status null,
+// but one that traps SIGTERM to shut down cleanly reports its own exit status
+// and no signal — so the error code, not the signal, is the reliable marker.
+// The signal and message checks stay for spawn shims that only set those.
+function isTimeout(r) {
+  return r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGTERM' || (r.error && /timeout/i.test(String(r.error.message)));
 }
 
 function runForeground(ctx, { prompt, cwd, params }) {
@@ -598,13 +612,14 @@ function runForeground(ctx, { prompt, cwd, params }) {
   }
 
   const args = adapter.buildArgs({ prompt, cwd, model: params.model, effort: params.effort, sandbox: params.sandbox, maxTokens: params.maxTokens, logFile });
+  const timeoutMs = params.timeoutMs ?? adapter.timeouts.foreground;
   const start = Date.now();
-  const r = runSync({ bin: ctx.bin, args, cwd, timeoutMs: params.timeoutMs });
+  const r = runSync({ bin: ctx.bin, args, cwd, timeoutMs });
   const duration = Date.now() - start;
 
-  if (r.signal === 'SIGTERM' || (r.error && /timeout/i.test(String(r.error.message)))) {
+  if (isTimeout(r)) {
     if (jobId) patchJobMeta(paths.JOBS_DIR, jobId, { state: 'failed', completed_at: new Date().toISOString(), error: { code: 'CCP-TIMEOUT-001' } }, { writeStatusAlias });
-    emitErr(ctx, 'CCP-TIMEOUT-001', { details: { ...baseDetails(adapter, 'rescue', {}), job_id: jobId ?? undefined, duration_ms: duration, timeout_ms: params.timeoutMs } });
+    emitErr(ctx, 'CCP-TIMEOUT-001', { details: { ...baseDetails(adapter, 'rescue', {}), job_id: jobId ?? undefined, duration_ms: duration, timeout_ms: timeoutMs } });
   }
   if (r.status !== 0) {
     if (jobId) patchJobMeta(paths.JOBS_DIR, jobId, { state: 'failed', completed_at: new Date().toISOString() }, { writeStatusAlias });
@@ -815,9 +830,13 @@ function handleTaskWorker(ctx, parsed) {
   const r = runSync({ bin: ctx.bin, args, cwd: process.cwd(), timeoutMs: meta.params?.timeoutMs || adapter.timeouts.background });
   const duration = Date.now() - start;
   const { dir: artifactDir, resultPath } = jobArtifactPaths(adapter, paths, jobId);
-  const exitCode = r.status ?? 1;
+  // Decide "timed out" before looking at the exit status: a CLI that traps
+  // SIGTERM may report status 0 with partial output, and that must never be
+  // recorded as a completed job (the foreground path checks in the same order).
+  const timedOut = isTimeout(r);
+  const exitCode = timedOut && r.status === 0 ? 1 : (r.status ?? 1); // never report a timeout as exit 0
 
-  if (r.status === 0 && r.stdout) {
+  if (!timedOut && r.status === 0 && r.stdout) {
     const logText = logFile ? readTextFileSafe(logFile) : '';
     const parsedRes = adapter.parseResult({ stdout: r.stdout, stderr: r.stderr, status: r.status, logText });
     const summaryText = adapter.summarize(parsedRes.body || '');
@@ -854,7 +873,7 @@ function handleTaskWorker(ctx, parsed) {
     );
   } else {
     const errorPayload = {
-      code: r.status === null ? 'CCP-TIMEOUT-001' : adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error }),
+      code: timedOut || r.status === null ? 'CCP-TIMEOUT-001' : adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error }),
       stderr_head: (r.stderr || '').slice(0, 500),
     };
     patchJobMeta(

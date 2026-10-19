@@ -72,7 +72,7 @@ node tools/repo-guard.mjs bootstrap   # .githooks/ 를 core.hooksPath 로 등록
 ```bash
 node tests/router/router-eval.mjs                  # 3-way 분류기 75케이스. 오분류 0건이어야 통과
 node tests/router/router-suggest-test.mjs          # router-suggest 훅 21시나리오. 오분류 0건이어야 통과
-node tests/companion/contract-test.mjs             # 어댑터 계약 39항목 (55키 동결, mock 어댑터가 실제 core 를 구동)
+node tests/companion/contract-test.mjs             # 어댑터 계약 43항목 (55키 동결, mock 어댑터가 실제 core 를 구동)
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
 ```

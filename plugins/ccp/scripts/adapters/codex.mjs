@@ -140,7 +140,10 @@ export default {
   ],
 
   argStyle: 'dash-dash',
-  timeouts: { foreground: 600000, background: 240000, authProbe: 30000 }, // ms; background ~= codex_exec P95 + margin
+  // ms. background mirrors foreground: real background runs have been observed
+  // past 390s, so the earlier 240000 (an old codex_exec P95 estimate) would cut
+  // them off now that core actually applies this value.
+  timeouts: { foreground: 600000, background: 600000, authProbe: 30000 },
   // codex is fully stateless in the foreground (no job id, no meta.json, no log
   // file) — persistForeground: false keeps runForeground's job-record path a
   // no-op for it, matching its original fire-and-forget behavior exactly.

@@ -136,10 +136,10 @@ check('valid mock adapter passes assertAdapter', throws(() => assertAdapter(mock
 
 console.log('\n2. mock adapter — end-to-end dispatch (core/runtime.mjs, unmodified)');
 
-function runMock(args, { mode = 'ok', jobsDir } = {}) {
-  const env = { ...process.env, CCP_MOCK_BIN: MOCK_STUB, CCP_MOCK_MODE: mode };
+function runMock(args, { mode = 'ok', jobsDir, extraEnv = {}, timeout = 10000 } = {}) {
+  const env = { ...process.env, CCP_MOCK_BIN: MOCK_STUB, CCP_MOCK_MODE: mode, ...extraEnv };
   if (jobsDir) env.CCP_JOBS_DIR = jobsDir;
-  const r = spawnSync(process.execPath, [MOCK_COMPANION, ...args], { encoding: 'utf8', env, timeout: 10000 });
+  const r = spawnSync(process.execPath, [MOCK_COMPANION, ...args], { encoding: 'utf8', env, timeout });
   let envelope = null;
   try {
     envelope = JSON.parse((r.stdout || '').trim().split('\n').pop());
@@ -188,6 +188,92 @@ function runMock(args, { mode = 'ok', jobsDir } = {}) {
       JSON.stringify(result.envelope)
     );
   } finally {
+    rmSync(jobsDir, { recursive: true, force: true });
+  }
+}
+
+// Poll a background job's meta.json until it leaves queued/running, or the
+// deadline passes. A fixed sleep would tie the test to the runner's load.
+function waitForTerminalMeta(jobsDir, jobId, deadlineMs) {
+  const metaPath = join(jobsDir, jobId, 'meta.json');
+  const deadline = Date.now() + deadlineMs;
+  let meta = null;
+  while (Date.now() < deadline) {
+    try {
+      meta = JSON.parse(readFileSync(metaPath, 'utf8'));
+    } catch {
+      meta = null;
+    }
+    if (meta && meta.state !== 'queued' && meta.state !== 'running') return meta;
+    spawnSync(process.execPath, ['-e', 'setTimeout(()=>{}, 250)']);
+  }
+  return meta;
+}
+
+// Kill a detached worker's whole process group so a still-hanging stub child
+// goes down with it; fall back to the pid alone if the group is already gone.
+function killWorker(pid) {
+  if (!pid) return;
+  try { process.kill(-pid, 'SIGKILL'); } catch { try { process.kill(pid, 'SIGKILL'); } catch { /* already gone */ } }
+}
+
+{
+  // A spawnSync timeout sends SIGTERM. A CLI that traps it and exits with its
+  // own status (instead of dying from the signal) must still be reported as a
+  // timeout, not as a generic run failure.
+  const r = runMock(['rescue', '--timeout-ms', '5000', '--', 'slow task'], { mode: 'hang_trap_sigterm', timeout: 20000 });
+  check(
+    'rescue (foreground) reports CCP-TIMEOUT-001 when the stub traps SIGTERM and exits on its own',
+    r.status === 1 && r.envelope?.error?.code === 'CCP-TIMEOUT-001',
+    JSON.stringify(r.envelope)
+  );
+}
+
+{
+  const jobsDir = mkdtempSync(join(tmpdir(), 'ccp-mock-contract-'));
+  let workerPid = null;
+  try {
+    // No --timeout-ms: the detached worker must fall back to the adapter's
+    // timeouts.background (5000ms here), not to the foreground value (30000ms).
+    const dispatch = runMock(['rescue', '--background', '--', 'slow background task'], { mode: 'hang_trap_sigterm', jobsDir });
+    const jobId = dispatch.envelope?.job_id;
+    workerPid = dispatch.envelope?.details?.pid ?? null;
+    // The stub's 5000ms timeout plus worker startup must finish well inside this deadline.
+    const meta = waitForTerminalMeta(jobsDir, jobId, 20000);
+    check(
+      'background worker falls back to timeouts.background when --timeout-ms is absent',
+      meta?.state === 'failed',
+      JSON.stringify({ state: meta?.state ?? null })
+    );
+    check(
+      'background worker reports CCP-TIMEOUT-001 when the stub traps SIGTERM and exits on its own',
+      meta?.error?.code === 'CCP-TIMEOUT-001',
+      JSON.stringify(meta?.error ?? null)
+    );
+  } finally {
+    killWorker(workerPid);
+    rmSync(jobsDir, { recursive: true, force: true });
+  }
+}
+
+{
+  // The stricter case: the CLI prints partial output and reports *success*
+  // (exit 0) from its SIGTERM handler. The worker must still record a
+  // timeout, never a completed job built from the partial output.
+  const jobsDir = mkdtempSync(join(tmpdir(), 'ccp-mock-contract-'));
+  let workerPid = null;
+  try {
+    const dispatch = runMock(['rescue', '--background', '--', 'slow background task'], { mode: 'hang_trap_sigterm', jobsDir, extraEnv: { CCP_MOCK_TRAP_EXIT: '0' } });
+    const jobId = dispatch.envelope?.job_id;
+    workerPid = dispatch.envelope?.details?.pid ?? null;
+    const meta = waitForTerminalMeta(jobsDir, jobId, 20000);
+    check(
+      'background worker reports CCP-TIMEOUT-001 even when the stub exits 0 with partial output on SIGTERM',
+      meta?.state === 'failed' && meta?.error?.code === 'CCP-TIMEOUT-001',
+      JSON.stringify({ state: meta?.state ?? null, error: meta?.error ?? null })
+    );
+  } finally {
+    killWorker(workerPid);
     rmSync(jobsDir, { recursive: true, force: true });
   }
 }

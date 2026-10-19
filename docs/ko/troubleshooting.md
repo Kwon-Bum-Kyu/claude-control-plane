@@ -59,7 +59,7 @@ CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 �
 - **`--effort`를 antigravity에 주면 왜 거부되나요?** antigravity는 `--effort`를 지원하지 않는 플래그로 등록해 두어 값과 무관하게 항상 CCP-INVALID-001로 거부합니다. codex는 이 값을 실제로 CLI 호출에 반영합니다.
 - **`--summary-only`를 줬는데 요약 길이가 그대로입니다.** 현재는 no-op입니다. antigravity만 이 플래그를 선언하고 있고, 어떤 핸들러도 이 값을 읽지 않습니다.
 - **`result_path`가 null로 돌아왔습니다.** codex의 포그라운드 rescue 중 요약이 잘리지 않은 경우는 job 기록을 남기지 않아 `result_path`가 null입니다. antigravity는 포그라운드에서도 항상 job 기록을 남겨 값이 채워집니다.
-- **codex 백그라운드 job의 타임아웃이 예상과 다릅니다.** `--timeout-ms`를 따로 주지 않으면 codex는 포그라운드와 백그라운드 모두 같은 기본값을 씁니다. 백그라운드 전용 기본값이 선언되어 있지만 실행 경로에서는 쓰이지 않습니다. 정확한 기본값은 [슬래시 커맨드](./slash-commands.md)를 참고하십시오.
+- **백그라운드 job의 타임아웃 기본값이 궁금합니다.** `--timeout-ms`를 주지 않으면 포그라운드 실행은 어댑터의 `timeouts.foreground`를, 백그라운드 워커는 `timeouts.background`를 씁니다. 현재 두 CLI 모두 두 값이 600000ms로 같습니다. 정확한 기본값은 [슬래시 커맨드](./slash-commands.md)를 참고하십시오.
 - **감사(`/ccp:audit`) 점수가 예상보다 낮게 나옵니다.** 마켓플레이스로 설치한 환경에는 `LICENSES/` 디렉터리가 없을 수 있어 차용 코드 문서화 점수가 낮아질 수 있습니다. 이 항목은 설치 방식에 따른 차이이며 코드 결함이 아닙니다.
 
 ## 버그 신고

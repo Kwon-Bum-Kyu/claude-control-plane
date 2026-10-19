@@ -59,7 +59,7 @@ For the CLI installation and authentication commands themselves, see [Getting st
 - **Why is `--effort` rejected when given to antigravity?** antigravity has registered `--effort` as an unsupported flag, so it is always rejected with CCP-INVALID-001 regardless of the value. codex actually reflects this value in its CLI call.
 - **I gave `--summary-only`, but the summary length stayed the same.** It is currently a no-op. Only antigravity declares this flag, and no handler reads this value.
 - **`result_path` came back as null.** During a codex foreground rescue, when the summary is not truncated, no job record is left, so `result_path` is null. antigravity always leaves a job record even in the foreground, so the value is filled in.
-- **The timeout for a codex background job differs from what I expected.** If `--timeout-ms` is not given separately, codex uses the same default for both foreground and background. A background-only default is declared, but it is not used in the execution path. See [Slash commands](./slash-commands.md) for the exact default.
+- **What is the default timeout for a background job?** Without `--timeout-ms`, a foreground run uses the adapter's `timeouts.foreground` and the background worker uses `timeouts.background`. Both CLIs currently declare 600000ms for both. See [Slash commands](./slash-commands.md) for the exact default.
 - **The audit (`/ccp:audit`) score is lower than expected.** An environment installed from the marketplace may not have a `LICENSES/` directory, which can lower the borrowed-code documentation score. This is a difference due to the installation method, not a code defect.
 
 ## Reporting a bug

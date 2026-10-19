@@ -53,11 +53,7 @@ The companion is split into a shared core and a per-CLI adapter. The core is mad
 
 The two adapters (`adapters/antigravity.mjs`, `adapters/codex.mjs`) declare values specific to each CLI: supported flags and rejected flags, the function that builds the command line (`buildArgs`), the function that reads CLI output (`parseResult`), the MCP server-list arguments and the functions that read that list and build the fix-up commands (`mcp`), timeouts, the error catalog, the binary-path environment variable, and so on. The core only reads these declared values to coordinate execution, and substitutes a safe default set by the core itself for any value an adapter does not declare.
 
-There are two cases where this substitution actually takes effect.
-
-First, the codex adapter declares 240000ms as `timeouts.background`, but the core's `handleRescue` always computes `timeouts.foreground` as the default timeout and stores it in the job metadata, regardless of foreground or background. Because this value is always already filled in, the `timeouts.background` fallback in `handleTaskWorker`, which actually runs the background worker, is never reached in the code path. So the effective timeout for a codex background job is not 240000ms, but 600000ms, the same as antigravity.
-
-Second, whether job_id format validation happens depends on whether the adapter declares `validateJobId`. antigravity actually checks the format with a UUID v4 regular expression, but codex does not declare this function, so the core substitutes a pass whenever a value is present. This means codex's job_id has no format validation.
+The case where this substitution actually takes effect is job_id format validation. Whether it happens depends on whether the adapter declares `validateJobId`. antigravity actually checks the format with a UUID v4 regular expression, but codex does not declare this function, so the core substitutes a pass whenever a value is present. This means codex's job_id has no format validation.
 
 `tests/companion/contract-test.mjs` checks the field composition both adapters must declare on every run. This test fails if the core requires a field an adapter did not declare, or if an adapter adds a field the core does not know about.
 

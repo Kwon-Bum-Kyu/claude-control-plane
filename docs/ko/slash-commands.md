@@ -29,7 +29,7 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 | `--mcp NAME[,NAME...]` | 문자열입니다. 위임 직전에 `agy mcp list`로 등록 목록을 한 번 조회해, 적은 MCP 서버가 모두 등록되어 있고 활성 상태인지 확인합니다. 하나라도 미등록이거나 비활성이거나 목록을 읽지 못하면 `CCP-MCP-001`로 중단합니다. 값은 공백 뒤에 적습니다(`--mcp a,b`처럼). | 같은 흐름이며 조회 명령만 `codex mcp list --json`입니다. | 없음(주지 않으면 확인하지 않습니다) |
 | `--sandbox` | 값 없는 bool 플래그입니다. 존재하면 agy 호출에 값 없이 `--sandbox`만 덧붙입니다. | 문자열 열거형입니다(`read-only`, `workspace-write`, `danger-full-access`). 빈 값이나 불리언으로 주면 `read-only`로 정규화되어 `-s <mode>`로 전달됩니다. | Antigravity는 끄면 붙지 않습니다. Codex는 `read-only`입니다. |
 | `--max-tokens N` | 정수입니다. 프롬프트 뒤에 "(Answer within N tokens if possible)" 힌트를 덧붙이는 소프트 제약이며, agy 자체 플래그는 아닙니다. | 선언하지 않습니다. `buildArgs` 시그니처에 `maxTokens` 파라미터가 없어 값을 줘도 완전히 버려집니다. | 4000(Antigravity 전용) |
-| `--timeout-ms N` | 정수입니다. 포그라운드·백그라운드 요청 모두 이 값으로 타임아웃을 계산합니다(두 CLI가 공유하는 core 로직입니다). | 동일합니다. | 600000(허용 범위 5000~3600000) |
+| `--timeout-ms N` | 정수입니다. 포그라운드 실행과 백그라운드 워커 모두 이 값을 타임아웃으로 씁니다(두 CLI가 공유하는 core 로직입니다). 주지 않으면 어댑터가 경로별로 선언한 기본값을 씁니다. | 동일합니다. | 어댑터 선언값. 현재 두 CLI 모두 포그라운드·백그라운드 600000(허용 범위 5000~3600000) |
 | `--files <glob>` | 문자열입니다. 절대경로 순회 검사를 먼저 하지만, 그 검사를 통과해도 항상 `CCP-INVALID-001`("--files is not supported in the MVP")로 거부합니다. | 선언하지 않습니다. | 없음 |
 | `--task` | 문자열입니다. 값이 있으면 위치 인자보다 우선하는 프롬프트 값으로 씁니다. | 동일합니다. | 없음(주면 위치 인자 프롬프트보다 우선합니다) |
 | `--effort low\|medium\|high` | bool 플래그로 선언되어 있지만, 값과 무관하게 항상 `CCP-INVALID-001`("`--effort` is not supported by Antigravity")로 거부합니다. | 문자열 열거형입니다. `-c model_reasoning_effort=<level>`로 변환되어 codex 설정 오버라이드로 전달됩니다. | 없음 |

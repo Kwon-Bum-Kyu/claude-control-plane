@@ -53,11 +53,7 @@ companion은 공유 코어와 CLI 별 어댑터로 나뉩니다. 코어는 여�
 
 두 어댑터(`adapters/antigravity.mjs`, `adapters/codex.mjs`)는 각 CLI에 고유한 값을 선언합니다. 지원 플래그와 거부 플래그, 명령줄을 만드는 함수(`buildArgs`), CLI 출력을 읽는 함수(`parseResult`), MCP 서버 목록을 조회하는 인자와 그 목록을 읽고 조치 명령을 만드는 함수(`mcp`), 타임아웃, 에러 카탈로그, 바이너리 경로 환경 변수 등입니다. 코어는 이 선언 값을 읽어 실행을 조율합니다. 어댑터가 값을 선언하지 않으면 코어의 안전한 기본값을 사용합니다.
 
-이 대체가 실제로 작동하는 사례는 두 가지입니다.
-
-첫 번째로, codex 어댑터는 `timeouts.background`로 240000ms를 선언하지만, 코어의 `handleRescue`는 포그라운드와 백그라운드를 가리지 않고 항상 `timeouts.foreground`를 타임아웃 기본값으로 계산해 job 메타데이터에 저장합니다. 이 값이 항상 채워져 있어 실제로 백그라운드 워커를 돌리는 `handleTaskWorker`의 `timeouts.background` 폴백은 코드 경로상 절대 실행되지 않습니다. 따라서 codex 백그라운드 작업의 실제 타임아웃은 240000ms가 아니라 antigravity와 같은 600000ms입니다.
-
-두 번째로, job_id 형식 검증은 어댑터가 `validateJobId`를 선언했는지에 따라 갈립니다. antigravity는 UUID v4 정규식으로 실제 형식을 검사하지만, codex는 이 함수를 선언하지 않아 코어가 값이 있으면 통과로 대체합니다. codex의 job_id는 형식 검증이 없다는 뜻입니다.
+이 대체가 실제로 작동하는 사례는 job_id 형식 검증입니다. 어댑터가 `validateJobId`를 선언했는지에 따라 갈립니다. antigravity는 UUID v4 정규식으로 실제 형식을 검사하지만, codex는 이 함수를 선언하지 않아 코어가 값이 있으면 통과로 대체합니다. codex의 job_id는 형식 검증이 없다는 뜻입니다.
 
 두 어댑터가 선언해야 하는 필드 구성은 `tests/companion/contract-test.mjs`가 매 실행마다 검사합니다. 코어가 어댑터 미선언 필드를 요구하거나 어댑터가 코어에 없는 필드를 추가하면 테스트가 실패합니다.
 
