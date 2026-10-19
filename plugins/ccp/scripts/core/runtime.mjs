@@ -830,9 +830,13 @@ function handleTaskWorker(ctx, parsed) {
   const r = runSync({ bin: ctx.bin, args, cwd: process.cwd(), timeoutMs: meta.params?.timeoutMs || adapter.timeouts.background });
   const duration = Date.now() - start;
   const { dir: artifactDir, resultPath } = jobArtifactPaths(adapter, paths, jobId);
-  const exitCode = r.status ?? 1;
+  // Decide "timed out" before looking at the exit status: a CLI that traps
+  // SIGTERM may report status 0 with partial output, and that must never be
+  // recorded as a completed job (the foreground path checks in the same order).
+  const timedOut = isTimeout(r);
+  const exitCode = timedOut && r.status === 0 ? 1 : (r.status ?? 1); // never report a timeout as exit 0
 
-  if (r.status === 0 && r.stdout) {
+  if (!timedOut && r.status === 0 && r.stdout) {
     const logText = logFile ? readTextFileSafe(logFile) : '';
     const parsedRes = adapter.parseResult({ stdout: r.stdout, stderr: r.stderr, status: r.status, logText });
     const summaryText = adapter.summarize(parsedRes.body || '');
@@ -869,7 +873,7 @@ function handleTaskWorker(ctx, parsed) {
     );
   } else {
     const errorPayload = {
-      code: isTimeout(r) || r.status === null ? 'CCP-TIMEOUT-001' : adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error }),
+      code: timedOut || r.status === null ? 'CCP-TIMEOUT-001' : adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error }),
       stderr_head: (r.stderr || '').slice(0, 500),
     };
     patchJobMeta(
