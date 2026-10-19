@@ -192,6 +192,54 @@ function runMock(args, { mode = 'ok', jobsDir } = {}) {
   }
 }
 
+{
+  // A spawnSync timeout sends SIGTERM. A CLI that traps it and exits with its
+  // own status (instead of dying from the signal) must still be reported as a
+  // timeout, not as a generic run failure.
+  const r = runMock(['rescue', '--timeout-ms', '5000', '--', 'slow task'], { mode: 'hang_trap_sigterm' });
+  check(
+    'rescue (foreground) reports CCP-TIMEOUT-001 when the stub traps SIGTERM and exits on its own',
+    r.status === 1 && r.envelope?.error?.code === 'CCP-TIMEOUT-001',
+    JSON.stringify(r.envelope)
+  );
+}
+
+{
+  const jobsDir = mkdtempSync(join(tmpdir(), 'ccp-mock-contract-'));
+  let workerPid = null;
+  try {
+    // No --timeout-ms: the detached worker must fall back to the adapter's
+    // timeouts.background (5000ms here), not to the foreground value (30000ms).
+    const dispatch = runMock(['rescue', '--background', '--', 'slow background task'], { mode: 'hang_trap_sigterm', jobsDir });
+    const jobId = dispatch.envelope?.job_id;
+    workerPid = dispatch.envelope?.details?.pid ?? null;
+    spawnSync(process.execPath, ['-e', 'setTimeout(()=>{}, 8000)']);
+    let meta = null;
+    try {
+      meta = JSON.parse(readFileSync(join(jobsDir, jobId, 'meta.json'), 'utf8'));
+    } catch {
+      /* leave null */
+    }
+    check(
+      'background worker falls back to timeouts.background when --timeout-ms is absent',
+      meta?.state === 'failed',
+      JSON.stringify({ state: meta?.state ?? null })
+    );
+    check(
+      'background worker reports CCP-TIMEOUT-001 when the stub traps SIGTERM and exits on its own',
+      meta?.error?.code === 'CCP-TIMEOUT-001',
+      JSON.stringify(meta?.error ?? null)
+    );
+  } finally {
+    if (workerPid) {
+      // The worker is spawned detached (its own process group), so signal the
+      // group: that takes the still-hanging stub child down with it.
+      try { process.kill(-workerPid, 'SIGKILL'); } catch { try { process.kill(workerPid, 'SIGKILL'); } catch { /* already gone */ } }
+    }
+    rmSync(jobsDir, { recursive: true, force: true });
+  }
+}
+
 // rescue --mcp pre-check, dispatched through the same stub. Fixture: alpha is
 // registered and enabled, beta is registered and disabled, gamma is never
 // registered.

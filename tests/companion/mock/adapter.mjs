@@ -51,7 +51,10 @@ export default {
 
   knownViolations: [],
   argStyle: 'dash-dash',
-  timeouts: { foreground: 30000, background: 30000, authProbe: 10000 },
+  // background is deliberately shorter than foreground so contract-test can
+  // prove the detached worker falls back to this value when --timeout-ms is
+  // absent (the stub's hang_trap_sigterm mode never finishes on its own).
+  timeouts: { foreground: 30000, background: 5000, authProbe: 10000 },
   result: { fileName: 'result.txt', pathStyle: 'absolute', logFileName: null, persistForeground: false },
 
   errors: {
