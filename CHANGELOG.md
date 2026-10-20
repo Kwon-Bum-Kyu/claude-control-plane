@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.4.3] - 2026-10-20
+
 ### 수정
 
 - 위임한 CLI가 타임아웃으로 종료될 때 `CCP-TIMEOUT-001` 대신 일반 실행 실패 코드(`CCP-AG-001` 등)로 보고되던 문제를 고쳤습니다. 코어가 spawn 결과의 신호만 보고 타임아웃을 판정해, SIGTERM을 받고 정리 후 자체 종료 코드로 끝나는 CLI(antigravity)의 타임아웃을 놓치고 있었습니다. 이제 spawn 결과의 `ETIMEDOUT` 코드를 기준으로 판정하며, 포그라운드와 백그라운드 경로 모두에 적용됩니다.
@@ -75,7 +77,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.3...HEAD
+[v0.4.3]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.3
 [v0.4.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.1
 [v0.4.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.0
