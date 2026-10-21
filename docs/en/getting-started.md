@@ -4,7 +4,7 @@ For an overview of CCP and the problem it solves, see the [README](../../README.
 
 ## Prerequisites
 
-- Node.js 20.19 or later is required (22.7 or later for the 22 series). The 4 hooks and the audit script use ESM syntax in `.js` files, relying on Node's module auto-detection.
+- Node.js 20.19 or later is required (22.7 or later for the 22 series). The 3 hooks and the audit script use ESM syntax in `.js` files, relying on Node's module auto-detection.
 - The Antigravity CLI (`agy`) must be 1.0.0 or later.
 - The Codex CLI must be 0.122.0 or later.
 - To use Antigravity delegation, either run `agy` interactively once to log in, or set the `ANTIGRAVITY_API_KEY` environment variable.
