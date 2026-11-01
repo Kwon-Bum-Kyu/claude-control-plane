@@ -15,6 +15,7 @@
 - [ ] `node tests/router/router-suggest-test.mjs`: 실패 0건
 - [ ] `node tests/companion/golden/diff.mjs --cli all`: diff 0
 - [ ] `node tests/companion/contract-test.mjs`, `node tests/companion/truncation-probe.mjs`: 실패 0건
+- [ ] `node tests/agents/rescue-timeout-instructions-test.mjs`: 실패 0건
 - [ ] 가드 3종(`node tools/repo-guard.mjs ignore-coverage`, `content`, `public-surface`) 통과
 - [ ] 감사 점수는 CI의 harness-audit 잡이 확인합니다(새로 클론한 트리에는 job 시드가 없어 로컬 실행으로는 검증할 수 없습니다)
 - [ ] `.gitignore`를 고쳤거나 `git rm --cached`를 실행했거나 새 최상위 파일을 추가했다면, `guard-ignore`가 초록인지 확인했습니다(무시 규칙 누락을 잡아내는 유일한 검사입니다)

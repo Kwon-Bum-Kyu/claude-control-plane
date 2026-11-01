@@ -18,7 +18,7 @@ CCP(Claude Control Plane)에 기여해 주셔서 감사합니다. 이 문서는 
 
 다음 명령을 저장소 루트에서 실행합니다. CI가 실행하는 것과 같은 명령입니다.
 
-테스트 5종입니다.
+테스트 6종입니다.
 
 ```
 node tests/router/router-eval.mjs
@@ -26,6 +26,7 @@ node tests/router/router-suggest-test.mjs
 node tests/companion/contract-test.mjs
 node tests/companion/golden/diff.mjs --cli all
 node tests/companion/truncation-probe.mjs
+node tests/agents/rescue-timeout-instructions-test.mjs
 ```
 
 문법 검사입니다.
