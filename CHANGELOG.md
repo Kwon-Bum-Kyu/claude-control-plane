@@ -6,6 +6,16 @@
 
 ## [Unreleased]
 
+### 수정
+
+- rescue 서브에이전트(`codex-rescue`, `antigravity-rescue`)가 companion을 Bash 도구의 기본 제한 시간(2분, `timeout`을 주지 않을 때)으로 실행해, 2분이 넘는 포그라운드 위임이 envelope 없이 백그라운드로 넘어가던 문제를 고쳤습니다. 두 서브에이전트는 이제 Bash `timeout`을 600000(Bash 도구의 최대 제한 시간)으로 지정하고, Bash가 명령을 백그라운드로 넘겼다는 안내를 받으면 그대로 반환하며 companion을 다시 실행하지 않습니다.
+- 슬래시 커맨드로 실행한 포그라운드 호출에 사용자가 `--timeout-ms`를 주지 않으면 서브에이전트가 `rescue` 바로 뒤에 `--timeout-ms 540000`을 붙입니다. CLI가 시간 안에 끝나지 않으면 Bash `timeout`(600000)보다 먼저 `CCP-TIMEOUT-001` envelope이 돌아옵니다. 백그라운드 호출과 companion 직접 실행의 기본값은 600000 그대로입니다.
+
+### 변경
+
+- `/ccp:antigravity-rescue`의 인자 안내와 서브에이전트 허용 패턴에 `--timeout-ms N`을 노출했습니다. companion은 이미 이 플래그를 받고 있었습니다.
+- CI에 rescue 서브에이전트 정의의 필수 지시를 확인하는 검사 단계를 추가했습니다.
+
 ## [v0.4.3] - 2026-10-20
 
 ### 수정

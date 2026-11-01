@@ -1,6 +1,6 @@
 ---
 description: Delegates heavy summarization, analysis, and large-context processing to Antigravity CLI (`agy`) to reduce main Claude context tokens.
-argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
+argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 allowed-tools:
   - Bash
 ---
@@ -12,7 +12,7 @@ Delegates work to an Antigravity CLI subagent to reduce main Claude context toke
 ## Usage
 
 ```
-/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
+/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 | Argument | Description |
@@ -21,6 +21,7 @@ Delegates work to an Antigravity CLI subagent to reduce main Claude context toke
 | `--background` | Detached async execution. Returns `job_id` immediately, then retrieve via `/ccp:antigravity-status` and `/ccp:antigravity-result` |
 | `--max-tokens N` | Response token cap (default 4000) — embedded as a soft prompt hint, since `agy` has no `--max-tokens` flag |
 | `--files <glob>` | Currently rejected — the companion always returns `CCP-INVALID-001` for `--files` today. `agy` has its own `--add-dir` CLI option for directory scoping, but this flag is not wired to it yet |
+| `--timeout-ms N` | Response timeout for the foreground run or the background worker. If omitted, a foreground call through this command uses 540000: the `antigravity-rescue` subagent adds it so the companion answers before the 600000 ms Bash `timeout` the subagent sets. A background call uses the adapter default (600000), and running the companion directly uses 600000 for both. A foreground value above 540000 can return a moved-to-background notice instead of an envelope; use `--background` for long tasks |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
 | `--mcp NAME[,NAME...]` | Before delegating, run `agy mcp list` once and stop with `CCP-MCP-001` if any named MCP server is not registered, is disabled, or the list cannot be read. Comma-separated; each name starts with a letter or digit and uses only letters, digits, `.`, `_`, `-`. Put the value after a space, as in `--mcp a,b`. Skipped together with `--fallback-claude` |
 
@@ -47,7 +48,7 @@ To disable auto-approval entirely, set `CCP_AGY_SKIP_PERMISSIONS=0` (also accept
 Invoked through the `antigravity-rescue` subagent with the following single Bash pattern.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 ## Output (Foreground Success)
@@ -89,7 +90,7 @@ See the `errors` block in `plugins/ccp/scripts/adapters/antigravity.mjs` for the
 
 ## Acceptance Criteria
 
-- Foreground: respond within the configured timeout (`--timeout-ms`, default 10 min) or return an error envelope.
+- Foreground: respond within the configured timeout (`--timeout-ms`; 540000 ms by default through this command) or return an error envelope.
 - Background: return `job_id` within 1 second.
 - All errors must use the common envelope (`error.code` regex `^CCP-[A-Z]+-[0-9]{3}$` matches 100%).
 - Main-context ingress ≤ 500 characters.
