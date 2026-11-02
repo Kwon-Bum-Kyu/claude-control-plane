@@ -23,7 +23,7 @@ Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Onl
 | `--effort low\|medium\|high` | Reasoning effort. Translated to `-c model_reasoning_effort=` (Codex has no direct flag) |
 | `--sandbox MODE` | `read-only` (default) / `workspace-write` / `danger-full-access` |
 | `--cwd DIR` | Codex working root (`-C` mapping) |
-| `--timeout-ms N` | Response timeout for the foreground run or the background worker. Without it, the adapter's declared default for that path applies (600000 for both) |
+| `--timeout-ms N` | Response timeout for the foreground run or the background worker. If omitted, a foreground call through this command uses 540000: the `codex-rescue` subagent adds it so the companion answers before the 600000 ms Bash `timeout` the subagent sets. A background call uses the adapter default (600000), and running the companion directly uses 600000 for both. A foreground value above 540000 can return a moved-to-background notice instead of an envelope; use `--background` for long tasks |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
 | `--mcp NAME[,NAME...]` | Before delegating, run `codex mcp list --json` once and stop with `CCP-MCP-001` if any named MCP server is not registered, is disabled, or the list cannot be read. Comma-separated; each name starts with a letter or digit and uses only letters, digits, `.`, `_`, `-`. Skipped together with `--fallback-claude` |
 

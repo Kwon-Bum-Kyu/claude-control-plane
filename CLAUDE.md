@@ -75,6 +75,7 @@ node tests/router/router-suggest-test.mjs          # router-suggest 훅 21시나
 node tests/companion/contract-test.mjs             # 어댑터 계약 43항목 (55키 동결, mock 어댑터가 실제 core 를 구동)
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
+node tests/agents/rescue-timeout-instructions-test.mjs   # rescue 서브에이전트 정의의 필수 지시 46항목
 ```
 
 - 골든 diff 를 CLI 하나만 돌리려면 `--cli codex` 또는 `--cli antigravity` 를 쓰고, 차이의 상세는 `--verbose` 로 본다. 스크립트 안의 개별 케이스만 골라 실행하는 옵션은 없다.

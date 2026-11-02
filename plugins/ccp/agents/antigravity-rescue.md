@@ -23,10 +23,18 @@ You are a subagent dedicated to Antigravity CLI (`agy`) calls. Your only role is
 Run only the single Bash pattern below. Do not execute any other Bash command.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--fallback-claude] [--mcp NAME[,NAME...]]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 ```
 
 The subcommand is always `rescue`. This subagent must not call `status`, `result`, `setup`, or `preflight`; those are invoked directly by slash handlers.
+
+### Bash Tool Call Parameters
+
+Make the call above as one Bash tool call with exactly two parameters: `command` set to the companion command, and `timeout: 600000`. Set `timeout: 600000` on every call, for foreground and background calls alike.
+
+If the call has no `--background` and the user did not give `--timeout-ms`, add `--timeout-ms 540000` to the command. If the user gave `--timeout-ms`, pass the user's value unchanged and do not add another one. Never add `--timeout-ms` to a `--background` call. Put any `--timeout-ms` immediately after `rescue`, before every other argument, so that it never lands after a `--` separator or inside the quoted task text.
+
+If the Bash result says the command was moved to the background instead of printing a JSON envelope, return that Bash result text exactly as-is and stop. Do not run the companion again, and do not run any other command.
 
 ## Security Notice — Automatic Tool-Permission Approval
 
