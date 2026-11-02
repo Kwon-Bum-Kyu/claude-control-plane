@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.4.4] - 2026-11-02
+
 ### 수정
 
 - rescue 서브에이전트(`codex-rescue`, `antigravity-rescue`)가 companion을 Bash 도구의 기본 제한 시간(2분, `timeout`을 주지 않을 때)으로 실행해, 2분이 넘는 포그라운드 위임이 envelope 없이 백그라운드로 넘어가던 문제를 고쳤습니다. 두 서브에이전트는 이제 Bash `timeout`을 600000(Bash 도구의 최대 제한 시간)으로 지정하고, Bash가 명령을 백그라운드로 넘겼다는 안내를 받으면 그대로 반환하며 companion을 다시 실행하지 않습니다.
@@ -87,7 +89,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.3...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.4...HEAD
+[v0.4.4]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.4
 [v0.4.3]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.3
 [v0.4.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.2
 [v0.4.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.1
