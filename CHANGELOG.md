@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.5.0] - 2026-11-22
+
 ### 수정
 
 - codex `cancel`이 작업 프로세스만 종료하고 그 프로세스가 실행한 Codex CLI는 계속 돌던 문제를 고쳤습니다. 이제 작업 프로세스 그룹 전체에 종료 신호를 보냅니다.
@@ -126,7 +128,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.0
 [v0.4.5]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.5
 [v0.4.4]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.4
 [v0.4.3]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.3
