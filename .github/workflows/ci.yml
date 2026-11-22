@@ -127,6 +127,8 @@ jobs:
         run: node tests/companion/truncation-probe.mjs
       - name: run rescue subagent instruction check (0 failures)
         run: node tests/agents/rescue-timeout-instructions-test.mjs
+      - name: run rescue-finalize hook check (0 failures)
+        run: node tests/hooks/rescue-finalize-test.mjs
 
   audit:
     name: harness-audit (>= 33/40)
