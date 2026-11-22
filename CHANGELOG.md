@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.4.5] - 2026-11-22
+
 ### 수정
 
 - `SubagentStop` 훅(`rescue-finalize.js`)이 작업 프로세스가 살아 있는지 확인하지 않고 시작 후 5분이 지난 `running` job을 `failed`로 바꾸던 문제를 고쳤습니다. 정상적으로 진행 중인 포그라운드 job(기본 타임아웃 10분)과 백그라운드 job이 실패로 표시될 수 있었습니다. 이제 작업 프로세스 pid가 기록된 job은 그 프로세스가 종료됐을 때만, pid가 없는 job은 그 job의 타임아웃에 5분을 더한 시간이 지났을 때만 정리하며, 원래 기록에 있던 상태 키만 바꿉니다.
@@ -102,7 +104,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.4...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.4.5...HEAD
+[v0.4.5]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.5
 [v0.4.4]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.4
 [v0.4.3]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.3
 [v0.4.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.2
