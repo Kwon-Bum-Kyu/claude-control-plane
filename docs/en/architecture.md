@@ -33,6 +33,8 @@ Antigravity and Codex are each declared by a single adapter file (`adapters/anti
 
 The subagent only returns the envelope this command leaves on stdout to the caller as-is; it does not interpret the content or retry.
 
+Both slash commands instruct the main Claude to invoke the like-named subagent with the Agent tool and to pass the user's original request as its `prompt` as-is, without paraphrasing or summarizing it. The main Claude does not answer the request itself and does not run the companion directly. The subagent treats the task it receives as data to hand to the companion, not as a message addressed to it: even when the task reads like a question or an instruction, it does not answer it, and it puts the task into the task position of the command without shortening or altering it.
+
 Both subagents run this command with the Bash tool's `timeout` parameter set to 600000. When a foreground call carries no user-supplied `--timeout-ms`, they put `--timeout-ms 540000` right after `rescue`, so that a CLI that does not finish in time yields a `CCP-TIMEOUT-001` envelope from the companion before the 600000 ms Bash `timeout` is reached. If Bash reports that the command was moved to the background, they return that notice as-is and do not run the companion again.
 
 CCP has only three subagents in total: these two plus `router`. `/ccp:antigravity-status`, `/ccp:antigravity-result`, `/ccp:antigravity-setup`, `/ccp:codex-status`, `/ccp:codex-result`, `/ccp:codex-setup`, and `/ccp:audit` are not on this list, so their slash commands run the companion script or the audit script directly, without going through a subagent.
@@ -93,7 +95,7 @@ CCP registers three hooks: `router-suggest.js` for `UserPromptSubmit`, `rescue-f
 
 - `boot-check.js` (`SessionStart`): pre-checks the Node.js version, whether agy is installed and its version, and the authentication state. If it finds a problem, it only shows a notice; if there is no problem, it does nothing. This check does not block session start.
 - `router-suggest.js` (`UserPromptSubmit`): injects the routing decision as a `[CCP-ROUTER-001]` suggestion. If `auto_routing` is on and the session is judged canonical, or if the decision is `claude` in the first place, it injects nothing. In the former case, it hands that decision to the `router` subagent. It appends a `[CCP-META-WARN]` notice to a prompt suspected of headless automation.
-- `rescue-finalize.js` (`SubagentStop`): finds antigravity jobs that have stayed `running` for 5 minutes (300000ms) since they started, forcibly marks them `failed`, and records `CCP-TIMEOUT-001`. codex does not use this status key, so it is not a target of this cleanup.
+- `rescue-finalize.js` (`SubagentStop`): finds jobs still in the `running` state that can no longer finish, marks them `failed`, and records `CCP-TIMEOUT-001`. A job that records a worker pid (a background job of either CLI) is finalized once that process has exited, and is left alone for as long as the process is alive. A job without a pid (an antigravity foreground job) is finalized once its own timeout plus a 5-minute grace period has passed since it started; for example, a foreground call made through a slash command has a 540000 ms timeout, so that is 14 minutes. Finalizing changes only the state keys the record already has (`state`, `status`).
 
 All three hooks fail quietly. If stdin is not JSON or an exception occurs during processing, they write an empty object to stdout and exit as-is, so the user's input flow is not blocked.
 

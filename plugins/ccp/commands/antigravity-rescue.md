@@ -3,11 +3,19 @@ description: Delegates heavy summarization, analysis, and large-context processi
 argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 allowed-tools:
   - Bash
+  - Agent
 ---
 
 # /ccp:antigravity-rescue
 
 Delegates work to an Antigravity CLI subagent to reduce main Claude context tokens. Only a 3-line summary and result file path are returned to the main agent (double-billing prevention — see docs/en/architecture.md in the CCP repository).
+
+## Delegation
+
+Invoke the `ccp:antigravity-rescue` subagent with the `Agent` tool (`subagent_type: "ccp:antigravity-rescue"`) and pass the raw user request below as its `prompt`, exactly as written. Do not paraphrase, summarize, translate, or rewrite it, and do not add instructions or context of your own. Do not answer the request yourself, and do not run `antigravity-companion.mjs` with `Bash` yourself: the subagent runs it. When the subagent returns, handle its envelope as the sections below describe.
+
+Raw user request:
+$ARGUMENTS
 
 ## Usage
 
@@ -45,7 +53,7 @@ To disable auto-approval entirely, set `CCP_AGY_SKIP_PERMISSIONS=0` (also accept
 
 ## Invocation Pattern
 
-Invoked through the `antigravity-rescue` subagent with the following single Bash pattern.
+Only the `antigravity-rescue` subagent (`agents/antigravity-rescue.md`) runs the following single Bash pattern. Do not run it from this command; delegate as the Delegation section describes.
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]

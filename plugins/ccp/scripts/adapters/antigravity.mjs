@@ -205,14 +205,12 @@ export default {
       return 'CCP-JOB-002';
     },
     // antigravity's on-disk meta has always carried a `status` key mirroring
-    // `state` (its original inline reader/writer never had any other shape).
-    // `hooks/rescue-finalize.js` reads that key directly to detect orphaned
-    // background jobs — without this, core's job-meta writer (built around
-    // codex, which has never had a `status` key) leaves it out and orphan
-    // cleanup silently stops working for antigravity. codex intentionally
-    // does not set this: codex meta has never had `status`, and it must
-    // stay that way so the same hook does not newly start treating stalled
-    // codex jobs as orphans too — that would be new behavior, not a preserved one.
+    // `state` (its original inline reader/writer never had any other shape),
+    // and this keeps writing it so that past on-disk shape is preserved for
+    // anything that reads it. codex does not set this: codex meta has never
+    // had `status`. Orphan cleanup in `hooks/rescue-finalize.js` does not
+    // depend on this flag — it reads `status` first and falls back to
+    // `state`, and rewrites only the keys a record already has.
     jobMetaStatusAlias: true,
   },
 

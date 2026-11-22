@@ -47,7 +47,7 @@ job 경로는 `core/paths.mjs` 가 결정한다. 우선순위는 `CCP_JOBS_DIR` 
 
 ### 훅 (`plugins/ccp/hooks/hooks.json`)
 
-SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `router-suggest.js`, SubagentStop `rescue-finalize.js` (5분 넘게 running 상태인 job 을 failed 로 정리). 컨텍스트 사용량 경고 훅은 두지 않는다. Claude Code 가 자체 경고와 statusline 사용량 표시를 제공하고, 창 크기(200K/1M) 를 훅이 알 수 없어 중복 구현이 어긋나기 때문이다. 세 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
+SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `router-suggest.js`, SubagentStop `rescue-finalize.js` (작업 프로세스가 종료됐는데 running 으로 남은 job 과, pid 가 없는 job 중 그 job 의 타임아웃에 유예 5분을 더한 시간이 지난 running job 을 failed 로 정리). 컨텍스트 사용량 경고 훅은 두지 않는다. Claude Code 가 자체 경고와 statusline 사용량 표시를 제공하고, 창 크기(200K/1M) 를 훅이 알 수 없어 중복 구현이 어긋나기 때문이다. 세 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
 
 ### 커맨드 네임스페이스와 문서 대칭
 
@@ -76,6 +76,8 @@ node tests/companion/contract-test.mjs             # 어댑터 계약 43항목 (
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
 node tests/agents/rescue-timeout-instructions-test.mjs   # rescue 서브에이전트 정의의 필수 지시 46항목
+node tests/agents/rescue-forwarding-instructions-test.mjs   # rescue 커맨드·서브에이전트 정의의 과제 전달 지시 88항목
+node tests/hooks/rescue-finalize-test.mjs                   # SubagentStop 고아 job 정리 훅 33항목 (임시 job 디렉터리, 실제 프로세스로 생존 판정)
 ```
 
 - 골든 diff 를 CLI 하나만 돌리려면 `--cli codex` 또는 `--cli antigravity` 를 쓰고, 차이의 상세는 `--verbose` 로 본다. 스크립트 안의 개별 케이스만 골라 실행하는 옵션은 없다.

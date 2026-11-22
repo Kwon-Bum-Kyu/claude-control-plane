@@ -3,11 +3,19 @@ description: Delegates work that Codex is strong at, such as code review, bug in
 argument-hint: <task> [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
 allowed-tools:
   - Bash
+  - Agent
 ---
 
 # /ccp:codex-rescue
 
 Delegates work to a Codex CLI subagent to reduce main Claude context tokens. Only a summary and result file path are returned to the main agent (double-billing prevention — see docs/en/architecture.md in the CCP repository).
+
+## Delegation
+
+Invoke the `ccp:codex-rescue` subagent with the `Agent` tool (`subagent_type: "ccp:codex-rescue"`) and pass the raw user request below as its `prompt`, exactly as written. Do not paraphrase, summarize, translate, or rewrite it, and do not add instructions or context of your own. Do not answer the request yourself, and do not run `codex-companion.mjs` with `Bash` yourself: the subagent runs it. When the subagent returns, handle its envelope as the sections below describe.
+
+Raw user request:
+$ARGUMENTS
 
 ## Usage
 
@@ -39,7 +47,7 @@ If the task depends on a specific MCP server in Codex (for example a browser-aut
 
 ## Invocation Pattern
 
-The `codex-rescue` subagent (`agents/codex-rescue.md`) invokes the following single Bash pattern.
+Only the `codex-rescue` subagent (`agents/codex-rescue.md`) runs the following single Bash pattern. Do not run it from this command; delegate as the Delegation section describes.
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort LEVEL] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] -- "<task>"
