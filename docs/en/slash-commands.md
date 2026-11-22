@@ -8,9 +8,9 @@ CCP provides 9 slash commands under the `/ccp:` namespace. Each command file's s
 
 | Command | Description | Arguments |
 |---|---|---|
-| `/ccp:antigravity-rescue` | Delegates large-scale summarization and analysis work to the Antigravity CLI (agy), reducing the main Claude context's token usage. | `<task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
+| `/ccp:antigravity-rescue` | Delegates large-scale summarization and analysis work to the Antigravity CLI (agy), reducing the main Claude context's token usage. | `<task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]` |
 | `/ccp:antigravity-status` | Checks the current status of an Antigravity job created with `--background`. | `<job_id>` |
-| `/ccp:antigravity-result` | Retrieves the result of a completed Antigravity background job. | `<job_id> [--summary-only]` |
+| `/ccp:antigravity-result` | Retrieves the result of a completed Antigravity background job. | `<job_id>` |
 | `/ccp:antigravity-setup` | Checks the Antigravity CLI (agy)'s install and authentication status, and shows install or re-authentication guidance on failure. | None |
 | `/ccp:codex-rescue` | Delegates work Codex is strong at (code review, bug investigation, diff analysis), reducing the main Claude context's token usage. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:codex-status` | Checks the current status of a Codex job created with `--background`. | `<job_id>` |
@@ -28,14 +28,14 @@ The flags `/ccp:antigravity-rescue` and `/ccp:codex-rescue` accept are as follow
 | `--fallback-claude` | A bool flag. If true, skips the companion call and immediately returns a success envelope with `mode: "fallback_claude"`. | Takes the same path, but `details.mode` is always `codex` regardless of subcommand. | false |
 | `--mcp NAME[,NAME...]` | A string. Right before delegating, runs `agy mcp list` once and checks that every named MCP server is registered and enabled. If any is not registered, is disabled, or the list cannot be read, stops with `CCP-MCP-001`. Put the value after a space, as in `--mcp a,b`. | The same flow; only the list command is `codex mcp list --json`. | None (no check unless given) |
 | `--sandbox` | A valueless bool flag. If present, appends bare `--sandbox` (no value) to the agy call. | A string enum (`read-only`, `workspace-write`, `danger-full-access`). An empty value or a boolean is normalized to `read-only` and passed as `-s <mode>`. | Antigravity: not attached unless given. Codex: `read-only`. |
-| `--max-tokens N` | An integer. A soft constraint that appends an "(Answer within N tokens if possible)" hint after the prompt; not an agy flag itself. | Not declared. `buildArgs`'s signature has no `maxTokens` parameter, so a value is entirely discarded if given. | 4000(Antigravity only) |
+| `--max-tokens N` | An integer. A soft constraint that appends an "(Answer within N tokens if possible)" hint after the prompt; not an agy flag itself. | Not declared. Giving it is rejected with `CCP-INVALID-001`. | 4000(Antigravity only) |
 | `--timeout-ms N` | An integer. Both the foreground run and the background worker use this value as their timeout (shared core logic between both CLIs). Without it, the adapter's declared default for that path applies. | Same. | Adapter-declared: 600000 for both paths on both CLIs (allowed range 5000-3600000). A foreground call made through a slash command gets 540000, which the subagent adds. Running the companion directly uses 600000. |
-| `--files <glob>` | A string. Checks for absolute-path traversal first, but even after passing that check, always rejects with `CCP-INVALID-001`("--files is not supported in the MVP"). | Not declared. | None |
+| `--files <glob>` | A string. Checks for absolute-path traversal first, but even after passing that check, always rejects with `CCP-INVALID-001`("--files is not supported in the MVP"). | Not declared. Giving it is rejected with `CCP-INVALID-001`. | None |
 | `--task` | A string. If given, used as the prompt value, taking priority over the positional argument. | Same. | None(if given, takes priority over the positional-argument prompt) |
 | `--effort low\|medium\|high` | Declared as a bool flag, but always rejects with `CCP-INVALID-001`("`--effort` is not supported by Antigravity") regardless of the value. | A string enum. Converted to `-c model_reasoning_effort=<level>` and passed as a codex config override. | None |
-| `--write` | Declared as a bool flag, but always rejects with `CCP-INVALID-001`("`--write` is not supported by Antigravity") regardless of the value. | Neither declared nor registered as rejected. The value is parsed into `flags.write`, but `buildArgs` never reads it, so it is silently ignored(no error envelope). | None |
-| `--cwd DIR` | Not declared. `buildArgs`'s signature has no `cwd` parameter. | A string. Passed to codex exec as `-C <dir>`. | Codex is `process.cwd()`. |
-| `--model NAME` | Not declared. There is no model-selection flag. | A string. Passed to codex exec as `-m <model>`; if omitted, uses the codex CLI's own default model. | None(uses the codex CLI's own default if omitted) |
+| `--write` | Declared as a bool flag, but always rejects with `CCP-INVALID-001`("`--write` is not supported by Antigravity") regardless of the value. | Not declared. Giving it is rejected with `CCP-INVALID-001`. | None |
+| `--cwd DIR` | A string. The delegated CLI runs in this directory; no separate flag is passed to agy. If it is not an existing directory, it is rejected with `CCP-INVALID-001` before the CLI runs. | A string. The working directory and the existence check are the same as Antigravity, and it is also passed to codex exec as `-C <dir>`. | `process.cwd()` for both CLIs. |
+| `--model NAME` | Not declared. There is no model-selection flag, and giving it is rejected with `CCP-INVALID-001`. | A string. Passed to codex exec as `-m <model>`; if omitted, uses the codex CLI's own default model. | None(uses the codex CLI's own default if omitted) |
 
 The `--mcp` value is a comma-separated list of MCP server names. Leading and trailing spaces and empty items are dropped, and a repeated name is checked only once. A name must start with a letter or digit and may contain only letters, digits, `.`, `_`, and `-`. A value that breaks this rule, or an empty value, is rejected with `CCP-INVALID-001`. Names are compared with the registered list by exact, case-sensitive match. When given together with `--fallback-claude`, both the value check and the pre-check are skipped. A background call goes through the same pre-check before any job is created, and returns an error envelope instead of a `job_id` if the check fails. CCP never runs the register or enable command it suggests. Because the raw list output can contain secrets such as authentication headers, only server names and enabled states are read from it, and it is never stored or printed anywhere.
 
@@ -45,19 +45,25 @@ See the "Configuration and security" section of the [Getting started](./getting-
 
 ## How undeclared flags are handled
 
-The Antigravity parser absorbs undefined option tokens as-is into the prompt, i.e. the positional-argument list. Give it an undefined option, and that string becomes part of the prompt whole.
+Both companions classify arguments against the flags each CLI declares. If an undeclared flag appears before the `--` separator, it is rejected with `CCP-INVALID-001` before any work starts. Every token of two or more characters that starts with `-`, such as `--name`, `--name=value`, or `-x`, is covered, and the rejection reports only the first such flag. The flags marked "Not declared" in the table above fall under this rule too. Flag names are accepted only in the spelling shown in the table above (lowercase with `-`, such as `--timeout-ms` or `--job-id`); a camelCase spelling such as `--timeoutMs` is rejected as an undeclared flag.
 
-The Codex parser is different. It uses a generic parser that reads an option and its next value as a pair into the `flags` object, regardless of whether it is declared. So giving it an undefined option does not mix it into the prompt; it gets parsed, then silently disappears because no handler reads it.
+The rejection envelope's `message` says which flag the CLI does not support, and its `action` lists the flags that CLI accepts. `details.unsupported_flag` (`error.details.unsupported_flag` for Antigravity) carries only the flag name. A value given as `--name=value` is never put in the envelope, because it may contain a secret.
+
+Every token after `--` goes into the task text, even when it starts with `-`. A lone `-` is also treated as part of the task. If the task starts with `-`, put it after `--`, or on Antigravity pass it with `--task`.
+
+Both CLIs also accept a declared flag in the `--name=value` form. When `--background` or `--fallback-claude` is given a value, `true` and `1` read as true, and `false` and `0` read as false. Any other bool flag given a value with `=` counts as on regardless of the value; for example, `--sandbox=false` on Antigravity still turns the sandbox on. The rule for a value separated by a space differs by CLI: Antigravity always reads the token after a string or integer flag as its value, while Codex reads it as the value only when it does not start with `-`. On Codex, give a value that starts with `-` as `--name=value`. On both CLIs, a bool flag never reads the following token as its value.
 
 ## status, result, setup
 
 `/ccp:antigravity-status <job_id>` and `/ccp:codex-status <job_id>` check the current status of a job created with `--background`.
 
-`/ccp:antigravity-result <job_id> [--summary-only]` and `/ccp:codex-result <job_id>` retrieve the summary and `result_path` of a completed job. `--summary-only` is declared only by Antigravity, and is a complete no-op: it is only parsed, and the result-handling handler never reads this value anywhere. It currently has no effect. Codex does not declare this flag.
+If the job you look up is `running` but the process that owns it has already exited, status records that job as `failed` by the same rule as the subagent-termination hook, then reports it. See the 'Hooks' section of the [Architecture](./architecture.md) document for the rule. result does not finalize records, so check the state with status before fetching a result.
+
+`/ccp:antigravity-result <job_id>` and `/ccp:codex-result <job_id>` retrieve the summary and `result_path` of a completed job.
 
 `/ccp:antigravity-setup` and `/ccp:codex-setup` take no arguments and check each CLI's install and authentication status.
 
-The `status` and `result` handlers can also take the value as `--job-id <uuid>` instead of the positional argument `<job_id>` (read as `parsed.flags.jobId || parsed.positional[0]`). The positional argument is recommended; `--job-id` is an alternative.
+The `status` and `result` handlers can also take the value as `--job-id <uuid>` instead of the positional argument `<job_id>` (read as `parsed.flags.jobId || parsed.positional[0]`). The positional argument is recommended; `--job-id` is an alternative. Both CLIs declare this flag.
 
 Antigravity actually validates that job_id satisfies the UUID v4 regex `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`. Codex does not declare this validation function, so any non-empty value passes. Codex's job_id has no format check.
 
@@ -80,7 +86,7 @@ The subcommands Antigravity declares are `rescue`, `status`, `result`, `setup`, 
 
 `preflight` is Antigravity-only and has no slash command. It is meant to be called directly by harness scripts to pre-check authentication status.
 
-`cancel` is Codex-only and has no slash command. It cancels an in-progress job. Calling it on a job that cannot be canceled returns an error. See the "Error codes" section of the [Troubleshooting](./troubleshooting.md) document for the cause and remedy.
+`cancel` is Codex-only and has no slash command. It cancels an in-progress job. The worker process and the CLI it runs are in the same process group, so the termination signal (SIGTERM) goes to the whole group and the delegated CLI stops too. If the group cannot be signaled, only the worker process is signaled. A CLI that ignores the termination signal, or a child process that started its own process group, can be left running. Calling it on a job that cannot be canceled returns an error. See the "Error codes" section of the [Troubleshooting](./troubleshooting.md) document for the cause and remedy.
 
 ## /ccp:audit
 

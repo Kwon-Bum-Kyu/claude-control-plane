@@ -79,7 +79,7 @@ Adding `--background` returns a response with a job identifier immediately, and 
 /ccp:codex-rescue "Review this change's diff and find potential bugs"
 ```
 
-Codex is strong at code review, bug investigation, and diff analysis. See [Slash commands](./slash-commands.md) for the meaning of Codex-only flags such as `--effort`, `--sandbox`, `--cwd`, and `--model`.
+Codex is strong at code review, bug investigation, and diff analysis. `--effort` and `--model` are Codex-only flags, while `--sandbox` and `--cwd` are accepted by both CLIs but behave differently. See [Slash commands](./slash-commands.md) for the meaning of each flag.
 
 ## Configuration and security
 
@@ -96,7 +96,8 @@ Codex is strong at code review, bug investigation, and diff analysis. See [Slash
 | `CCP_AGY_SKIP_PERMISSIONS` | An opt-out variable that turns off the automatic `--dangerously-skip-permissions` attachment. |
 | `CCP_ENVELOPE_STRICT` | If `1`, throws an exception when the response format's self-validation fails. The default is to log a warning to stderr and continue. |
 | `ANTIGRAVITY_API_KEY` | Authenticates Antigravity via API key. |
-| `CLAUDE_SESSION_ID` | Recorded in the background job's metadata as the identifier of the calling session. Falls back to the parent process ID if absent. |
+| `CLAUDE_CODE_SESSION_ID` | The current session ID Claude Code passes to Bash tool and hook processes. Recorded in the background job's metadata as the identifier of the calling session. If absent, `CLAUDE_SESSION_ID` is used, and if that is also absent, the parent process ID. |
+| `CLAUDE_SESSION_ID` | An older name, read only when `CLAUDE_CODE_SESSION_ID` is absent. |
 | `CI` | One of the headless-environment signals. |
 | `CLAUDE_CODE_NONINTERACTIVE` | One of the headless-environment signals. |
 | `CLAUDE_CODE_ENTRYPOINT` | One of the headless-environment signals. If it has a value and that value is not `cli`, it is judged headless. |

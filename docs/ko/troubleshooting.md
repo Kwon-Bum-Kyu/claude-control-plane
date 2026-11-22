@@ -8,13 +8,13 @@
 
 | 코드 | 발생 CLI | 원인 | 다음 행동 | recovery |
 |------|----------|------|-----------|----------|
-| CCP-INVALID-001 | 공용 | 인자 파싱에 실패했습니다. 지원하지 않는 플래그를 준 경우도 이 코드로 거부됩니다. 어떤 플래그가 어떤 CLI에서 거부되는지는 [슬래시 커맨드](./slash-commands.md)를 참고하십시오 | 사용법을 확인하고 다시 시도합니다 | abort |
+| CCP-INVALID-001 | 공용 | 인자 파싱에 실패했습니다. 해당 CLI가 선언하지 않은 플래그, 지원하지 않는 플래그, 존재하지 않는 `--cwd` 디렉터리도 이 코드로 거부됩니다. 선언하지 않은 플래그는 `details.unsupported_flag`(antigravity는 `error.details.unsupported_flag`)에 이름이 담깁니다. 어떤 플래그가 어떤 CLI에서 거부되는지는 [슬래시 커맨드](./slash-commands.md)를 참고하십시오 | `action`에 적힌 지원 플래그 목록과 사용법을 확인하고 다시 시도합니다 | abort |
 | CCP-JOB-001 | 공용 | 지정한 job_id를 찾을 수 없습니다. codex는 job 메타데이터가 손상된 경우도 이 코드로 처리합니다(CCP-JOB-003을 쓰지 않습니다) | job_id를 다시 확인합니다 | abort |
 | CCP-JOB-002 | 공용 | job이 아직 끝나지 않았습니다. codex는 대기 중이거나 실행 중인 상태를 전부 이 코드로 나타냅니다 | status 커맨드로 상태를 확인한 뒤 다시 시도합니다 | retry |
 | CCP-JOB-003 | antigravity | job 메타데이터가 손상되었습니다(codex는 같은 상황도 CCP-JOB-001로 처리합니다) | job 디렉터리를 삭제하고 새 job을 만듭니다 | abort |
 | CCP-JOB-004 | 공용 | 결과 파일이 없습니다. codex는 완료되지 않은 상태(실패, 취소 등) 전부를 이 코드로 나타냅니다 | rescue를 다시 호출합니다 | abort |
 | CCP-JOB-409 | codex | 현재 상태에서는 취소할 수 없습니다(antigravity는 cancel 서브커맨드가 없어 이 코드에 도달하지 않습니다) | job 상태를 확인하고 다시 시도합니다 | abort |
-| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. 작업 프로세스가 종료됐는데 `running`으로 남은 job이나, 작업 프로세스 pid가 없는 job이 그 job의 타임아웃에 유예 시간을 더한 시간을 넘기고도 `running`이면, 서브에이전트 종료를 감지하는 훅이 이 코드로 `failed` 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
+| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. job을 맡은 프로세스(백그라운드는 작업 프로세스, antigravity 포그라운드는 companion 프로세스)가 종료됐는데 `running`으로 남은 job이나, pid가 없는 job이 그 job의 타임아웃에 유예 시간을 더한 시간을 넘기고도 `running`이면, 서브에이전트 종료를 감지하는 훅이나 status 조회가 이 코드로 `failed` 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
 | CCP-SETUP-002 | 공용 | Node.js 메이저 버전이 요구치 미만입니다 | Node.js를 설치하거나 갱신하고 다시 실행합니다. 정확한 최소 버전은 [시작하기](./getting-started.md)를 참고하십시오 | abort |
 | CCP-MCP-001 | 공용 | rescue에 `--mcp`로 적은 MCP 서버가 대상 CLI에 등록되어 있지 않거나, 등록되어 있지만 비활성이거나, 등록 목록을 읽지 못했습니다. 어느 경우인지는 `details.mcp`(antigravity는 `error.details.mcp`)의 `missing`, `disabled`, `list_error`로 구분합니다 | `action`에 적힌 등록 명령(`mcp add`)이나 활성화 명령(`mcp enable`)을 직접 실행하고 같은 rescue 호출을 다시 합니다. 등록 명령의 자리표시자는 서버 실행 명령으로 바꿉니다. 목록을 읽지 못한 경우에는 `action`에 적힌 조회 명령을 직접 실행해 확인하거나 `--mcp` 없이 다시 호출합니다 | abort |
 | CCP-SETUP-001 | antigravity | agy가 설치되어 있지 않거나 버전이 최소 요구치 미만입니다 | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`로 설치하거나 `agy update`로 갱신하고, `~/.local/bin`이 PATH에 있는지 확인한 뒤 `/ccp:antigravity-setup`을 다시 실행합니다 | abort |
@@ -27,7 +27,6 @@
 | CCP-OAUTH-101 | codex | Codex 인증이 필요합니다. codex는 rescue 호출마다 실제로 인증 상태를 확인합니다 | `codex login`을 실행하거나 `--fallback-claude`를 씁니다 | fallback_claude |
 | CCP-CODEX-001 | codex | Codex CLI 실행이 실패했습니다. 타임아웃이 아닌 실패는 전부 이 코드 하나로 분류됩니다 | 백그라운드 job이면 job 디렉터리의 `stderr.log`를 확인하고, 아니면 Claude에서 다시 시도합니다 | retry |
 | CCP-CODEX-002 | codex | Codex 응답에서 유효한 JSONL 이벤트를 찾지 못했습니다 | `details.stdout_head`(첫 200자)를 확인하고 다시 시도하거나 Claude에서 처리합니다 | retry |
-| CCP-UNSUPPORTED-101 | 현재 발생하지 않음(codex) | codex가 지원하지 않는 옵션이라는 뜻으로 카탈로그에 선언되어 있지만, codex는 거부 목록이 비어 있어 실제로 이 코드를 내보내는 호출부가 없습니다 | 해당 없음 | abort |
 | CCP-AUDIT-001 | 감사(`/ccp:audit`) | 감사할 job 데이터가 없습니다 | `--since` 범위를 조정하고 다시 시도합니다 | abort |
 | CCP-AUDIT-002 | 감사(`/ccp:audit`) | 감사 스크립트 실행이 실패했습니다(보고서 쓰기 실패를 포함합니다) | 나중에 다시 시도하거나 로그를 확인합니다 | retry |
 | CCP-INVALID-001 | 라우터(`router-decide.mjs`) | `--prompt`도, 표준 입력의 `prompt`도 없이 실행했습니다(exit code 2) | `--prompt "<텍스트>"`를 주거나 표준 입력으로 `{"prompt":"..."}`를 넘깁니다 | user_action_required |
@@ -55,9 +54,8 @@ CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 �
 
 ## 자주 묻는 질문
 
-- **`--write`를 antigravity에 주면 어떻게 되나요?** antigravity는 `--write`를 지원하지 않는 플래그로 선언해 두어 값과 무관하게 항상 CCP-INVALID-001로 거부합니다. codex는 `--write`를 선언하지 않으므로 값을 줘도 조용히 무시되고 에러가 나지 않습니다.
+- **`--write`를 antigravity에 주면 어떻게 되나요?** antigravity는 `--write`를 지원하지 않는 플래그로 선언해 두어 값과 무관하게 항상 CCP-INVALID-001로 거부합니다. codex는 `--write`를 선언하지 않으므로 선언하지 않은 플래그로 CCP-INVALID-001을 받습니다.
 - **`--effort`를 antigravity에 주면 왜 거부되나요?** antigravity는 `--effort`를 지원하지 않는 플래그로 등록해 두어 값과 무관하게 항상 CCP-INVALID-001로 거부합니다. codex는 이 값을 실제로 CLI 호출에 반영합니다.
-- **`--summary-only`를 줬는데 요약 길이가 그대로입니다.** 현재는 no-op입니다. antigravity만 이 플래그를 선언하고 있고, 어떤 핸들러도 이 값을 읽지 않습니다.
 - **`result_path`가 null로 돌아왔습니다.** codex의 포그라운드 rescue 중 요약이 잘리지 않은 경우는 job 기록을 남기지 않아 `result_path`가 null입니다. antigravity는 포그라운드에서도 항상 job 기록을 남겨 값이 채워집니다.
 - **타임아웃 기본값이 궁금합니다.** `--timeout-ms`를 주지 않으면 슬래시 커맨드로 실행한 포그라운드 호출은 540000ms를 씁니다. 서브에이전트가 이 값을 붙이므로, CLI가 끝나지 않아도 Bash `timeout`(600000ms)보다 먼저 companion이 `CCP-TIMEOUT-001`을 돌려줍니다. 백그라운드 워커는 어댑터의 `timeouts.background`를, companion을 직접 실행한 포그라운드 호출은 `timeouts.foreground`를 씁니다. 현재 두 CLI 모두 두 값이 600000ms입니다. 정확한 기본값은 [슬래시 커맨드](./slash-commands.md)를 참고하십시오.
 - **포그라운드 rescue가 envelope 대신 'moved to the background' 안내를 돌려줬습니다.** 포그라운드 호출은 서브에이전트가 지정한 Bash `timeout`(600000ms) 안에서만 envelope을 돌려줄 수 있습니다. `--timeout-ms`를 540000보다 크게 주었거나, 환경 변수 `BASH_MAX_TIMEOUT_MS`로 Bash 도구의 최대 제한 시간(10분)을 그보다 낮춘 환경에서는 companion이 응답하기 전에 명령이 백그라운드로 넘어가고, 서브에이전트가 끝날 때 작업이 함께 중단될 수 있습니다. 이때 서브에이전트는 그 안내를 그대로 돌려주고 다시 실행하지 않습니다. 오래 걸리는 작업은 `--background`로 실행한 뒤 status·result 커맨드로 결과를 받으십시오.

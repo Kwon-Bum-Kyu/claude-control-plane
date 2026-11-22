@@ -8,9 +8,9 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 
 | 커맨드 | 설명 | 인자 |
 |---|---|---|
-| `/ccp:antigravity-rescue` | Antigravity CLI(agy)에 대용량 요약·분석 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
+| `/ccp:antigravity-rescue` | Antigravity CLI(agy)에 대용량 요약·분석 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]` |
 | `/ccp:antigravity-status` | `--background`로 만든 Antigravity job의 현재 상태를 확인합니다. | `<job_id>` |
-| `/ccp:antigravity-result` | 완료된 Antigravity 백그라운드 job의 결과를 가져옵니다. | `<job_id> [--summary-only]` |
+| `/ccp:antigravity-result` | 완료된 Antigravity 백그라운드 job의 결과를 가져옵니다. | `<job_id>` |
 | `/ccp:antigravity-setup` | Antigravity CLI(agy)의 설치와 인증 상태를 확인하고, 실패하면 설치나 재인증 안내를 보여줍니다. | 없음 |
 | `/ccp:codex-rescue` | 코드 리뷰, 버그 조사, diff 분석처럼 Codex가 강점을 갖는 작업을 위임해 메인 Claude 컨텍스트의 토큰 사용을 줄입니다. | `<task> [--background] [--model NAME] [--effort low\|medium\|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]` |
 | `/ccp:codex-status` | `--background`로 만든 Codex job의 현재 상태를 확인합니다. | `<job_id>` |
@@ -28,14 +28,14 @@ CCP는 `/ccp:` 네임스페이스 아래 9개 슬래시 커맨드를 제공합�
 | `--fallback-claude` | bool 플래그입니다. 참이면 companion 호출을 건너뛰고 `mode: "fallback_claude"` 성공 envelope을 즉시 반환합니다. | 같은 흐름을 타지만 `details.mode`는 서브커맨드와 무관하게 항상 `codex`입니다. | false |
 | `--mcp NAME[,NAME...]` | 문자열입니다. 위임 직전에 `agy mcp list`로 등록 목록을 한 번 조회해, 적은 MCP 서버가 모두 등록되어 있고 활성 상태인지 확인합니다. 하나라도 미등록이거나 비활성이거나 목록을 읽지 못하면 `CCP-MCP-001`로 중단합니다. 값은 공백 뒤에 적습니다(`--mcp a,b`처럼). | 같은 흐름이며 조회 명령만 `codex mcp list --json`입니다. | 없음(주지 않으면 확인하지 않습니다) |
 | `--sandbox` | 값 없는 bool 플래그입니다. 존재하면 agy 호출에 값 없이 `--sandbox`만 덧붙입니다. | 문자열 열거형입니다(`read-only`, `workspace-write`, `danger-full-access`). 빈 값이나 불리언으로 주면 `read-only`로 정규화되어 `-s <mode>`로 전달됩니다. | Antigravity는 끄면 붙지 않습니다. Codex는 `read-only`입니다. |
-| `--max-tokens N` | 정수입니다. 프롬프트 뒤에 "(Answer within N tokens if possible)" 힌트를 덧붙이는 소프트 제약이며, agy 자체 플래그는 아닙니다. | 선언하지 않습니다. `buildArgs` 시그니처에 `maxTokens` 파라미터가 없어 값을 줘도 완전히 버려집니다. | 4000(Antigravity 전용) |
+| `--max-tokens N` | 정수입니다. 프롬프트 뒤에 "(Answer within N tokens if possible)" 힌트를 덧붙이는 소프트 제약이며, agy 자체 플래그는 아닙니다. | 선언하지 않습니다. 주면 `CCP-INVALID-001`로 거부합니다. | 4000(Antigravity 전용) |
 | `--timeout-ms N` | 정수입니다. 포그라운드 실행과 백그라운드 워커 모두 이 값을 타임아웃으로 씁니다(두 CLI가 공유하는 core 로직입니다). 주지 않으면 어댑터가 경로별로 선언한 기본값을 씁니다. | 동일합니다. | 어댑터 선언값은 두 CLI 모두 포그라운드·백그라운드 600000입니다(허용 범위 5000~3600000). 슬래시 커맨드로 실행한 포그라운드 호출에는 서브에이전트가 540000을 붙입니다. companion을 직접 실행하면 600000입니다. |
-| `--files <glob>` | 문자열입니다. 절대경로 순회 검사를 먼저 하지만, 그 검사를 통과해도 항상 `CCP-INVALID-001`("--files is not supported in the MVP")로 거부합니다. | 선언하지 않습니다. | 없음 |
+| `--files <glob>` | 문자열입니다. 절대경로 순회 검사를 먼저 하지만, 그 검사를 통과해도 항상 `CCP-INVALID-001`("--files is not supported in the MVP")로 거부합니다. | 선언하지 않습니다. 주면 `CCP-INVALID-001`로 거부합니다. | 없음 |
 | `--task` | 문자열입니다. 값이 있으면 위치 인자보다 우선하는 프롬프트 값으로 씁니다. | 동일합니다. | 없음(주면 위치 인자 프롬프트보다 우선합니다) |
 | `--effort low\|medium\|high` | bool 플래그로 선언되어 있지만, 값과 무관하게 항상 `CCP-INVALID-001`("`--effort` is not supported by Antigravity")로 거부합니다. | 문자열 열거형입니다. `-c model_reasoning_effort=<level>`로 변환되어 codex 설정 오버라이드로 전달됩니다. | 없음 |
-| `--write` | bool 플래그로 선언되어 있지만, 값과 무관하게 항상 `CCP-INVALID-001`("`--write` is not supported by Antigravity")로 거부합니다. | 선언도, 거부 등록도 하지 않습니다. 값이 `flags.write`로 파싱은 되지만 `buildArgs`가 전혀 읽지 않아 조용히 무시됩니다(에러 envelope 없이). | 없음 |
-| `--cwd DIR` | 선언하지 않습니다. `buildArgs` 시그니처에 `cwd` 파라미터가 없습니다. | 문자열입니다. `-C <dir>`로 codex exec에 전달됩니다. | Codex는 `process.cwd()`입니다. |
-| `--model NAME` | 선언하지 않습니다. 모델 선택 플래그가 없습니다. | 문자열입니다. `-m <model>`로 codex exec에 전달되며, 생략하면 codex CLI 자체 기본 모델을 씁니다. | 없음(생략 시 codex 자체 기본값) |
+| `--write` | bool 플래그로 선언되어 있지만, 값과 무관하게 항상 `CCP-INVALID-001`("`--write` is not supported by Antigravity")로 거부합니다. | 선언하지 않습니다. 주면 `CCP-INVALID-001`로 거부합니다. | 없음 |
+| `--cwd DIR` | 문자열입니다. 위임한 CLI를 이 디렉터리에서 실행합니다. agy에 따로 넘기는 플래그는 없습니다. 존재하는 디렉터리가 아니면 CLI를 실행하기 전에 `CCP-INVALID-001`로 거부합니다. | 문자열입니다. 실행 디렉터리와 존재 확인은 Antigravity와 같고, `-C <dir>`로도 codex exec에 전달됩니다. | 두 CLI 모두 `process.cwd()`입니다. |
+| `--model NAME` | 선언하지 않습니다. 모델 선택 플래그가 없으며, 주면 `CCP-INVALID-001`로 거부합니다. | 문자열입니다. `-m <model>`로 codex exec에 전달되며, 생략하면 codex CLI 자체 기본 모델을 씁니다. | 없음(생략 시 codex 자체 기본값) |
 
 `--mcp` 값은 쉼표로 구분한 MCP 서버 이름 목록입니다. 각 이름의 앞뒤 공백과 빈 항목은 버리고, 중복된 이름은 한 번만 확인합니다. 이름은 영문자나 숫자로 시작하고 영문자, 숫자, `.`, `_`, `-`만 쓸 수 있습니다. 이 규칙을 어기거나 값이 비어 있으면 `CCP-INVALID-001`로 거부합니다. 등록 목록과는 대소문자를 구분해 정확히 일치하는지 비교합니다. `--fallback-claude`와 함께 주면 값 검사와 확인을 모두 건너뜁니다. 백그라운드 호출도 job을 만들기 전에 같은 확인을 거치며, 확인에 실패하면 `job_id` 대신 에러 envelope을 돌려줍니다. CCP는 안내한 등록·활성화 명령을 직접 실행하지 않습니다. 조회 결과 원문은 인증 헤더 같은 비밀을 담을 수 있으므로 서버 이름과 활성 여부만 읽고, 어디에도 저장하거나 출력하지 않습니다.
 
@@ -45,19 +45,25 @@ Antigravity 호출에 자동으로 붙는 도구 권한 자동 승인 플래그�
 
 ## 선언하지 않은 플래그의 처리
 
-Antigravity 파서는 정의되지 않은 옵션 토큰을 프롬프트, 즉 위치 인자 목록에 그대로 흡수합니다. 정의되지 않은 옵션을 주면 그 문자열이 통째로 프롬프트의 일부가 됩니다.
+두 companion은 각 CLI가 선언한 플래그 목록으로 인자를 분류합니다. `--` 구분자 앞에 선언하지 않은 플래그가 있으면 작업을 시작하기 전에 `CCP-INVALID-001`로 거부합니다. `--name`, `--name=value`, `-x`처럼 `-`로 시작하는 두 글자 이상의 토큰이 모두 대상이며, 거부 응답은 첫 번째 플래그 하나만 알려 줍니다. 위 표에서 "선언하지 않습니다"로 적힌 플래그도 여기에 해당합니다. 플래그 이름은 위 표의 철자(`--timeout-ms`, `--job-id`처럼 소문자와 `-`)로만 받으며, `--timeoutMs`처럼 camelCase로 쓰면 선언하지 않은 플래그로 거부합니다.
 
-Codex 파서는 다릅니다. 선언 여부와 무관하게 옵션과 그 다음 값을 한 쌍으로 읽어 `flags` 객체에 저장하는 범용 파서를 씁니다. 따라서 정의되지 않은 옵션을 주면 프롬프트에 섞이지 않고 파싱된 뒤 어떤 핸들러도 읽지 않아 조용히 사라집니다.
+거부 envelope의 `message`는 어느 CLI가 어느 플래그를 지원하지 않는지 알려 주고, `action`은 그 CLI가 받는 플래그 목록을 담습니다. `details.unsupported_flag`(Antigravity는 `error.details.unsupported_flag`)에는 플래그 이름만 들어갑니다. `--name=value`로 준 값은 비밀이 섞여 있을 수 있으므로 envelope에 싣지 않습니다.
+
+`--` 뒤의 토큰은 `-`로 시작해도 전부 과제 문자열로 넘어갑니다. `-` 한 글자도 과제의 일부로 다룹니다. 과제가 `-`로 시작하면 `--` 뒤에 두거나, Antigravity에서는 `--task`로 넘깁니다.
+
+선언한 플래그는 두 CLI 모두 `--name=value` 형태로도 줄 수 있습니다. `--background`와 `--fallback-claude`에 값을 주면 `true`·`1`은 참, `false`·`0`은 거짓으로 읽습니다. 그 밖의 bool 플래그는 `=값`을 주면 값과 무관하게 켜진 것으로 봅니다. 예를 들어 Antigravity의 `--sandbox=false`도 샌드박스를 켭니다. 공백으로 구분해 값을 줄 때의 규칙은 CLI마다 다릅니다. Antigravity는 문자열·정수 플래그 뒤의 토큰을 항상 값으로 읽고, Codex는 그 토큰이 `-`로 시작하지 않을 때만 값으로 읽습니다. Codex에서 `-`로 시작하는 값은 `--name=value`로 줍니다. 두 CLI 모두 bool 플래그는 뒤의 토큰을 값으로 읽지 않습니다.
 
 ## status·result·setup
 
 `/ccp:antigravity-status <job_id>`와 `/ccp:codex-status <job_id>`는 `--background`로 만든 job의 현재 상태를 확인합니다.
 
-`/ccp:antigravity-result <job_id> [--summary-only]`와 `/ccp:codex-result <job_id>`는 완료된 job의 요약과 `result_path`를 가져옵니다. `--summary-only`는 Antigravity만 선언하며, 파싱만 되고 결과 처리 핸들러가 이 값을 어디에서도 읽지 않는 완전한 no-op입니다. 현재는 효과가 없습니다. Codex는 이 플래그를 선언하지 않습니다.
+조회한 job이 `running`인데 그 job을 맡은 프로세스가 이미 종료됐으면, status는 서브에이전트 종료 훅과 같은 규칙으로 그 job을 `failed`로 기록한 뒤 결과를 보여 줍니다. 규칙은 [아키텍처](./architecture.md) 문서의 '훅' 절을 참고하십시오. result는 기록을 정리하지 않으므로 결과를 받기 전에 status로 상태를 확인하십시오.
+
+`/ccp:antigravity-result <job_id>`와 `/ccp:codex-result <job_id>`는 완료된 job의 요약과 `result_path`를 가져옵니다.
 
 `/ccp:antigravity-setup`과 `/ccp:codex-setup`은 인자를 받지 않고 각 CLI의 설치와 인증 상태를 점검합니다.
 
-`status`와 `result` 핸들러는 위치 인자 `<job_id>` 대신 `--job-id <uuid>`로도 값을 받을 수 있습니다(`parsed.flags.jobId || parsed.positional[0]`로 읽습니다). 위치 인자 사용을 권장하며 `--job-id`는 대안입니다.
+`status`와 `result` 핸들러는 위치 인자 `<job_id>` 대신 `--job-id <uuid>`로도 값을 받을 수 있습니다(`parsed.flags.jobId || parsed.positional[0]`로 읽습니다). 위치 인자 사용을 권장하며 `--job-id`는 대안입니다. 두 CLI 모두 이 플래그를 선언합니다.
 
 Antigravity는 job_id가 UUID v4 정규식 `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`을 만족하는지 실제로 검사합니다. Codex는 이 검사 함수를 선언하지 않아 값이 있기만 하면 통과합니다. Codex의 job_id에는 형식 검사가 없습니다.
 
@@ -80,7 +86,7 @@ Antigravity가 선언하는 서브커맨드는 `rescue`, `status`, `result`, `se
 
 `preflight`는 Antigravity 전용이며 슬래시 커맨드가 없습니다. 하네스 스크립트가 인증 상태를 사전 점검할 때 직접 호출하는 용도입니다.
 
-`cancel`은 Codex 전용이며 슬래시 커맨드가 없습니다. 진행 중인 job을 취소합니다. 취소할 수 없는 상태에서 호출하면 오류를 반환합니다. 원인과 조치는 [문제 해결](./troubleshooting.md) 문서의 '에러 코드' 절을 참고하십시오.
+`cancel`은 Codex 전용이며 슬래시 커맨드가 없습니다. 진행 중인 job을 취소합니다. 작업 프로세스와 그 프로세스가 실행한 CLI는 같은 프로세스 그룹에 있으므로, 그룹 전체에 종료 신호(SIGTERM)를 보내 위임한 CLI도 함께 멈춥니다. 그룹에 신호를 보낼 수 없으면 작업 프로세스 하나에만 보냅니다. 종료 신호를 무시하는 CLI나 스스로 새 프로세스 그룹을 만든 하위 프로세스는 남을 수 있습니다. 취소할 수 없는 상태에서 호출하면 오류를 반환합니다. 원인과 조치는 [문제 해결](./troubleshooting.md) 문서의 '에러 코드' 절을 참고하십시오.
 
 ## /ccp:audit
 

@@ -22,7 +22,7 @@ Checks the progress state of an Antigravity job started in `--background` mode.
 ## Behavior
 
 1. Validate the UUID v4 pattern (`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`).
-2. Call `antigravity-companion.mjs status <job_id>` — the companion reads `_workspace/_jobs/<job_id>/meta.json`.
+2. Call `antigravity-companion.mjs status <job_id>` — the companion reads `_workspace/_jobs/<job_id>/meta.json`. If that job is still `running` but the process that owns it has exited, the companion first records it as `failed` (the same rule the `SubagentStop` hook uses), so a job that can no longer finish is never reported as running.
 3. Main Claude does not read `meta.json` directly, preserving the permission boundary and schema-conversion layer.
 
 ## Invocation Pattern

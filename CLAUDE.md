@@ -27,7 +27,7 @@ Claude Control Plane (CCP) 은 Claude 를 메인 컨트롤 플레인으로 두�
 scripts/companion.mjs <cli>            <cli> 를 adapters/<cli>.mjs 로 해석하는 일만 한다
 scripts/<cli>-companion.mjs            어댑터를 고정한 얇은 별칭. settings.json 허용 패턴과 문서 참조를 유지하려고 남아 있다
 scripts/core/runtime.mjs               모든 부수효과 (stdout·exit·파일·spawn) 와 작업 디스패치. CLI 이름을 알지 못한다
-scripts/core/{args,jobs,process,paths,envelope,errors,budget,mcp}.mjs
+scripts/core/{args,jobs,process,paths,envelope,errors,budget,mcp,orphan}.mjs
 scripts/adapters/{antigravity,codex}.mjs   순수 값만 반환하는 CLI 선언 (인자 구성·결과 파싱·토큰 계산·에러 카탈로그)
 ```
 
@@ -47,7 +47,7 @@ job 경로는 `core/paths.mjs` 가 결정한다. 우선순위는 `CCP_JOBS_DIR` 
 
 ### 훅 (`plugins/ccp/hooks/hooks.json`)
 
-SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `router-suggest.js`, SubagentStop `rescue-finalize.js` (작업 프로세스가 종료됐는데 running 으로 남은 job 과, pid 가 없는 job 중 그 job 의 타임아웃에 유예 5분을 더한 시간이 지난 running job 을 failed 로 정리). 컨텍스트 사용량 경고 훅은 두지 않는다. Claude Code 가 자체 경고와 statusline 사용량 표시를 제공하고, 창 크기(200K/1M) 를 훅이 알 수 없어 중복 구현이 어긋나기 때문이다. 세 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
+SessionStart `boot-check.js` (Node·CLI 버전·인증 사전 점검), UserPromptSubmit `router-suggest.js`, SubagentStop `rescue-finalize.js` (job 을 맡은 프로세스가 종료됐는데 running 으로 남은 job 과, pid 가 없는 job 중 그 job 의 타임아웃에 유예 5분을 더한 시간이 지난 running job 을 failed 로 정리. 맡은 프로세스는 백그라운드 job 이면 작업 프로세스, antigravity 포그라운드 job 이면 companion 이다. 판정은 `core/orphan.mjs` 에 있고 `status` 서브커맨드도 조회 전에 같은 판정을 쓴다). 컨텍스트 사용량 경고 훅은 두지 않는다. Claude Code 가 자체 경고와 statusline 사용량 표시를 제공하고, 창 크기(200K/1M) 를 훅이 알 수 없어 중복 구현이 어긋나기 때문이다. 세 훅 모두 Claude Code 의 JSON stdin 계약을 쓰고, 실패해도 사용자 흐름을 막지 않는다.
 
 ### 커맨드 네임스페이스와 문서 대칭
 
@@ -72,12 +72,12 @@ node tools/repo-guard.mjs bootstrap   # .githooks/ 를 core.hooksPath 로 등록
 ```bash
 node tests/router/router-eval.mjs                  # 3-way 분류기 75케이스. 오분류 0건이어야 통과
 node tests/router/router-suggest-test.mjs          # router-suggest 훅 21시나리오. 오분류 0건이어야 통과
-node tests/companion/contract-test.mjs             # 어댑터 계약 43항목 (55키 동결, mock 어댑터가 실제 core 를 구동)
+node tests/companion/contract-test.mjs             # 어댑터 계약 65항목 (55키 동결, mock 어댑터와 실제 두 companion 이 실제 core 를 구동)
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
 node tests/agents/rescue-timeout-instructions-test.mjs   # rescue 서브에이전트 정의의 필수 지시 46항목
 node tests/agents/rescue-forwarding-instructions-test.mjs   # rescue 커맨드·서브에이전트 정의의 과제 전달 지시 88항목
-node tests/hooks/rescue-finalize-test.mjs                   # SubagentStop 고아 job 정리 훅 33항목 (임시 job 디렉터리, 실제 프로세스로 생존 판정)
+node tests/hooks/rescue-finalize-test.mjs                   # SubagentStop 고아 job 정리 훅 43항목 (임시 job 디렉터리, 실제 프로세스로 생존 판정, status 와 같은 판정인지 교차 확인)
 ```
 
 - 골든 diff 를 CLI 하나만 돌리려면 `--cli codex` 또는 `--cli antigravity` 를 쓰고, 차이의 상세는 `--verbose` 로 본다. 스크립트 안의 개별 케이스만 골라 실행하는 옵션은 없다.
