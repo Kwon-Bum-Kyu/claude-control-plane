@@ -197,7 +197,7 @@ export default {
     // `state` (its original inline reader/writer never had any other shape),
     // and this keeps writing it so that past on-disk shape is preserved for
     // anything that reads it. codex does not set this: codex meta has never
-    // had `status`. Orphan cleanup in `hooks/rescue-finalize.js` does not
+    // had `status`. Orphan cleanup in `core/orphan.mjs` (shared by the SubagentStop hook and `status`) does not
     // depend on this flag — it reads `status` first and falls back to
     // `state`, and rewrites only the keys a record already has.
     jobMetaStatusAlias: true,

@@ -5,7 +5,7 @@
 // shared JSON envelope; subcommand routing driven by adapter declarations; timeout
 // detection keyed on spawnSync's ETIMEDOUT so a CLI that exits cleanly on SIGTERM
 // is still reported as a timeout; per-path timeout defaults (foreground/background);
-// rejection of flags an adapter does not declare.
+// rejection of flags an adapter does not declare; status-time finalization of orphaned jobs.
 //
 // This is the single generic entry point every companion routes through.
 // It knows about *operation names* (setup, rescue, status, result, cancel,
@@ -23,6 +23,7 @@ import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
 import { resolvePaths } from './paths.mjs';
+import { finalizeIfOrphan } from './orphan.mjs';
 import { mergeErrorCatalog } from './errors.mjs';
 import { emitSuccess, emitBackground, emitError } from './envelope.mjs';
 import { clampSummaryAtBoundary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
@@ -106,6 +107,7 @@ const REQUIRED_NESTED_FUNCTIONS = [
 // messages.preflightSummary, supports.validateJobId — called with `?.()` since
 // only one shipped adapter needs each and a forced stub on the other would be
 // dead code with no verifiable behavior).
+const UNSAFE_JOB_ID_RE = /[\\/]|\.\./;
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
 const RESCUE_GATE_ENUM = new Set(['detect', 'probe']);
@@ -634,6 +636,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
       created_at: new Date().toISOString(),
       started_at: new Date().toISOString(),
       completed_at: null,
+      pid: process.pid,
       result_path: null,
       summary_3lines: null,
       token_usage: null,
@@ -706,7 +709,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
     // codex) still needs somewhere to put the full body once the summary can
     // no longer hold all of it. Deliberately skips meta.json: this directory
     // therefore has no lifecycle owner (status/result/cancel never look here,
-    // and hooks/rescue-finalize.js's orphan scan requires meta.json to exist
+    // and core/orphan.mjs (used by the SubagentStop hook and status) requires meta.json to exist
     // before it will touch a directory at all) and accumulates one entry per
     // truncated call with nothing cleaning it up — a known, recorded
     // limitation, not a claim that this is side-effect-free. See the
@@ -758,6 +761,10 @@ function handleStatus(ctx, parsed) {
     const hint = adapter.messages.missingArg('status');
     emitErr(ctx, 'CCP-INVALID-001', { message: hint.message, action: hint.action });
   }
+  // Finalize a job whose owning process is gone before reporting it, by the same
+  // rule the SubagentStop hook uses. Skipped for an id carrying a path separator
+  // or "..", so this write can never land outside the jobs directory.
+  if (!UNSAFE_JOB_ID_RE.test(jobId)) finalizeIfOrphan(join(paths.JOBS_DIR, jobId), { reason: 'orphan_status' });
   const { status, meta } = lookupJobMeta(paths.JOBS_DIR, jobId);
   if (status === 'missing') emitErr(ctx, adapter.supports.jobLookupCodes.missing, { details: jobLookupDetails(adapter, jobId, 'missing') });
   if (status === 'corrupt') emitErr(ctx, adapter.supports.jobLookupCodes.corrupt, { details: jobLookupDetails(adapter, jobId, 'corrupt') });

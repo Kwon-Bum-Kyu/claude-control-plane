@@ -12,20 +12,23 @@
  * away from the hook's default fails this test.
  *
  * Every case directory also holds a control record that must be finalized,
- * which proves the hook actually scanned the directory instead of exiting
- * early.
+ * except in the case where the core modules cannot be loaded, which proves the
+ * hook actually scanned the directory instead of exiting early.
  *
  * One case also runs the codex companion's result lookup on a record the hook
  * finalized, and checks that it reports the failure code with the hook's error
  * instead of reporting the job as still running. That companion is always the
- * one in this checkout, whichever hook is tested.
+ * one in this checkout, whichever hook is tested. Further cases run the same
+ * orphan record through the hook and through `codex-companion.mjs status` and
+ * require identical results, and check the antigravity status and foreground
+ * rescue behavior with stub CLIs.
  *
  * Usage:  node tests/hooks/rescue-finalize-test.mjs [path-to-hook]
  *         (default: plugins/ccp/hooks/rescue-finalize.js)
  * Exit:   0 when there are no failures, 1 otherwise.
  */
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +42,10 @@ const LIVE_PID = process.pid;
 const deadPid = () => spawnSync(process.execPath, ['-e', '']).pid;
 const DEAD_PID = deadPid();
 const CODEX_COMPANION = fileURLToPath(new URL('../../plugins/ccp/scripts/codex-companion.mjs', import.meta.url));
+const AGY_COMPANION = fileURLToPath(new URL('../../plugins/ccp/scripts/antigravity-companion.mjs', import.meta.url));
+const AGY_STUB = fileURLToPath(new URL('../companion/golden/stubs/agy', import.meta.url));
+const CODEX_STUB = fileURLToPath(new URL('../companion/golden/stubs/codex', import.meta.url));
+const AGY_UUID = '00000000-0000-4000-8000-0000000000a1';
 const DEFAULT_HOOK = fileURLToPath(new URL('../../plugins/ccp/hooks/rescue-finalize.js', import.meta.url));
 const HOOK = process.argv[2] ? resolve(process.cwd(), process.argv[2]) : DEFAULT_HOOK;
 const FAILED_ERROR = { code: 'CCP-TIMEOUT-001', reason: 'orphan_subagent_stop' };
@@ -91,8 +98,13 @@ function runHook(jobsDir, { stdin, hook } = {}) {
   });
 }
 const runCompanion = (jobsDir, args) => spawnSync(process.execPath, [CODEX_COMPANION, ...args], {
-  env: { ...process.env, CCP_JOBS_DIR: jobsDir }, encoding: 'utf8', timeout: 20000,
+  env: { ...process.env, CCP_JOBS_DIR: jobsDir, CCP_CODEX_BIN: CODEX_STUB }, encoding: 'utf8', timeout: 20000,
 });
+const runAgyCompanion = (jobsDir, args, extraEnv = {}) => spawnSync(process.execPath, [AGY_COMPANION, ...args], {
+  env: { ...process.env, CCP_JOBS_DIR: jobsDir, CCP_AGY_BIN: AGY_STUB, ANTIGRAVITY_API_KEY: 'test-key', ...extraEnv },
+  encoding: 'utf8', timeout: 20000,
+});
+const parseOut = (r) => { try { return JSON.parse(r.stdout.trim()); } catch { return {}; } };
 
 let pass = 0;
 let fail = 0;
@@ -111,7 +123,7 @@ if (pre) { console.log(`Result: ${pass} pass, ${fail} fail`); process.exit(1); }
  * records: { dirName: object | raw string }. expect: 'unchanged' | 'finalized' | 'raw' (bytes unchanged)
  * for the target `job-<n>`. Control record is always checked unless noControl.
  */
-function scenario(name, { record, expect, stdin, extra, hook, jobsDirMissing, after, dir = 'job-x' } = {}) {
+function scenario(name, { record, expect, stdin, extra, hook, jobsDirMissing, after, dir = 'job-x', controlExpect = 'finalized' } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'ccp-finalize-'));
   try {
     const jobsDir = jobsDirMissing ? join(root, 'nope') : join(root, 'jobs');
@@ -119,6 +131,7 @@ function scenario(name, { record, expect, stdin, extra, hook, jobsDirMissing, af
     const ctl = join(jobsDir, 'zz-control');
     const metaOf = (d) => join(d, 'meta.json');
     const ctlBefore = control();
+    const ctlBytes = JSON.stringify(ctlBefore, null, 2);
     let before;
     let beforeBytes;
     if (!jobsDirMissing) {
@@ -126,7 +139,7 @@ function scenario(name, { record, expect, stdin, extra, hook, jobsDirMissing, af
       mkdirSync(ctl, { recursive: true });
       beforeBytes = typeof record === 'string' ? record : JSON.stringify(record, null, 2);
       writeFileSync(metaOf(target), beforeBytes);
-      writeFileSync(metaOf(ctl), JSON.stringify(ctlBefore, null, 2));
+      writeFileSync(metaOf(ctl), ctlBytes);
       before = typeof record === 'string' ? null : record;
       extra?.(jobsDir);
     }
@@ -134,7 +147,9 @@ function scenario(name, { record, expect, stdin, extra, hook, jobsDirMissing, af
     if (r.status !== 0) return report(name, `exit ${r.status}`);
     if (r.stdout !== '{}') return report(name, `stdout ${JSON.stringify(r.stdout)}`);
     if (jobsDirMissing) return report(name, existsSync(jobsDir) ? 'jobs dir was created' : null);
-    const cProblem = finalizedProblem(ctlBefore, read(metaOf(ctl)));
+    const cProblem = controlExpect === 'unchanged'
+      ? (readFileSync(metaOf(ctl), 'utf8') === ctlBytes ? null : 'record was modified')
+      : finalizedProblem(ctlBefore, read(metaOf(ctl)));
     if (cProblem) return report(name, `control record: ${cProblem}`);
     const bytes = readFileSync(metaOf(target), 'utf8');
     let problem = null;
@@ -209,8 +224,8 @@ scenario('malformed stdin: exit 0 with {}, records still processed',
     mkdirSync(join(copyRoot, 'hooks'));
     const copy = join(copyRoot, 'hooks', 'rescue-finalize.mjs');
     copyFileSync(HOOK, copy);
-    scenario('process module unavailable: records with a pid left untouched',
-      { record: agyBgRecord({ pid: DEAD_PID, startedAgo: HOUR2 }), expect: 'unchanged', hook: copy });
+    scenario('core modules unavailable: every record left untouched',
+      { record: agyBgRecord({ pid: DEAD_PID, startedAgo: HOUR2 }), expect: 'unchanged', controlExpect: 'unchanged', hook: copy });
   } finally {
     rmSync(copyRoot, { recursive: true, force: true });
   }
@@ -228,6 +243,102 @@ scenario('codex record finalized by the hook: result lookup reports CCP-JOB-004 
     return same(out.details?.error, FAILED_ERROR) ? null : `details.error ${JSON.stringify(out.details?.error)}`;
   },
 });
+
+const withRoot = (fn) => {
+  const root = mkdtempSync(join(tmpdir(), 'ccp-finalize-'));
+  try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
+};
+const putMeta = (root, dir, rec) => {
+  const d = join(root, 'jobs', dir);
+  mkdirSync(d, { recursive: true });
+  const bytes = JSON.stringify(rec, null, 2);
+  writeFileSync(join(d, 'meta.json'), bytes);
+  return { path: join(d, 'meta.json'), bytes };
+};
+
+scenario('antigravity foreground record with a live companion pid, past the default limit: unchanged',
+  { record: { ...agyFgRecord({ startedAgo: LIMIT_DEF + MARGIN_MS }), pid: LIVE_PID }, expect: 'unchanged' });
+scenario('antigravity foreground record with a dead companion pid, started 10s ago: finalized',
+  { record: { ...agyFgRecord({ startedAgo: 10000 }), pid: DEAD_PID }, expect: 'finalized' });
+
+for (const [label, rec] of [
+  ['dead pid', codexRecord({ pid: DEAD_PID, startedAgo: 10000 })],
+  ['no pid, past the limit', codexRecord({ pid: null, startedAgo: LIMIT_DEF + MARGIN_MS })],
+]) {
+  report(`the hook and codex status finalize the same orphan identically (${label})`, withRoot((rootA) => withRoot((rootB) => {
+    const a = putMeta(rootA, 'job-x', rec);
+    const b = putMeta(rootB, 'job-x', rec);
+    const h = runHook(join(rootA, 'jobs'));
+    if (h.status !== 0) return `hook exit ${h.status}`;
+    const r = runCompanion(join(rootB, 'jobs'), ['status', 'job-x']);
+    if (r.status !== 0) return `status exit ${r.status}`;
+    const metaA = read(a.path);
+    const metaB = read(b.path);
+    if (metaA.error?.reason !== 'orphan_subagent_stop') return `hook reason ${metaA.error?.reason}`;
+    if (metaB.error?.reason !== 'orphan_status') return `status reason ${metaB.error?.reason}`;
+    for (const m of [metaA, metaB]) { delete m.completed_at; delete m.error.reason; }
+    if (JSON.stringify(metaA) !== JSON.stringify(metaB)) return 'records differ after finalization';
+    const d = parseOut(r).details ?? {};
+    if (d.state !== 'failed') return `details.state ${d.state}`;
+    const keys = Object.keys(d).join();
+    return keys === 'mode,job_id,state,pid,started_at,completed_at' ? null : `details keys ${keys}`;
+  })));
+}
+
+const liveRec = () => codexRecord({ pid: LIVE_PID, startedAgo: HOUR2 });
+report('codex status leaves a live job untouched, even 2h old', withRoot((root) => {
+  const m = putMeta(root, 'job-x', liveRec());
+  const r = runCompanion(join(root, 'jobs'), ['status', 'job-x']);
+  if (readFileSync(m.path, 'utf8') !== m.bytes) return 'record was modified';
+  return parseOut(r).details?.state === 'running' ? null : `details.state ${parseOut(r).details?.state}`;
+}));
+report('antigravity status leaves a live job untouched, even 2h old', withRoot((root) => {
+  const m = putMeta(root, AGY_UUID, agyBgRecord({ pid: LIVE_PID, startedAgo: HOUR2 }));
+  const r = runAgyCompanion(join(root, 'jobs'), ['status', AGY_UUID]);
+  if (readFileSync(m.path, 'utf8') !== m.bytes) return 'record was modified';
+  return parseOut(r).details?.status === 'running' ? null : `details.status ${parseOut(r).details?.status}`;
+}));
+
+report('antigravity status reports and records a dead job as failed', withRoot((root) => {
+  const m = putMeta(root, AGY_UUID, agyBgRecord({ pid: DEAD_PID, startedAgo: 10000 }));
+  const r = runAgyCompanion(join(root, 'jobs'), ['status', AGY_UUID]);
+  const out = parseOut(r);
+  if (r.status !== 0) return `exit ${r.status}`;
+  if (out.summary !== 'job failed') return `summary ${JSON.stringify(out.summary)}`;
+  if (out.details?.status !== 'failed') return `details.status ${out.details?.status}`;
+  const keys = Object.keys(out.details ?? {}).join();
+  if (keys !== 'job_id,status,created_at,started_at,completed_at,next_action') return `details keys ${keys}`;
+  const meta = read(m.path);
+  if (meta.state !== 'failed' || meta.status !== 'failed') return `meta state ${meta.state} status ${meta.status}`;
+  return same(meta.error, { code: 'CCP-TIMEOUT-001', reason: 'orphan_status' }) ? null : `error ${JSON.stringify(meta.error)}`;
+}));
+
+report("antigravity foreground rescue records the companion's own pid", withRoot((root) => {
+  const jobsDir = join(root, 'jobs');
+  mkdirSync(jobsDir, { recursive: true });
+  const r = runAgyCompanion(jobsDir, ['rescue', '--', 'x'], { CCP_GOLDEN_AGY_MODE: 'ok' });
+  const ids = readdirSync(jobsDir);
+  if (ids.length !== 1) return `${ids.length} job directories`;
+  const meta = read(join(jobsDir, ids[0], 'meta.json'));
+  if (meta.pid !== r.pid) return `meta.pid ${meta.pid}, companion pid ${r.pid}`;
+  return meta.state === 'failed' ? null : `state ${meta.state}`;
+}));
+
+// The status path guard: the current read behavior is pinned here. A separate
+// change that stops the read side from following these ids will change the
+// expected details.state.
+for (const [label, id, rel] of [['../x', '../x', ['x']], ['a/b', 'a/b', ['jobs', 'a', 'b']]]) {
+  report(`codex status with ${label} writes nothing${label === '../x' ? ' outside the jobs directory' : ''}`, withRoot((root) => {
+    const d = join(root, ...rel);
+    mkdirSync(d, { recursive: true });
+    const bytes = JSON.stringify(codexRecord({ pid: DEAD_PID, startedAgo: 10000 }), null, 2);
+    writeFileSync(join(d, 'meta.json'), bytes);
+    const r = runCompanion(join(root, 'jobs'), ['status', id]);
+    if (readFileSync(join(d, 'meta.json'), 'utf8') !== bytes) return 'record was modified';
+    if (r.status !== 0) return `exit ${r.status}`;
+    return parseOut(r).details?.state === 'running' ? null : `details.state ${parseOut(r).details?.state}`;
+  }));
+}
 
 const post = gone();
 report('precondition: dead pid stayed gone', post);
