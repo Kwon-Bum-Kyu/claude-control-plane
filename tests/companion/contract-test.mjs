@@ -2,7 +2,7 @@
 // CCP — core adapter-contract test (extension-contract proof: adding a new
 // CLI adapter should require zero changes to core/*.mjs).
 //
-// Four things this proves, each independently:
+// Five things this proves, each independently:
 //   1. assertAdapter accepts a well-formed third adapter (the mock) and
 //      rejects malformed ones — unknown keys, missing required functions.
 //   2. The mock adapter drives the *real* core/runtime.mjs dispatch path
@@ -15,18 +15,22 @@
 //   4. The rescue `--mcp` pre-check's pure helpers (core/mcp.mjs) and each
 //      shipped adapter's list parser behave correctly in isolation, with no
 //      subprocess involved.
+//   5. Flag declarations: the parsers classify tokens against each adapter's
+//      declared flags, and the two real companions reject an undeclared flag
+//      with CCP-INVALID-001 (run against the stub CLIs, never a real one).
 //
 // No plugins/ccp/scripts/core/*.mjs file was modified to add the mock
 // adapter used in test 2 — that absence is the extension-contract proof itself.
 
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { filterJobsForCurrentSession, currentSessionId } from '../../plugins/ccp/scripts/core/jobs.mjs';
 import { assertAdapter } from '../../plugins/ccp/scripts/core/runtime.mjs';
+import { parseArgsForAdapter } from '../../plugins/ccp/scripts/core/args.mjs';
 import { killPid } from '../../plugins/ccp/scripts/core/process.mjs';
 import { parseMcpNames, classifyMcpList, compareMcp } from '../../plugins/ccp/scripts/core/mcp.mjs';
 import mockAdapter from './mock/adapter.mjs';
@@ -648,6 +652,317 @@ console.log('\n4. MCP pre-check — pure helpers and shipped-adapter list parser
   }
   check('both adapters\' installCommand returns non-empty register/enable commands naming the server', failures.length === 0, JSON.stringify(failures));
 }
+
+// ---------------------------------------------------------------------------
+// 5. flag declarations — parser classification and the real companions
+// ---------------------------------------------------------------------------
+// The parsers classify every token against the adapter's declared flags: a
+// declared flag is read (also as --name=value), an undeclared one is reported
+// by name in `unknown`, and everything after `--` is task text. The real
+// companions then reject a reported flag with CCP-INVALID-001 before any CLI
+// is started. The stub CLIs are always selected so a real CLI never runs.
+
+console.log('\n5. flag declarations — parser classification and the real companions');
+
+const COMPANIONS = {
+  antigravity: join(REPO_ROOT, 'plugins', 'ccp', 'scripts', 'antigravity-companion.mjs'),
+  codex: join(REPO_ROOT, 'plugins', 'ccp', 'scripts', 'codex-companion.mjs'),
+};
+const GOLDEN_STUBS = { antigravity: join(HERE, 'golden', 'stubs', 'agy'), codex: join(HERE, 'golden', 'stubs', 'codex') };
+const ADAPTERS = { antigravity: antigravityAdapter, codex: codexAdapter };
+const CLIS = ['antigravity', 'codex'];
+
+/** Real companion against the golden stubs (never a real CLI), isolated jobs dir. */
+function runCompanion(cli, args, { jobsDir, extraEnv = {} } = {}) {
+  const env = {
+    ...process.env,
+    CCP_JOBS_DIR: jobsDir,
+    CCP_AGY_BIN: GOLDEN_STUBS.antigravity, CCP_GOLDEN_AGY_MODE: 'ok',
+    CCP_CODEX_BIN: GOLDEN_STUBS.codex, CCP_GOLDEN_CODEX_MODE: 'ok',
+    ANTIGRAVITY_API_KEY: 'test-key',
+    ...extraEnv,
+  };
+  const r = spawnSync(process.execPath, [COMPANIONS[cli], ...args], { encoding: 'utf8', env, timeout: 15000 });
+  let envelope = null;
+  try {
+    envelope = JSON.parse((r.stdout || '').trim().split('\n').pop());
+  } catch {
+    /* leave null */
+  }
+  return { status: r.status, stdout: r.stdout, stderr: r.stderr, envelope };
+}
+/** Error details live at envelope root for codex/mock and under error.details for antigravity. */
+const errDetails = (env) => env?.details ?? env?.error?.details ?? null;
+const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const errCode = (r) => r.envelope?.error?.code;
+const rejectedWith = (r, flag) => r.status === 1 && errCode(r) === 'CCP-INVALID-001' && errDetails(r.envelope)?.unsupported_flag === flag;
+
+/** Run fn with a private jobs directory that is always removed afterwards. */
+function withJobsDir(fn) {
+  const jobsDir = mkdtempSync(join(tmpdir(), 'ccp-flags-contract-'));
+  try {
+    return fn(jobsDir);
+  } finally {
+    rmSync(jobsDir, { recursive: true, force: true });
+  }
+}
+const readMeta = (jobsDir, id) => JSON.parse(readFileSync(join(jobsDir, id, 'meta.json'), 'utf8'));
+
+// (a) behavior that exists before and after the classification change
+{
+  const sameFlags = (got, want) => {
+    const gk = Object.keys(got).sort();
+    const wk = Object.keys(want).sort();
+    return JSON.stringify(gk) === JSON.stringify(wk) && gk.every((k) => Object.is(got[k], want[k]));
+  };
+  const tables = {
+    codex: [
+      [['rescue', '--mcp', '--', 'x'], { mcp: true }, ['x']],
+      [['rescue', '--fallback-claude', '--', 'x'], { fallbackClaude: true }, ['x']],
+      [['rescue', '--timeout-ms', '5000', '--', 'x'], { timeoutMs: '5000' }, ['x']],
+      [['rescue', '--mcp=alpha', '--', 'x'], { mcp: 'alpha' }, ['x']],
+      [['rescue', '--background', '--mcp', 'alpha', '--', 'x'], { background: true, mcp: 'alpha' }, ['x']],
+      [['rescue', '--sandbox', 'workspace-write', '--', 'x'], { sandbox: 'workspace-write' }, ['x']],
+      [['rescue', '--fallback-claude=false', '--', 'x'], { fallbackClaude: 'false' }, ['x']],
+      [['rescue', '--', '--not-a-flag', 'x'], {}, ['--not-a-flag', 'x']],
+      [['status', '--job-id', 'abc'], { jobId: 'abc' }, []],
+    ],
+    antigravity: [
+      [['rescue', 'x', '--mcp'], { mcp: undefined }, ['x']],
+      [['rescue', '--effort', 'high', 'x'], { effort: true }, ['high', 'x']],
+      [['rescue', '--fallback-claude', 'x'], { fallbackClaude: true }, ['x']],
+      [['rescue', '--fallback-claude', '--', 'x'], { fallbackClaude: true }, ['x']],
+      [['rescue', '--task', 'abc'], { task: 'abc' }, []],
+      [['rescue', '--timeout-ms', '1234', '--', 'x'], { timeoutMs: 1234 }, ['x']],
+      [['rescue', '--background', '--mcp', 'alpha', 'x'], { background: true, mcp: 'alpha' }, ['x']],
+      [['rescue', '--files', '/etc/passwd', 'golden task'], { files: '/etc/passwd' }, ['golden task']],
+      [['rescue', '--', '--x', 'y'], {}, ['--x', 'y']],
+      [['status', '--job-id', 'abc'], { jobId: 'abc' }, []],
+    ],
+  };
+  for (const cli of ['codex', 'antigravity']) {
+    const bad = [];
+    for (const [argv, flags, positional] of tables[cli]) {
+      const got = parseArgsForAdapter(ADAPTERS[cli], argv);
+      if (!sameFlags(got.flags, flags) || JSON.stringify(got.positional) !== JSON.stringify(positional)) {
+        bad.push({ argv, flags: got.flags, positional: got.positional });
+      }
+    }
+    check(`parser keeps the pre-existing behavior for declared flags (${cli})`, bad.length === 0, JSON.stringify(bad));
+  }
+}
+
+// (b) classification: undeclared flags are reported by name, --name=value is read
+{
+  const bad = [];
+  const expectRow = (cli, argv, want) => {
+    const got = parseArgsForAdapter(ADAPTERS[cli], argv);
+    const ok =
+      (!('flags' in want) || JSON.stringify(got.flags) === JSON.stringify(want.flags)) &&
+      (!('positional' in want) || JSON.stringify(got.positional) === JSON.stringify(want.positional)) &&
+      (!('unknown' in want) || JSON.stringify(got.unknown) === JSON.stringify(want.unknown)) &&
+      (!want.noText || !JSON.stringify(got).includes(want.noText));
+    if (!ok) bad.push({ cli, argv, got });
+  };
+  expectRow('codex', ['rescue', '--background', 'task'], { flags: { background: true }, positional: ['task'], unknown: [] });
+  expectRow('codex', ['rescue', '--jobId', 'x', '--', 't'], { unknown: ['--jobId'] });
+  expectRow('antigravity', ['rescue', '--timeout-ms=1234', '--task=abc', '--mcp=x'], { flags: { timeoutMs: 1234, task: 'abc', mcp: 'x' }, unknown: [] });
+  expectRow('antigravity', ['rescue', '--zzz=1', '--', 't'], { unknown: ['--zzz'] });
+  expectRow('antigravity', ['rescue', '--background=false', '--', 't'], { flags: { background: 'false' } });
+  expectRow('antigravity', ['rescue', '--model', 'gpt', '--', 't'], { unknown: ['--model'], positional: ['gpt', 't'] });
+  expectRow('antigravity', ['rescue', '--constructor', '--', 't'], { unknown: ['--constructor'] });
+  for (const cli of CLIS) {
+    expectRow(cli, ['rescue', '-x', '--', 't'], { unknown: ['-x'] });
+    expectRow(cli, ['rescue', '-', 't'], { positional: ['-', 't'], unknown: [] });
+    expectRow(cli, ['rescue', '--', '-x', '--y'], { positional: ['-x', '--y'], unknown: [] });
+    expectRow(cli, ['rescue', '--secret=TOPSECRET', '--', 't'], { unknown: ['--secret'], noText: 'TOPSECRET' });
+  }
+  check('parser reports undeclared flags by name and reads --name=value', bad.length === 0, JSON.stringify(bad));
+}
+
+// (c) the real companions
+withJobsDir((jobsDir) => {
+  const run = (cli, args) => runCompanion(cli, args, { jobsDir });
+  {
+    const bad = CLIS.map((cli) => ({ cli, r: run(cli, ['rescue', '--zz-undeclared', '--', 'task']) }))
+      .filter(({ cli, r }) => !(rejectedWith(r, '--zz-undeclared') && r.envelope.error.message === `\`--zz-undeclared\` is not supported by ${capitalize(cli)}`))
+      .map(({ cli, r }) => ({ cli, status: r.status, envelope: r.envelope }));
+    check('both companions reject the same undeclared flag with the same code and message shape', bad.length === 0, JSON.stringify(bad));
+  }
+  {
+    const agy = run('antigravity', ['rescue', '--model', 'x', '--', 'task']);
+    const cdx = run('codex', ['rescue', '--model', 'x', '--', 'task']);
+    check('--model is rejected by antigravity and accepted by codex', rejectedWith(agy, '--model') && cdx.status === 0, JSON.stringify({ agy: agy.envelope, codexStatus: cdx.status, codex: cdx.envelope }));
+  }
+  {
+    const bad = CLIS.map((cli) => ({ cli, r: run(cli, ['rescue', '-x', '--', 'task']) })).filter(({ r }) => !rejectedWith(r, '-x'));
+    check('a single-dash token before -- is rejected by both companions', bad.length === 0, JSON.stringify(bad.map(({ cli, r }) => ({ cli, envelope: r.envelope }))));
+  }
+  {
+    const runs = [
+      ['antigravity', ['rescue', '--help'], '--help'],
+      ['antigravity', ['rescue', '--task', 't', '--cwd-typo', '/tmp'], '--cwd-typo'],
+      ['codex', ['rescue', '--help'], '--help'],
+      ['codex', ['rescue', '--write', 'task'], '--write'],
+    ];
+    const bad = runs.map(([cli, args, flag]) => ({ cli, args, flag, r: run(cli, args) })).filter(({ r, flag }) => !rejectedWith(r, flag));
+    check('--help and misspelled flags are rejected instead of being delegated or swallowed', bad.length === 0, JSON.stringify(bad.map(({ cli, args, r }) => ({ cli, args, envelope: r.envelope }))));
+  }
+  {
+    const bad = [];
+    for (const cli of CLIS) {
+      const { flags, rejectFlags } = ADAPTERS[cli].supports;
+      const rejected = new Set(rejectFlags.map((rf) => rf.flag.replace(/^--?/, '')));
+      const names = Object.keys(flags).filter((n) => !rejected.has(n)).map((n) => `--${n}`).join(', ');
+      const want = `Supported flags: ${names}. To pass task text that starts with "-", put it after "--".`;
+      const got = run(cli, ['rescue', '--zz-undeclared', '--', 'task']).envelope?.error?.action;
+      if (got !== want) bad.push({ cli, got, want });
+    }
+    check('the supported-flag list in the rejection is built from the adapter declarations', bad.length === 0, JSON.stringify(bad));
+  }
+  {
+    const bad = CLIS.map((cli) => ({ cli, r: run(cli, ['rescue', '--secret=TOPSECRET', '--', 'task']) }))
+      .filter(({ r }) => `${r.stdout}${r.stderr}`.includes('TOPSECRET') || !(r.stdout || '').includes('--secret'));
+    check('a --name=value rejection never echoes the value', bad.length === 0, JSON.stringify(bad.map(({ cli, r }) => ({ cli, stdout: r.stdout, stderr: r.stderr }))));
+  }
+});
+
+{
+  // Tokens after `--` are task text even when they start with `-`. Each CLI gets its own jobs directory
+  // because the check reads the recorded prompt back.
+  const prompts = {};
+  const notRejected = [];
+  withJobsDir((jobsDir) => {
+    const r = runCompanion('antigravity', ['rescue', '--', '--not-a-flag', 'task'], { jobsDir });
+    if (errCode(r) === 'CCP-INVALID-001') notRejected.push('antigravity');
+    const ids = readdirSync(jobsDir);
+    prompts.antigravity = ids.length === 1 ? readMeta(jobsDir, ids[0]).prompt : `job dirs: ${ids.length}`;
+  });
+  withJobsDir((jobsDir) => {
+    const r = runCompanion('codex', ['rescue', '--background', '--', '--not-a-flag', 'task'], { jobsDir });
+    if (errCode(r) === 'CCP-INVALID-001') notRejected.push('codex');
+    const jobId = r.envelope?.job_id;
+    if (jobId) {
+      waitForTerminalMeta(jobsDir, jobId, 20000);
+      prompts.codex = readMeta(jobsDir, jobId).prompt;
+    }
+  });
+  const mock = runMock(['rescue', '--', '--not-a-flag', 'task']);
+  check(
+    'tokens after -- reach the task even when they start with -',
+    prompts.antigravity === '--not-a-flag task' && prompts.codex === '--not-a-flag task' &&
+      mock.envelope?.summary === 'mock response: --not-a-flag task' && notRejected.length === 0,
+    JSON.stringify({ prompts, notRejected, mock: mock.envelope })
+  );
+}
+
+{
+  const flags = antigravityAdapter.supports.flags;
+  const gone = ['summary-only', 'poll-interval-ms', 'renew', 'model'].filter((n) => Object.hasOwn(flags, n));
+  const cwdOk = JSON.stringify(flags.cwd) === JSON.stringify({ key: 'cwd', type: 'string' });
+  const bad = withJobsDir((jobsDir) =>
+    [['--summary-only'], ['--poll-interval-ms', '5'], ['--renew']]
+      .map((f) => ({ f, r: runCompanion('antigravity', ['rescue', ...f, '--', 't'], { jobsDir }) }))
+      .filter(({ f, r }) => !rejectedWith(r, f[0]))
+      .map(({ f, r }) => ({ f, envelope: r.envelope })));
+  check('antigravity no longer declares the no-op flags and declares --cwd', gone.length === 0 && cwdOk && bad.length === 0, JSON.stringify({ gone, cwd: flags.cwd, bad }));
+}
+
+{
+  const problems = withJobsDir((jobsDir) => {
+    const out = [];
+    mkdirSync(join(jobsDir, 'job-a'));
+    writeFileSync(join(jobsDir, 'job-a', 'meta.json'), JSON.stringify({
+      job_id: 'job-a', mode: 'codex', state: 'completed', created_at: new Date().toISOString(), started_at: new Date().toISOString(),
+      completed_at: new Date().toISOString(), pid: null, exit_code: 0, prompt: 'p', params: {}, claude_session_id: null,
+      stdout_path: 'stdout.log', stderr_path: 'stderr.log', result_path: null, error: null,
+    }));
+    const st = runCompanion('codex', ['status', '--job-id', 'job-a'], { jobsDir });
+    if (!(st.status === 0 && st.envelope?.details?.state === 'completed' && st.envelope?.details?.job_id === 'job-a')) out.push({ status: st.envelope });
+    const rs = runCompanion('codex', ['result', '--job-id', 'job-missing'], { jobsDir });
+    if (errCode(rs) !== 'CCP-JOB-001') out.push({ result: rs.envelope });
+    for (const f of [['--write'], ['--max-tokens', '5'], ['--summary-only']]) {
+      const r = runCompanion('codex', ['rescue', ...f, '--', 't'], { jobsDir });
+      if (!rejectedWith(r, f[0])) out.push({ f, envelope: r.envelope });
+    }
+    return out;
+  });
+  check('codex keeps --job-id and rejects --write, --max-tokens, --summary-only', problems.length === 0, JSON.stringify(problems));
+}
+
+{
+  const PATTERN_LINE_RE = (cli) => new RegExp(`^node "\\$\\{CLAUDE_PLUGIN_ROOT\\}/scripts/${cli}-companion\\.mjs" rescue `);
+  /** Flags named on the one allowed-pattern line that the adapter does not declare, or rejects. */
+  const patternFlagGaps = (text, cli, adapter) => {
+    const lines = text.split('\n').filter((l) => PATTERN_LINE_RE(cli).test(l));
+    if (lines.length !== 1) return [`pattern lines found: ${lines.length}`];
+    const rejected = new Set(adapter.supports.rejectFlags.map((rf) => rf.flag.replace(/^--?/, '')));
+    const names = [...lines[0].matchAll(/--([a-z][a-z-]*)/g)].map((m) => m[1]);
+    return names.filter((n) => !Object.hasOwn(adapter.supports.flags, n) || rejected.has(n));
+  };
+  const agentText = (cli) => readFileSync(join(REPO_ROOT, 'plugins', 'ccp', 'agents', `${cli}-rescue.md`), 'utf8');
+  const gaps = CLIS.map((cli) => ({ cli, gaps: patternFlagGaps(agentText(cli), cli, ADAPTERS[cli]) })).filter((g) => g.gaps.length > 0);
+  check("every flag in a rescue subagent's allowed pattern is declared and not rejected", gaps.length === 0, JSON.stringify(gaps));
+
+  const missed = CLIS.filter((cli) => {
+    const tampered = agentText(cli).split('\n')
+      .map((l) => (PATTERN_LINE_RE(cli).test(l) ? l.replace(' [--background]', ' [--bogus] [--background]') : l))
+      .join('\n');
+    return !patternFlagGaps(tampered, cli, ADAPTERS[cli]).includes('bogus');
+  });
+  check('the pattern check catches a flag the adapter does not declare', missed.length === 0, JSON.stringify(missed));
+}
+
+{
+  const read = (...p) => readFileSync(join(REPO_ROOT, 'plugins', 'ccp', ...p), 'utf8');
+  const cmdLines = read('commands', 'antigravity-rescue.md').split('\n').map((l) => l.trimStart());
+  const groups = {
+    'argument-hint': cmdLines.filter((l) => l.startsWith('argument-hint:')),
+    usage: cmdLines.filter((l) => l.startsWith('/ccp:antigravity-rescue <task>')),
+    invocation: cmdLines.filter((l) => l.startsWith('node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue')),
+  };
+  const lacking = Object.entries(groups)
+    .filter(([, ls]) => ls.length === 0 || ls.some((l) => !l.includes('[--sandbox]') || !l.includes('[--cwd DIR]')))
+    .map(([name]) => name);
+  const sharedClaim = read('agents', 'codex-rescue.md').includes('shared by both companions');
+  const summaryOnly = read('commands', 'antigravity-result.md').includes('--summary-only');
+  check('command and subagent wording matches the declarations', !sharedClaim && !summaryOnly && lacking.length === 0, JSON.stringify({ sharedClaim, summaryOnly, lacking }));
+}
+
+check("codex's error catalog no longer carries CCP-UNSUPPORTED-101", !Object.hasOwn(codexAdapter.errors, 'CCP-UNSUPPORTED-101'));
+
+{
+  const bad = [];
+  for (const cli of CLIS) {
+    withJobsDir((jobsDir) => {
+      const existing = mkdtempSync(join(tmpdir(), 'ccp-flags-cwd-'));
+      try {
+        const missing = runCompanion(cli, ['rescue', '--cwd', join(jobsDir, 'no-such-dir'), '--', 'x'], { jobsDir });
+        const leftover = readdirSync(jobsDir);
+        if (!(missing.status === 1 && errCode(missing) === 'CCP-INVALID-001' &&
+          missing.envelope.error.message === 'The `--cwd` directory does not exist or is not a directory' && leftover.length === 0)) {
+          bad.push({ cli, missing: missing.envelope, leftover });
+        }
+        const present = runCompanion(cli, ['rescue', '--cwd', existing, '--', 'x'], { jobsDir });
+        if (errCode(present) === 'CCP-INVALID-001') bad.push({ cli, present: present.envelope });
+      } finally {
+        rmSync(existing, { recursive: true, force: true });
+      }
+    });
+  }
+  check('--cwd must name an existing directory on both companions', bad.length === 0, JSON.stringify(bad));
+}
+
+withJobsDir((jobsDir) => {
+  const bad = [];
+  for (const cli of CLIS) {
+    const t = runCompanion(cli, ['rescue', '--fallback-claude=true', '--', 'x'], { jobsDir });
+    if (!(t.status === 0 && t.envelope?.summary === ADAPTERS[cli].messages.fallbackSummary)) bad.push({ cli, true: t.envelope });
+    const f = runCompanion(cli, ['rescue', '--fallback-claude=false', '--', 'x'], { jobsDir });
+    if (f.envelope?.summary === ADAPTERS[cli].messages.fallbackSummary || errCode(f) === 'CCP-INVALID-001') bad.push({ cli, false: f.envelope });
+  }
+  check('--fallback-claude=false and =true mean the same thing on both companions', bad.length === 0, JSON.stringify(bad));
+});
 
 // ---------------------------------------------------------------------------
 

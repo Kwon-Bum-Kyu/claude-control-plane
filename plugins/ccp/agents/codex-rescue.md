@@ -53,9 +53,9 @@ If the Bash result says the command was moved to the background instead of print
 | Option | Mapping | Notes |
 |---|---|---|
 | `--effort low\|medium\|high` | `-c model_reasoning_effort=<level>` | Codex has no direct flag; uses the TOML config override path |
-| `--sandbox read-only\|workspace-write\|danger-full-access` | `-s <mode>` | not supported by Antigravity |
-| `--cwd DIR` | `-C <dir>` | shared by both companions |
-| `--model NAME` | `-m <model>` | shared by both companions |
+| `--sandbox read-only\|workspace-write\|danger-full-access` | `-s <mode>` | Antigravity's `--sandbox` is a valueless on/off flag and takes no mode |
+| `--cwd DIR` | `-C <dir>` | also accepted by Antigravity, as the working directory only (agy has no `-C` equivalent) |
+| `--model NAME` | `-m <model>` | Codex only — Antigravity rejects `--model` |
 
 ## Output Format (Required)
 

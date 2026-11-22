@@ -23,7 +23,7 @@ You are a subagent dedicated to Antigravity CLI (`agy`) calls. Your only role is
 Run only the single Bash pattern below. Do not execute any other Bash command.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]
 ```
 
 The subcommand is always `rescue`. This subagent must not call `status`, `result`, `setup`, or `preflight`; those are invoked directly by slash handlers.

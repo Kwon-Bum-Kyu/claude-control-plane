@@ -4,7 +4,8 @@
 // Modified by CCP contributors: unified dispatch/cancel/snapshot interface emitting the
 // shared JSON envelope; subcommand routing driven by adapter declarations; timeout
 // detection keyed on spawnSync's ETIMEDOUT so a CLI that exits cleanly on SIGTERM
-// is still reported as a timeout; per-path timeout defaults (foreground/background).
+// is still reported as a timeout; per-path timeout defaults (foreground/background);
+// rejection of flags an adapter does not declare.
 //
 // This is the single generic entry point every companion routes through.
 // It knows about *operation names* (setup, rescue, status, result, cancel,
@@ -17,7 +18,7 @@
 // adapter declares are dispatched conditionally on that adapter's own
 // declarations — core never assumes every adapter supports the same surface.
 
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
@@ -71,9 +72,7 @@ const CONTRACT = {
     optional: ['jobMetaStatusAlias', 'jobLookupCodes'],
     requiredFunctions: ['validateFlagValue', 'resultIncompleteCode'],
     optionalFunctions: ['validateJobId'],
-    // Only present on adapters whose argStyle is 'task-flag' (parseTaskFlagArgs
-    // consults it) — 'dash-dash' adapters never need it. Not part of the
-    // 55-key tally; documented here only so the unknown-key check knows it's legitimate.
+    // `flags` is the parse vocabulary for both argStyles (core/args.mjs): a "-"-prefixed token outside it is reported as unknown and rejected by run().
   },
   timeouts: ['foreground', 'background', 'authProbe'],
   result: ['fileName', 'pathStyle', 'logFileName', 'persistForeground'],
@@ -337,6 +336,32 @@ function readTextFileSafe(path) {
   }
 }
 
+/** User-supplied path check (system boundary): false for a missing path, a non-directory, or any stat error. */
+function isDirectory(path) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Error text for a flag the adapter does not declare. Built from the adapter's
+ * declarations so the supported list can never drift from what the parser accepts.
+ * @param {object} adapter
+ * @param {string} name  flag name as typed, without any '=value' part ('--model', '-x')
+ * @returns {{ message: string, action: string, details: { unsupported_flag: string } }}
+ */
+function unsupportedFlagError(adapter, name) {
+  const rejected = new Set((adapter.supports.rejectFlags || []).map((rf) => rf.flag));
+  const supported = Object.keys(adapter.supports.flags).map((n) => `--${n}`).filter((f) => !rejected.has(f));
+  return {
+    message: `\`${name}\` is not supported by ${capitalize(adapter.id)}`,
+    action: `Supported flags: ${supported.join(', ')}. To pass task text that starts with "-", put it after "--".`,
+    details: { unsupported_flag: name },
+  };
+}
+
 function capitalize(s) {
   return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s;
 }
@@ -532,7 +557,7 @@ function handleRescue(ctx, parsed) {
     emitErr(ctx, 'CCP-INVALID-001', { message: hint.message, action: hint.action });
   }
 
-  if (flags.fallbackClaude) {
+  if (pickBool(flags, 'fallbackClaude', false)) {
     emitSucc(ctx, {
       summary: adapter.messages.fallbackSummary,
       tokens: adapter.tokensFrom({ input: 0, output: 0, total: 0 }),
@@ -542,6 +567,12 @@ function handleRescue(ctx, parsed) {
   }
 
   const cwd = pickString(flags, 'cwd', process.cwd());
+  if (!isDirectory(cwd)) {
+    emitErr(ctx, 'CCP-INVALID-001', {
+      message: 'The `--cwd` directory does not exist or is not a directory',
+      action: 'Pass an existing directory to `--cwd`, or omit it to use the current directory.',
+    });
+  }
   const model = pickString(flags, 'model', '');
   const effort = pickString(flags, 'effort', '');
   // Raw passthrough, not pickString: `sandbox` is a string enum for one adapter
@@ -930,6 +961,13 @@ export function run(adapter, argv, entryOpts) {
     if (parsed.flags[key] !== undefined) {
       emitErr(ctx, 'CCP-INVALID-001', { message: rf.message, action: rf.action, details: rf.details });
     }
+  }
+
+  // A flag the adapter never declared is rejected here — after the adapter's own
+  // dedicated rejections (which carry CLI-specific guidance) and before any value
+  // check or handler runs. Only the first one is reported, by name only.
+  if (parsed.unknown.length > 0) {
+    emitErr(ctx, 'CCP-INVALID-001', unsupportedFlagError(adapter, parsed.unknown[0]));
   }
 
   // Value-conditional flag validation (path traversal guard etc.).

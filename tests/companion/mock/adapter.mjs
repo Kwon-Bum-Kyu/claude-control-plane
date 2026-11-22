@@ -38,6 +38,7 @@ export default {
     flags: {
       background: { key: 'background', type: 'bool' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },
+      mcp: { key: 'mcp', type: 'string' },
     },
     rejectFlags: [],
     validateFlagValue() {

@@ -128,35 +128,24 @@ export default {
 
   supports: {
     subcommands: ['rescue', 'status', 'result', 'setup', 'preflight', 'task-worker'],
-    // Doubles as (1) the task-flag parser's vocabulary — core/args.mjs
-    // parseTaskFlagArgs consults this; core itself never sees these flag
-    // names — and (2) the doc/usage-generation list a dash-dash adapter
-    // would use `flags` for. One declaration, not two. `effort`/`write` are
-    // declared here, boolean-typed, purely so the global rejectFlags check
-    // below can see them as present without accidentally consuming a
-    // following token as their "value" — the original parser never consumed
-    // one either (it rejected before any value-consumption logic could run).
+    // Parse vocabulary for core/args.mjs (both argStyles read it); a "-"-prefixed
+    // token outside it is rejected by core before any handler runs. `effort`/`write`
+    // are declared boolean-typed purely so the rejectFlags check below sees them
+    // as present without consuming a following token as a value.
     flags: {
       background: { key: 'background', type: 'bool' },
       'fallback-claude': { key: 'fallbackClaude', type: 'bool' },
-      'summary-only': { key: 'summaryOnly', type: 'bool' },
-      // Accepted and discarded: parsed into flags.renew but no handler reads
-      // it (setup has no renew-mode branch). Kept declared so an old call
-      // still parses cleanly instead of falling through to the positional list.
-      renew: { key: 'renew', type: 'bool' },
       sandbox: { key: 'sandbox', type: 'bool' },
       'max-tokens': { key: 'maxTokens', type: 'int' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },
-      // Accepted and discarded: keeps an old call's value out of the delegated
-      // prompt (this parser folds undeclared flags into the prompt). Nothing reads it.
-      'poll-interval-ms': { key: 'pollIntervalMs', type: 'int' },
       files: { key: 'files', type: 'string' },
       'job-id': { key: 'jobId', type: 'string' },
       task: { key: 'task', type: 'string' },
+      // Working directory core runs the delegated CLI in; agy itself takes no flag for it.
+      cwd: { key: 'cwd', type: 'string' },
       effort: { key: 'effort', type: 'bool' },
       write: { key: 'write', type: 'bool' },
-      // Must stay declared: this parser folds undeclared flags into the prompt,
-      // which would silently skip the MCP pre-check instead of running it.
+      // Must stay declared: an undeclared flag is rejected, so dropping this would turn every --mcp call into an error.
       mcp: { key: 'mcp', type: 'string' },
     },
     rejectFlags: [
