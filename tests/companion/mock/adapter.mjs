@@ -8,7 +8,7 @@
 // judged (a)/(b)/(c) field addition, not a workaround here.
 //
 // This mock is intentionally small: it exercises setup / rescue (foreground
-// + background) / status / result / task-worker against a fake CLI binary
+// + background) / status / result / cancel / task-worker against a fake CLI binary
 // (tests/companion/mock/stub-cli) so contract-test.mjs can prove the whole
 // dispatch path — not just object-shape validation — works with an adapter
 // core has never seen before.
@@ -34,7 +34,7 @@ export default {
   },
 
   supports: {
-    subcommands: ['setup', 'rescue', 'status', 'result', 'task-worker'],
+    subcommands: ['setup', 'rescue', 'status', 'result', 'cancel', 'task-worker'],
     flags: {
       background: { key: 'background', type: 'bool' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },

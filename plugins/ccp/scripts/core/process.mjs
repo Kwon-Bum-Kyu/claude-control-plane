@@ -2,7 +2,7 @@
 // Upstream commit 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Licensed under the Apache License 2.0 — see LICENSES/codex-plugin-cc-Apache-2.0.txt
 // Modified by CCP contributors: forced file-fd stdio and closed stdin; renamed the
-// runner to be CLI-neutral so any adapter can drive it.
+// runner to be CLI-neutral so any adapter can drive it; cancel signals the worker's whole process group.
 
 import { spawn, spawnSync } from 'node:child_process';
 import { openSync, closeSync } from 'node:fs';
@@ -80,16 +80,28 @@ export function isAlive(pid) {
 }
 
 /**
- * Attempt to terminate a pid. SIGTERM -> SIGKILL after 1 second.
- * @returns {boolean} Whether termination was initiated successfully
+ * Send SIGTERM to the process group led by `pid`. A detached worker leads its
+ * own group, so the CLI it is waiting on receives the signal too. When the group
+ * signal throws (ESRCH: `pid` does not lead a group; EPERM; a platform without
+ * process groups), signal `pid` alone. No SIGKILL follow-up.
+ * A group signal is never sent for pid 1: kill(-1) reaches every process the user owns.
+ * @param {number} pid
+ * @returns {boolean} true when a signal was sent or `pid` is already gone; false when every attempt threw
  */
 export function killPid(pid) {
   if (!isAlive(pid)) return true;
+  if (pid > 1) {
+    try {
+      process.kill(-pid, 'SIGTERM');
+      return true;
+    } catch {
+      // not a group leader, or not permitted — fall back to the single pid below
+    }
+  }
   try {
     process.kill(pid, 'SIGTERM');
   } catch {
     return false;
   }
-  // The caller decides whether to use a SIGKILL fallback - in this sync path, SIGTERM is enough
   return true;
 }

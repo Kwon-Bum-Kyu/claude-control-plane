@@ -19,13 +19,14 @@
 // No plugins/ccp/scripts/core/*.mjs file was modified to add the mock
 // adapter used in test 2 — that absence is the extension-contract proof itself.
 
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { assertAdapter } from '../../plugins/ccp/scripts/core/runtime.mjs';
+import { killPid } from '../../plugins/ccp/scripts/core/process.mjs';
 import { parseMcpNames, classifyMcpList, compareMcp } from '../../plugins/ccp/scripts/core/mcp.mjs';
 import mockAdapter from './mock/adapter.mjs';
 import codexAdapter from '../../plugins/ccp/scripts/adapters/codex.mjs';
@@ -276,6 +277,55 @@ function killWorker(pid) {
     killWorker(workerPid);
     rmSync(jobsDir, { recursive: true, force: true });
   }
+}
+
+// cancel must reach the delegated CLI, not only the detached worker that waits on it.
+{
+  const root = mkdtempSync(join(tmpdir(), 'ccp-mock-cancel-'));
+  const jobsDir = join(root, 'jobs');
+  const pidFile = join(root, 'stub.pid');
+  let workerPid = null;
+  let stubPid = null;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const gone = (pid) => { try { process.kill(pid, 0); return false; } catch (e) { return e.code === 'ESRCH'; } };
+  try {
+    const dispatch = runMock(['rescue', '--background', '--timeout-ms', '60000', '--', 'x'], { mode: 'hang_trap_sigterm', jobsDir, extraEnv: { CCP_MOCK_PID_FILE: pidFile } });
+    const jobId = dispatch.envelope?.job_id;
+    workerPid = dispatch.envelope?.details?.pid ?? null;
+    for (let end = Date.now() + 10000; Date.now() < end && !/^\d+$/.test(readFileOr(pidFile)); ) await sleep(250);
+    stubPid = Number.parseInt(readFileOr(pidFile), 10) || null;
+    const c = runMock(['cancel', jobId], { jobsDir });
+    for (let end = Date.now() + 5000; stubPid && Date.now() < end && !gone(stubPid); ) await sleep(100);
+    let state = null;
+    try { state = JSON.parse(readFileSync(join(jobsDir, jobId, 'meta.json'), 'utf8')).state; } catch { /* unreadable */ }
+    check(
+      'cancel stops the delegated CLI along with its worker (whole process group)',
+      c.status === 0 && stubPid !== null && gone(stubPid) && state === 'cancelled',
+      JSON.stringify({ cancelStatus: c.status, stubPid, stubGone: stubPid ? gone(stubPid) : null, state })
+    );
+  } finally {
+    killWorker(workerPid);
+    if (stubPid) { try { process.kill(stubPid, 'SIGKILL'); } catch { /* already gone */ } }
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
+{
+  // A plain child is not a process-group leader: the group signal fails and killPid must signal the pid alone.
+  const child = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
+  try {
+    await new Promise((r) => child.once('spawn', r));
+    const exited = new Promise((r) => child.once('exit', (code, signal) => r(signal)));
+    const ret = killPid(child.pid);
+    const signal = await Promise.race([exited, new Promise((r) => setTimeout(() => r('timeout'), 5000))]);
+    check('killPid falls back to the single pid when the pid does not lead a process group', ret === true && signal === 'SIGTERM', JSON.stringify({ ret, signal }));
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+  }
+}
+
+function readFileOr(path) {
+  try { return readFileSync(path, 'utf8'); } catch { return ''; }
 }
 
 // rescue --mcp pre-check, dispatched through the same stub. Fixture: alpha is
