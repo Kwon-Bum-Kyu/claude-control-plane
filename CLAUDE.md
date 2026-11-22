@@ -76,6 +76,7 @@ node tests/companion/contract-test.mjs             # 어댑터 계약 43항목 (
 node tests/companion/golden/diff.mjs --cli all     # 골든 envelope 26시나리오/49 run. diff 0 이어야 통과
 node tests/companion/truncation-probe.mjs          # 요약 절단 계약 30항목
 node tests/agents/rescue-timeout-instructions-test.mjs   # rescue 서브에이전트 정의의 필수 지시 46항목
+node tests/agents/rescue-forwarding-instructions-test.mjs   # rescue 커맨드·서브에이전트 정의의 과제 전달 지시 88항목
 node tests/hooks/rescue-finalize-test.mjs                   # SubagentStop 고아 job 정리 훅 33항목 (임시 job 디렉터리, 실제 프로세스로 생존 판정)
 ```
 

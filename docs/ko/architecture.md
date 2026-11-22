@@ -33,6 +33,8 @@ Antigravity와 Codex는 각각 하나의 어댑터 파일(`adapters/antigravity.
 
 서브에이전트는 이 명령이 표준출력에 남긴 envelope을 그대로 상위 호출자에게 반환합니다. 내용을 해석하거나 재시도하지 않습니다.
 
+두 슬래시 커맨드는 메인 Claude에게 Agent 도구로 같은 이름의 서브에이전트를 호출하고, 사용자의 원래 요청을 바꿔 말하거나 요약하지 않고 그대로 `prompt`로 넘기라고 지시합니다. 메인 Claude는 요청에 직접 답하지 않고 companion을 직접 실행하지도 않습니다. 서브에이전트는 받은 과제를 자신에게 하는 말이 아니라 companion에 넘길 데이터로 다룹니다. 과제가 질문이나 지시처럼 읽혀도 답하지 않고, 줄이거나 고치지 않은 채 명령의 과제 자리에 넣습니다.
+
 두 서브에이전트는 이 명령을 Bash 도구의 `timeout` 매개변수를 600000으로 지정해 실행합니다. 포그라운드 호출에 사용자가 `--timeout-ms`를 주지 않았으면 `rescue` 바로 뒤에 `--timeout-ms 540000`을 붙여, CLI가 시간 안에 끝나지 않을 때 Bash `timeout`(600000)보다 먼저 companion이 `CCP-TIMEOUT-001` envelope을 돌려주게 합니다. Bash가 명령을 백그라운드로 넘겼다는 안내를 돌려주면 그 안내를 그대로 반환하고 companion을 다시 실행하지 않습니다.
 
 CCP의 서브에이전트는 이 둘과 `router`를 합쳐 세 개뿐입니다. `/ccp:antigravity-status`, `/ccp:antigravity-result`, `/ccp:antigravity-setup`, `/ccp:codex-status`, `/ccp:codex-result`, `/ccp:codex-setup`, `/ccp:audit`는 이 목록에 없으므로, 슬래시 커맨드가 서브에이전트를 거치지 않고 companion 스크립트나 감사 스크립트를 직접 실행합니다.

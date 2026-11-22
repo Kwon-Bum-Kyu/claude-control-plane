@@ -16,6 +16,7 @@
 - [ ] `node tests/companion/golden/diff.mjs --cli all`: diff 0
 - [ ] `node tests/companion/contract-test.mjs`, `node tests/companion/truncation-probe.mjs`: 실패 0건
 - [ ] `node tests/agents/rescue-timeout-instructions-test.mjs`: 실패 0건
+- [ ] `node tests/agents/rescue-forwarding-instructions-test.mjs`: 실패 0건
 - [ ] `node tests/hooks/rescue-finalize-test.mjs`: 실패 0건
 - [ ] 가드 3종(`node tools/repo-guard.mjs ignore-coverage`, `content`, `public-surface`) 통과
 - [ ] 감사 점수는 CI의 harness-audit 잡이 확인합니다(새로 클론한 트리에는 job 시드가 없어 로컬 실행으로는 검증할 수 없습니다)

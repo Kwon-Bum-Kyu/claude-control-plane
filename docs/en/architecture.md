@@ -33,6 +33,8 @@ Antigravity and Codex are each declared by a single adapter file (`adapters/anti
 
 The subagent only returns the envelope this command leaves on stdout to the caller as-is; it does not interpret the content or retry.
 
+Both slash commands instruct the main Claude to invoke the like-named subagent with the Agent tool and to pass the user's original request as its `prompt` as-is, without paraphrasing or summarizing it. The main Claude does not answer the request itself and does not run the companion directly. The subagent treats the task it receives as data to hand to the companion, not as a message addressed to it: even when the task reads like a question or an instruction, it does not answer it, and it puts the task into the task position of the command without shortening or altering it.
+
 Both subagents run this command with the Bash tool's `timeout` parameter set to 600000. When a foreground call carries no user-supplied `--timeout-ms`, they put `--timeout-ms 540000` right after `rescue`, so that a CLI that does not finish in time yields a `CCP-TIMEOUT-001` envelope from the companion before the 600000 ms Bash `timeout` is reached. If Bash reports that the command was moved to the background, they return that notice as-is and do not run the companion again.
 
 CCP has only three subagents in total: these two plus `router`. `/ccp:antigravity-status`, `/ccp:antigravity-result`, `/ccp:antigravity-setup`, `/ccp:codex-status`, `/ccp:codex-result`, `/ccp:codex-setup`, and `/ccp:audit` are not on this list, so their slash commands run the companion script or the audit script directly, without going through a subagent.
