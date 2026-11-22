@@ -35,6 +35,7 @@ import {
   ensureJobDir,
   patchJobMeta,
   enqueueBackgroundJob,
+  currentSessionId,
 } from './jobs.mjs';
 
 const MIN_NODE_MAJOR = 20;
@@ -700,7 +701,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
 
 function runBackground(ctx, { prompt, cwd, params }) {
   const { adapter, paths } = ctx;
-  const claudeSessionId = process.env.CLAUDE_SESSION_ID || `ppid:${process.ppid}`;
+  const claudeSessionId = currentSessionId();
   const { jobId, pid } = dispatchBackgroundJob({
     jobsDir: paths.JOBS_DIR,
     cli: adapter.id,

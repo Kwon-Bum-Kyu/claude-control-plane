@@ -25,6 +25,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { filterJobsForCurrentSession, currentSessionId } from '../../plugins/ccp/scripts/core/jobs.mjs';
 import { assertAdapter } from '../../plugins/ccp/scripts/core/runtime.mjs';
 import { killPid } from '../../plugins/ccp/scripts/core/process.mjs';
 import { parseMcpNames, classifyMcpList, compareMcp } from '../../plugins/ccp/scripts/core/mcp.mjs';
@@ -137,8 +138,10 @@ check('valid mock adapter passes assertAdapter', throws(() => assertAdapter(mock
 
 console.log('\n2. mock adapter — end-to-end dispatch (core/runtime.mjs, unmodified)');
 
-function runMock(args, { mode = 'ok', jobsDir, extraEnv = {}, timeout = 10000 } = {}) {
-  const env = { ...process.env, CCP_MOCK_BIN: MOCK_STUB, CCP_MOCK_MODE: mode, ...extraEnv };
+function runMock(args, { mode = 'ok', jobsDir, extraEnv = {}, unsetEnv = [], timeout = 10000 } = {}) {
+  const env = { ...process.env };
+  for (const k of unsetEnv) delete env[k];
+  Object.assign(env, { CCP_MOCK_BIN: MOCK_STUB, CCP_MOCK_MODE: mode }, extraEnv);
   if (jobsDir) env.CCP_JOBS_DIR = jobsDir;
   const r = spawnSync(process.execPath, [MOCK_COMPANION, ...args], { encoding: 'utf8', env, timeout });
   let envelope = null;
@@ -321,6 +324,50 @@ function killWorker(pid) {
     check('killPid falls back to the single pid when the pid does not lead a process group', ret === true && signal === 'SIGTERM', JSON.stringify({ ret, signal }));
   } finally {
     if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL');
+  }
+}
+
+{
+  // Session id precedence recorded by a background job: the documented
+  // CLAUDE_CODE_SESSION_ID, then the older CLAUDE_SESSION_ID, then ppid:<pid>.
+  // The inherited values are unset so the result does not depend on the runner.
+  const jobsDir = mkdtempSync(join(tmpdir(), 'ccp-mock-contract-'));
+  const unsetEnv = ['CLAUDE_CODE_SESSION_ID', 'CLAUDE_SESSION_ID'];
+  const envs = [{ CLAUDE_CODE_SESSION_ID: 'sess-new' }, { CLAUDE_SESSION_ID: 'sess-old' }, {}, { CLAUDE_CODE_SESSION_ID: 'sess-new', CLAUDE_SESSION_ID: 'sess-old' }];
+  const got = [];
+  const pids = [];
+  try {
+    for (const extraEnv of envs) {
+      const d = runMock(['rescue', '--background', '--', 'x'], { jobsDir, unsetEnv, extraEnv });
+      pids.push(d.envelope?.details?.pid ?? null);
+      const meta = waitForTerminalMeta(jobsDir, d.envelope?.job_id, 20000);
+      got.push(meta?.claude_session_id ?? null);
+    }
+    check(
+      'background job records CLAUDE_CODE_SESSION_ID, then CLAUDE_SESSION_ID, then ppid:<pid>',
+      got[0] === 'sess-new' && got[1] === 'sess-old' && /^ppid:\d+$/.test(String(got[2])) && got[3] === 'sess-new',
+      JSON.stringify(got)
+    );
+  } finally {
+    for (const pid of pids) killWorker(pid);
+    rmSync(jobsDir, { recursive: true, force: true });
+  }
+}
+
+{
+  const saved = { a: process.env.CLAUDE_CODE_SESSION_ID, b: process.env.CLAUDE_SESSION_ID };
+  try {
+    process.env.CLAUDE_CODE_SESSION_ID = 'sess-a';
+    delete process.env.CLAUDE_SESSION_ID;
+    const ids = filterJobsForCurrentSession([{ id: 'a', claude_session_id: 'sess-a' }, { id: 'b', claude_session_id: 'sess-b' }, { id: 'n', claude_session_id: null }]).map((j) => j.id);
+    check(
+      'filterJobsForCurrentSession defaults to currentSessionId()',
+      currentSessionId() === 'sess-a' && JSON.stringify(ids) === JSON.stringify(['a', 'n']),
+      JSON.stringify({ sid: currentSessionId(), ids })
+    );
+  } finally {
+    if (saved.a === undefined) delete process.env.CLAUDE_CODE_SESSION_ID; else process.env.CLAUDE_CODE_SESSION_ID = saved.a;
+    if (saved.b === undefined) delete process.env.CLAUDE_SESSION_ID; else process.env.CLAUDE_SESSION_ID = saved.b;
   }
 }
 
