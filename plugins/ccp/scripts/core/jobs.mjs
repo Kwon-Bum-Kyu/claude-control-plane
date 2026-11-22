@@ -51,12 +51,12 @@ function readRawMeta(jobsDir, jobId) {
  * everywhere downstream is `job_id`/`state`/`result_path`.
  *
  * Priority when both `status` and `state` are present and differ: `status`
- * wins (it is the field `hooks/rescue-finalize.js` writes on orphan
- * detection). This is the *read* side of that rule; the *write* side (below)
- * deliberately withholds the `status` key for adapters that never had it on
- * disk to begin with, so this branch is a no-op for those and only matters
- * once an alternate-shaped meta file (one that does carry `status`) is
- * normalized here.
+ * wins. `hooks/rescue-finalize.js` reads a record's state with this same
+ * priority, and when it finalizes an orphan it rewrites only the keys the
+ * record already has. The *write* side (below) deliberately withholds the
+ * `status` key for adapters that never had it on disk to begin with, so this
+ * branch is a no-op for those and only matters once an alternate-shaped meta
+ * file (one that does carry `status`) is normalized here.
  */
 function normalizeMeta(raw) {
   if (!raw || typeof raw !== 'object') return raw;
