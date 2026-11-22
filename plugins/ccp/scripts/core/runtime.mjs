@@ -4,7 +4,8 @@
 // Modified by CCP contributors: unified dispatch/cancel/snapshot interface emitting the
 // shared JSON envelope; subcommand routing driven by adapter declarations; timeout
 // detection keyed on spawnSync's ETIMEDOUT so a CLI that exits cleanly on SIGTERM
-// is still reported as a timeout; per-path timeout defaults (foreground/background).
+// is still reported as a timeout; per-path timeout defaults (foreground/background);
+// rejection of flags an adapter does not declare; status-time finalization of orphaned jobs.
 //
 // This is the single generic entry point every companion routes through.
 // It knows about *operation names* (setup, rescue, status, result, cancel,
@@ -17,11 +18,12 @@
 // adapter declares are dispatched conditionally on that adapter's own
 // declarations — core never assumes every adapter supports the same surface.
 
-import { existsSync, writeFileSync, readFileSync } from 'node:fs';
+import { existsSync, writeFileSync, readFileSync, statSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { join, resolve } from 'node:path';
 
 import { resolvePaths } from './paths.mjs';
+import { finalizeIfOrphan } from './orphan.mjs';
 import { mergeErrorCatalog } from './errors.mjs';
 import { emitSuccess, emitBackground, emitError } from './envelope.mjs';
 import { clampSummaryAtBoundary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
@@ -35,6 +37,7 @@ import {
   ensureJobDir,
   patchJobMeta,
   enqueueBackgroundJob,
+  currentSessionId,
 } from './jobs.mjs';
 
 const MIN_NODE_MAJOR = 20;
@@ -70,9 +73,7 @@ const CONTRACT = {
     optional: ['jobMetaStatusAlias', 'jobLookupCodes'],
     requiredFunctions: ['validateFlagValue', 'resultIncompleteCode'],
     optionalFunctions: ['validateJobId'],
-    // Only present on adapters whose argStyle is 'task-flag' (parseTaskFlagArgs
-    // consults it) — 'dash-dash' adapters never need it. Not part of the
-    // 55-key tally; documented here only so the unknown-key check knows it's legitimate.
+    // `flags` is the parse vocabulary for both argStyles (core/args.mjs): a "-"-prefixed token outside it is reported as unknown and rejected by run().
   },
   timeouts: ['foreground', 'background', 'authProbe'],
   result: ['fileName', 'pathStyle', 'logFileName', 'persistForeground'],
@@ -106,6 +107,7 @@ const REQUIRED_NESTED_FUNCTIONS = [
 // messages.preflightSummary, supports.validateJobId — called with `?.()` since
 // only one shipped adapter needs each and a forced stub on the other would be
 // dead code with no verifiable behavior).
+const UNSAFE_JOB_ID_RE = /[\\/]|\.\./;
 const ERROR_CODE_RE = /^CCP-[A-Z]+-\d{3}$/;
 const RECOVERY_ENUM = new Set(['retry', 'fallback_claude', 'abort', 'user_action_required']);
 const RESCUE_GATE_ENUM = new Set(['detect', 'probe']);
@@ -336,6 +338,32 @@ function readTextFileSafe(path) {
   }
 }
 
+/** User-supplied path check (system boundary): false for a missing path, a non-directory, or any stat error. */
+function isDirectory(path) {
+  try {
+    return statSync(path).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Error text for a flag the adapter does not declare. Built from the adapter's
+ * declarations so the supported list can never drift from what the parser accepts.
+ * @param {object} adapter
+ * @param {string} name  flag name as typed, without any '=value' part ('--model', '-x')
+ * @returns {{ message: string, action: string, details: { unsupported_flag: string } }}
+ */
+function unsupportedFlagError(adapter, name) {
+  const rejected = new Set((adapter.supports.rejectFlags || []).map((rf) => rf.flag));
+  const supported = Object.keys(adapter.supports.flags).map((n) => `--${n}`).filter((f) => !rejected.has(f));
+  return {
+    message: `\`${name}\` is not supported by ${capitalize(adapter.id)}`,
+    action: `Supported flags: ${supported.join(', ')}. To pass task text that starts with "-", put it after "--".`,
+    details: { unsupported_flag: name },
+  };
+}
+
 function capitalize(s) {
   return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s;
 }
@@ -531,7 +559,7 @@ function handleRescue(ctx, parsed) {
     emitErr(ctx, 'CCP-INVALID-001', { message: hint.message, action: hint.action });
   }
 
-  if (flags.fallbackClaude) {
+  if (pickBool(flags, 'fallbackClaude', false)) {
     emitSucc(ctx, {
       summary: adapter.messages.fallbackSummary,
       tokens: adapter.tokensFrom({ input: 0, output: 0, total: 0 }),
@@ -541,6 +569,12 @@ function handleRescue(ctx, parsed) {
   }
 
   const cwd = pickString(flags, 'cwd', process.cwd());
+  if (!isDirectory(cwd)) {
+    emitErr(ctx, 'CCP-INVALID-001', {
+      message: 'The `--cwd` directory does not exist or is not a directory',
+      action: 'Pass an existing directory to `--cwd`, or omit it to use the current directory.',
+    });
+  }
   const model = pickString(flags, 'model', '');
   const effort = pickString(flags, 'effort', '');
   // Raw passthrough, not pickString: `sandbox` is a string enum for one adapter
@@ -602,6 +636,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
       created_at: new Date().toISOString(),
       started_at: new Date().toISOString(),
       completed_at: null,
+      pid: process.pid,
       result_path: null,
       summary_3lines: null,
       token_usage: null,
@@ -674,7 +709,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
     // codex) still needs somewhere to put the full body once the summary can
     // no longer hold all of it. Deliberately skips meta.json: this directory
     // therefore has no lifecycle owner (status/result/cancel never look here,
-    // and hooks/rescue-finalize.js's orphan scan requires meta.json to exist
+    // and core/orphan.mjs (used by the SubagentStop hook and status) requires meta.json to exist
     // before it will touch a directory at all) and accumulates one entry per
     // truncated call with nothing cleaning it up — a known, recorded
     // limitation, not a claim that this is side-effect-free. See the
@@ -700,7 +735,7 @@ function runForeground(ctx, { prompt, cwd, params }) {
 
 function runBackground(ctx, { prompt, cwd, params }) {
   const { adapter, paths } = ctx;
-  const claudeSessionId = process.env.CLAUDE_SESSION_ID || `ppid:${process.ppid}`;
+  const claudeSessionId = currentSessionId();
   const { jobId, pid } = dispatchBackgroundJob({
     jobsDir: paths.JOBS_DIR,
     cli: adapter.id,
@@ -726,6 +761,10 @@ function handleStatus(ctx, parsed) {
     const hint = adapter.messages.missingArg('status');
     emitErr(ctx, 'CCP-INVALID-001', { message: hint.message, action: hint.action });
   }
+  // Finalize a job whose owning process is gone before reporting it, by the same
+  // rule the SubagentStop hook uses. Skipped for an id carrying a path separator
+  // or "..", so this write can never land outside the jobs directory.
+  if (!UNSAFE_JOB_ID_RE.test(jobId)) finalizeIfOrphan(join(paths.JOBS_DIR, jobId), { reason: 'orphan_status' });
   const { status, meta } = lookupJobMeta(paths.JOBS_DIR, jobId);
   if (status === 'missing') emitErr(ctx, adapter.supports.jobLookupCodes.missing, { details: jobLookupDetails(adapter, jobId, 'missing') });
   if (status === 'corrupt') emitErr(ctx, adapter.supports.jobLookupCodes.corrupt, { details: jobLookupDetails(adapter, jobId, 'corrupt') });
@@ -929,6 +968,13 @@ export function run(adapter, argv, entryOpts) {
     if (parsed.flags[key] !== undefined) {
       emitErr(ctx, 'CCP-INVALID-001', { message: rf.message, action: rf.action, details: rf.details });
     }
+  }
+
+  // A flag the adapter never declared is rejected here — after the adapter's own
+  // dedicated rejections (which carry CLI-specific guidance) and before any value
+  // check or handler runs. Only the first one is reported, by name only.
+  if (parsed.unknown.length > 0) {
+    emitErr(ctx, 'CCP-INVALID-001', unsupportedFlagError(adapter, parsed.unknown[0]));
   }
 
   // Value-conditional flag validation (path traversal guard etc.).

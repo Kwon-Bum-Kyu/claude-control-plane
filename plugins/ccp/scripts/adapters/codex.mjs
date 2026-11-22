@@ -97,10 +97,8 @@ export default {
 
   supports: {
     subcommands: ['setup', 'rescue', 'status', 'result', 'cancel', 'task-worker'],
-    // Documentation/usage-generation shape (this adapter's own dash-dash
-    // parser is fully generic and does not consult this table for parsing —
-    // only the task-flag style does). Kept accurate anyway: one declaration,
-    // not a second table duplicating the same flag list.
+    // Parse vocabulary for core/args.mjs: a "-"-prefixed token not listed here is
+    // rejected by core before any handler runs.
     flags: {
       background: { key: 'background', type: 'bool' },
       cwd: { key: 'cwd', type: 'string' },
@@ -109,13 +107,10 @@ export default {
       sandbox: { key: 'sandbox', type: 'string' },
       'timeout-ms': { key: 'timeoutMs', type: 'int' },
       'fallback-claude': { key: 'fallbackClaude', type: 'bool' },
-      // core/runtime.mjs#handleRescue reads flags.task directly (an explicit
-      // --task wins over the positional/prompt list); this dash-dash parser
-      // is fully generic and already parses --task without a table entry, so
-      // this exists only to keep the documentation/usage-generation list accurate.
       task: { key: 'task', type: 'string' },
-      // Documentation/usage list only — the dash-dash parser reads --mcp without it.
       mcp: { key: 'mcp', type: 'string' },
+      // status/result/cancel read flags.jobId as an alternative to the positional job id.
+      'job-id': { key: 'jobId', type: 'string' },
     },
     rejectFlags: [],
     // codex has no value-conditional flag guard today (that is antigravity's --files traversal check)
@@ -163,7 +158,6 @@ export default {
     'CCP-JOB-004': { message: 'The result file is missing', action: 'Rerun with a new `/ccp:codex-rescue` call.', recovery: 'abort' },
     'CCP-JOB-409': { message: 'Cannot cancel in the current state', action: 'Check the job state and try again.', recovery: 'abort' },
     'CCP-TIMEOUT-001': { message: 'Codex response timed out', action: 'Retry or run asynchronously with `--background`.', recovery: 'retry' },
-    'CCP-UNSUPPORTED-101': { message: 'This option is not supported by codex', action: 'See docs/en/slash-commands.md in the CCP repository for per-CLI flag support.', recovery: 'abort' },
   },
 
   details: {

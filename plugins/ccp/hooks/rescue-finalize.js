@@ -3,23 +3,25 @@
 // Event: SubagentStop (runs after every subagent stops; matcher "*")
 // Behavior: finalize job records that are still `running` but can no longer
 //           finish, marking them failed:
-//           - a record with a worker pid, once that process no longer exists
-//             (no age condition)
-//           - a record without a pid (a foreground job record), once the job's
-//             own timeout plus GRACE_MS has passed since it started
+//           - a record with a pid (the process that owns the job: a background
+//             worker, or the companion waiting on a foreground CLI), once that
+//             process no longer exists (no age condition)
+//           - a record without a pid (a record written before pids were
+//             recorded), once the job's own timeout plus GRACE_MS has passed
+//             since it started
 //           Only the state keys a record already has (`state`, `status`) are
 //           rewritten; a key the record never had is not added.
+//           The rule lives in core/orphan.mjs, shared with the companions'
+//           `status` subcommand. If core/orphan.mjs cannot be loaded, no
+//           record is touched.
 // Failure-silent: no error blocks user flow.
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-const DEFAULT_TIMEOUT_MS = 600000; // job without a valid params.timeoutMs: the adapters' largest declared timeout
-const GRACE_MS = 300000;           // after a timeout, time for the companion to stop the CLI and record the result
 
 function readStdinSync() {
   try {
@@ -53,73 +55,18 @@ async function resolveJobsDirSafe(projectDirHint) {
   }
 }
 
-// Liveness uses core/process.mjs#isAlive (EPERM counts as alive). Loaded
-// dynamically for the same failure-silent reason as core/paths.mjs above.
-// If it cannot be loaded, every pid is treated as alive: records with a pid
-// are left untouched rather than finalized on a guess.
-async function loadIsAliveSafe() {
+// Orphan detection and finalization live in core/orphan.mjs, shared with the
+// companions' `status` subcommand. Loaded dynamically for the same
+// failure-silent reason as core/paths.mjs above. If it cannot be loaded (a
+// missing or broken core module), the hook touches no record at all: it never
+// finalizes on a rule it cannot see.
+async function loadFinalizeSafe() {
   try {
-    const processModulePath = resolve(__dirname, '..', 'scripts', 'core', 'process.mjs');
-    const { isAlive } = await import(processModulePath);
-    return isAlive;
-  } catch {
-    return () => true;
-  }
-}
-
-/** @returns {object|null} the parsed record, or null when missing, unreadable, or not an object */
-function readMeta(metaPath) {
-  try {
-    const meta = JSON.parse(readFileSync(metaPath, 'utf8'));
-    return meta !== null && typeof meta === 'object' ? meta : null;
+    const orphanModulePath = resolve(__dirname, '..', 'scripts', 'core', 'orphan.mjs');
+    const { finalizeIfOrphan } = await import(orphanModulePath);
+    return finalizeIfOrphan;
   } catch {
     return null;
-  }
-}
-
-/** Same read priority as core/jobs.mjs normalizeMeta: `status` first, then `state`. */
-function jobState(meta) {
-  return meta.status ?? meta.state;
-}
-
-function hasPid(meta) {
-  return Number.isInteger(meta.pid) && meta.pid > 0;
-}
-
-function timeoutOf(meta) {
-  const t = meta.params?.timeoutMs;
-  return Number.isFinite(t) && t > 0 ? t : DEFAULT_TIMEOUT_MS;
-}
-
-/** @returns {boolean} whether the record is an orphan at `now` (decision table rows 2-7) */
-function isOrphan(meta, isAlive, now) {
-  if (jobState(meta) !== 'running') return false;
-  if (hasPid(meta)) return !isAlive(meta.pid);
-  const started = typeof meta.started_at === 'string' ? Date.parse(meta.started_at) : NaN;
-  if (!Number.isFinite(started)) return false;
-  return now - started > timeoutOf(meta) + GRACE_MS;
-}
-
-/** @returns {object} a new record; only keys already present among state/status become 'failed' */
-function finalized(cur, nowIso) {
-  const next = { ...cur, completed_at: nowIso, error: { code: 'CCP-TIMEOUT-001', reason: 'orphan_subagent_stop' } };
-  for (const key of ['state', 'status']) if (Object.hasOwn(cur, key)) next[key] = 'failed';
-  return next;
-}
-
-// Re-read right before writing: the job's own process may have recorded its result after the first read (a worker writes its final state before it exits).
-/** @returns {boolean} true when the record was rewritten */
-function tryFinalize(jobDir, isAlive) {
-  const metaPath = join(jobDir, 'meta.json');
-  const meta = readMeta(metaPath);
-  if (meta === null || !isOrphan(meta, isAlive, Date.now())) return false;
-  const cur = readMeta(metaPath);
-  if (cur === null || jobState(cur) !== 'running') return false;
-  try {
-    writeFileSync(metaPath, JSON.stringify(finalized(cur, new Date().toISOString()), null, 2));
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -135,9 +82,8 @@ async function main() {
   }
   const projectDirHint = typeof payload.cwd === 'string' && payload.cwd.length > 0 ? payload.cwd : undefined;
   const JOBS_DIR = await resolveJobsDirSafe(projectDirHint);
-  const isAlive = await loadIsAliveSafe();
-
-  if (!existsSync(JOBS_DIR)) return emit({});
+  const finalizeIfOrphan = await loadFinalizeSafe();
+  if (!finalizeIfOrphan || !existsSync(JOBS_DIR)) return emit({});
   let finalized = 0;
   let entries;
   try {
@@ -152,7 +98,7 @@ async function main() {
     } catch {
       continue;
     }
-    if (tryFinalize(dir, isAlive)) finalized++;
+    if (finalizeIfOrphan(dir, { reason: 'orphan_subagent_stop' })) finalized++;
   }
   emit({});
 }

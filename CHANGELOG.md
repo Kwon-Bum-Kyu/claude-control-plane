@@ -6,6 +6,28 @@
 
 ## [Unreleased]
 
+### 수정
+
+- codex `cancel`이 작업 프로세스만 종료하고 그 프로세스가 실행한 Codex CLI는 계속 돌던 문제를 고쳤습니다. 이제 작업 프로세스 그룹 전체에 종료 신호를 보냅니다.
+- 백그라운드 job 기록의 세션 식별자가 호출마다 다른 부모 프로세스 ID로 남던 문제를 고쳤습니다. Claude Code가 넘기는 `CLAUDE_CODE_SESSION_ID`를 먼저 읽고, 없으면 `CLAUDE_SESSION_ID`, 그다음 부모 프로세스 ID를 씁니다.
+- `/ccp:antigravity-status`와 `/ccp:codex-status`가 맡은 프로세스가 이미 종료된 job을 `running`으로 보여 주던 문제를 고쳤습니다. status가 조회하기 전에 `SubagentStop` 훅과 같은 규칙으로 그 job을 `failed`로 기록합니다.
+- antigravity 포그라운드 job 기록에 companion 프로세스의 pid를 남깁니다. 이전에는 중단된 포그라운드 job이 시작 후 타임아웃에 5분을 더한 시간이 지나야 정리됐고, 이제는 그 프로세스가 종료되면 바로 정리됩니다.
+- codex에서 `--fallback-claude=false`가 fallback을 켜던 문제를 고쳤습니다.
+
+### 변경
+
+- 호환성 변경: 이전 버전에서 오류 없이 받던 플래그 일부가 이제 `CCP-INVALID-001` 오류가 됩니다. companion이 각 CLI가 선언하지 않은 플래그를 작업을 시작하기 전에 거부하기 때문입니다. 해당하는 것은 antigravity의 `--summary-only`, `--poll-interval-ms`, `--renew`(받기만 하고 효과가 없어 선언을 뺐습니다)와 `--model`, codex의 `--write`, `--max-tokens`, `--files`, `--summary-only`, 그리고 codex가 받아 오던 `--timeoutMs`·`--jobId` 같은 camelCase 철자의 플래그 이름입니다(이제 `--timeout-ms`·`--job-id`처럼 선언한 철자만 받습니다). `-x`처럼 대시 하나로 시작하는 토큰도 `--` 앞에 두면 거부되므로, `-`로 시작하는 과제는 `--` 뒤에 두거나 antigravity에서는 `--task`로 넘깁니다.
+- 선언하지 않은 플래그를 받았을 때의 동작이 바뀌었습니다. 이전에는 antigravity가 그 플래그를 과제 문자열에 섞거나 버렸고, codex는 읽은 뒤 버리거나 다음 토큰을 값으로 삼켜 과제가 사라졌습니다. 이제 거부 응답이 지원하지 않는 플래그 이름(`unsupported_flag`)과 그 CLI가 받는 플래그 목록을 알려 주며, 플래그 값은 싣지 않습니다. `--` 뒤의 토큰은 계속 과제로 넘어갑니다.
+- codex의 `--background`와 `--fallback-claude`가 뒤의 토큰을 값으로 읽지 않습니다. 이전에는 `--` 없이 `--background 과제`처럼 쓰면 과제의 첫 단어를 이 플래그의 값으로 삼켰습니다.
+- 에러 카탈로그에서 내보내는 곳이 없던 `CCP-UNSUPPORTED-101`을 삭제했습니다.
+
+### 추가
+
+- antigravity가 `--cwd DIR`을 받아 위임한 CLI를 그 디렉터리에서 실행합니다. 두 CLI 모두 존재하지 않는 디렉터리를 주면 `CCP-INVALID-001`로 거부합니다.
+- antigravity가 선언한 플래그를 `--name=value` 형태로도 받습니다. `--background`·`--fallback-claude`는 값을 참·거짓으로 읽고, 그 밖의 bool 플래그는 값과 무관하게 켜진 것으로 보므로 `--sandbox=false`도 샌드박스를 켭니다.
+- codex가 `status`·`result`·`cancel`의 `--job-id`를 선언합니다. 문서가 안내하던 대안 형식이 미선언 플래그 거부 뒤에도 그대로 동작합니다.
+- antigravity rescue 서브에이전트의 허용 명령에 `--sandbox`와 `--cwd DIR`을 넣었습니다. 이전에는 사용자가 준 `--sandbox`가 명령 플래그로 빠지지 못하고 과제 문자열에 남았습니다.
+
 ## [v0.4.5] - 2026-11-22
 
 ### 수정

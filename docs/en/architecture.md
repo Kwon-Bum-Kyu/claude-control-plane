@@ -28,7 +28,7 @@ Antigravity and Codex are each declared by a single adapter file (`adapters/anti
 
 `/ccp:antigravity-rescue` and `/ccp:codex-rescue` each run through the like-named subagent (`antigravity-rescue`, `codex-rescue`). Both subagents are declared with `tools:["Bash"]`, `disallowedTools:["mcp__*"]`, `model:haiku`, `background:false`. Each of them runs exactly one fixed command.
 
-- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]`
+- `antigravity-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]`
 - `codex-rescue`: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" rescue [--background] [--model NAME] [--effort low|medium|high] [--sandbox MODE] [--cwd DIR] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] -- "<task>"`
 
 The subagent only returns the envelope this command leaves on stdout to the caller as-is; it does not interpret the content or retry.
@@ -53,6 +53,7 @@ The companion is split into a shared core and a per-CLI adapter. The core is mad
 - `core/jobs.mjs`: reads and writes job metadata, and filters it by session scope.
 - `core/args.mjs`: parses flags.
 - `core/mcp.mjs`: checks the rescue `--mcp` value, compares it with the MCP server list the adapter read, and builds the guidance text.
+- `core/orphan.mjs`: decides which `running` jobs can no longer finish and records them `failed`. The `SubagentStop` hook and the status subcommand use the same implementation.
 - `core/runtime.mjs`: handles per-subcommand processing, failure classification, and running background jobs.
 
 The two adapters (`adapters/antigravity.mjs`, `adapters/codex.mjs`) declare values specific to each CLI: supported flags and rejected flags, the function that builds the command line (`buildArgs`), the function that reads CLI output (`parseResult`), the MCP server-list arguments and the functions that read that list and build the fix-up commands (`mcp`), timeouts, the error catalog, the binary-path environment variable, and so on. The core only reads these declared values to coordinate execution, and substitutes a safe default set by the core itself for any value an adapter does not declare.
@@ -61,13 +62,15 @@ The case where this substitution actually takes effect is job_id format validati
 
 `tests/companion/contract-test.mjs` checks the field composition both adapters must declare on every run. This test fails if the core requires a field an adapter did not declare, or if an adapter adds a field the core does not know about.
 
+The core classifies arguments against the adapter's `supports.flags` declarations and rejects an undeclared flag with `CCP-INVALID-001` before handling the subcommand. The adapter's reject-flag (`rejectFlags`) check runs first, so a flag with dedicated guidance is rejected with that guidance. The core builds the rejection text and the supported-flag list from the declarations, and takes the CLI name only from the adapter's `id`.
+
 When a rescue call is given `--mcp`, the core runs the MCP pre-check once, right after handling `--fallback-claude` and before the authentication check and the foreground/background split. It lists the target CLI's registered servers with the adapter's `mcp.listArgs`, and compares the declared names using only the server names and enabled states that `mcp.parseList` returns. Not registered, disabled, and an unreadable list all stop with the single code `CCP-MCP-001`, and `details.mcp` tells them apart. The commands the user should run are placeholder commands built by the adapter's `mcp.installCommand`, and the core never runs them. Because the raw list output can contain secrets such as authentication headers, it is passed only to `mcp.parseList` and is never left in logs, job directories, or the envelope. The check finishes before any job directory is created, so a call that fails it leaves nothing on disk.
 
 ## Envelope and error-code scheme
 
 The envelope schema follows JSON Schema draft-2020-12 (https://json-schema.org/draft/2020-12/schema). The schema file is `plugins/ccp/schemas/envelope.schema.json`, and its `$id` value is `https://raw.githubusercontent.com/Kwon-Bum-Kyu/claude-control-plane/main/plugins/ccp/schemas/envelope.schema.json` itself. For which keys the envelope has and which values `details.mode` can take, see the response-envelope section of the [Slash commands](./slash-commands.md) document.
 
-The error-code format is `CCP-<CATEGORY>-<NNN>`. Scanning all the codes, the categories `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, `UNSUPPORTED`, and `MCP` are observed.
+The error-code format is `CCP-<CATEGORY>-<NNN>`. Scanning all the codes, the categories `INVALID`, `JOB`, `TIMEOUT`, `SETUP`, `OAUTH`, `AG`, `CODEX`, `ROUTER`, `COMPACT`, `API`, `AUDIT`, and `MCP` are observed.
 
 Both adapters inherit the shared error catalog and then merge it with their own catalog. The merge rule is `{ ...the shared catalog, ...the adapter catalog }`, and when a key overlaps, the adapter's wording always wins. Of the shared catalog, `CCP-MCP-001` (MCP pre-check) is not overridden by either adapter; its `message` and `action` are filled in with state-specific wording at the call site.
 
@@ -95,7 +98,7 @@ CCP registers three hooks: `router-suggest.js` for `UserPromptSubmit`, `rescue-f
 
 - `boot-check.js` (`SessionStart`): pre-checks the Node.js version, whether agy is installed and its version, and the authentication state. If it finds a problem, it only shows a notice; if there is no problem, it does nothing. This check does not block session start.
 - `router-suggest.js` (`UserPromptSubmit`): injects the routing decision as a `[CCP-ROUTER-001]` suggestion. If `auto_routing` is on and the session is judged canonical, or if the decision is `claude` in the first place, it injects nothing. In the former case, it hands that decision to the `router` subagent. It appends a `[CCP-META-WARN]` notice to a prompt suspected of headless automation.
-- `rescue-finalize.js` (`SubagentStop`): finds jobs still in the `running` state that can no longer finish, marks them `failed`, and records `CCP-TIMEOUT-001`. A job that records a worker pid (a background job of either CLI) is finalized once that process has exited, and is left alone for as long as the process is alive. A job without a pid (an antigravity foreground job) is finalized once its own timeout plus a 5-minute grace period has passed since it started; for example, a foreground call made through a slash command has a 540000 ms timeout, so that is 14 minutes. Finalizing changes only the state keys the record already has (`state`, `status`).
+- `rescue-finalize.js` (`SubagentStop`): finds jobs still in the `running` state that can no longer finish, marks them `failed`, and records `CCP-TIMEOUT-001`. A job that records the pid of the process that owns it is finalized once that process has exited, and is left alone for as long as the process is alive. A background job records its worker's pid, and an antigravity foreground job records the pid of the companion process waiting on the CLI. A job without a pid (a record written before pids were recorded) is finalized once its own timeout plus a 5-minute grace period has passed since it started; for example, a foreground call made through a slash command has a 540000 ms timeout, so that is 14 minutes. Finalizing changes only the state keys the record already has (`state`, `status`). The decision and the write live in `core/orphan.mjs`, and the status subcommand finalizes the one job it looks up by the same rule before reporting it. If the hook cannot load this module, it changes no record.
 
 All three hooks fail quietly. If stdin is not JSON or an exception occurs during processing, they write an empty object to stdout and exit as-is, so the user's input flow is not blocked.
 

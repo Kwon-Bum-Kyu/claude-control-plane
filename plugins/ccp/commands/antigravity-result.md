@@ -1,6 +1,6 @@
 ---
 description: Retrieves the result of a completed Antigravity background job (summary + result file path). Raw result content is not included in the envelope.
-argument-hint: <job_id> [--summary-only]
+argument-hint: <job_id>
 allowed-tools:
   - Bash
 ---
@@ -12,13 +12,12 @@ Retrieves the result of a job started with `/ccp:antigravity-rescue --background
 ## Usage
 
 ```
-/ccp:antigravity-result <job_id> [--summary-only]
+/ccp:antigravity-result <job_id>
 ```
 
 | Argument | Description |
 |------|------|
 | `<job_id>` | UUID v4 of the completed job (required) |
-| `--summary-only` | Accepted but currently a no-op — the envelope already never includes raw result content (see Behavior below); reserved for a future stricter mode |
 
 ## Behavior
 
@@ -29,7 +28,7 @@ Retrieves the result of a job started with `/ccp:antigravity-rescue --background
 ## Invocation Pattern
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" result <job_id> [--summary-only]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" result <job_id>
 ```
 
 ## Output (Success)

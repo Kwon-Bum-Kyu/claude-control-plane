@@ -1,6 +1,6 @@
 ---
 description: Delegates heavy summarization, analysis, and large-context processing to Antigravity CLI (`agy`) to reduce main Claude context tokens.
-argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
+argument-hint: <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]
 allowed-tools:
   - Bash
   - Agent
@@ -20,7 +20,7 @@ $ARGUMENTS
 ## Usage
 
 ```
-/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
+/ccp:antigravity-rescue <task> [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]
 ```
 
 | Argument | Description |
@@ -32,6 +32,8 @@ $ARGUMENTS
 | `--timeout-ms N` | Response timeout for the foreground run or the background worker. If omitted, a foreground call through this command uses 540000: the `antigravity-rescue` subagent adds it so the companion answers before the 600000 ms Bash `timeout` the subagent sets. A background call uses the adapter default (600000), and running the companion directly uses 600000 for both. A foreground value above 540000 can return a moved-to-background notice instead of an envelope; use `--background` for long tasks |
 | `--fallback-claude` | Skip companion invocation. Main Claude handles the task directly (for reinvocation on the next turn after auth failure) |
 | `--mcp NAME[,NAME...]` | Before delegating, run `agy mcp list` once and stop with `CCP-MCP-001` if any named MCP server is not registered, is disabled, or the list cannot be read. Comma-separated; each name starts with a letter or digit and uses only letters, digits, `.`, `_`, `-`. Put the value after a space, as in `--mcp a,b`. Skipped together with `--fallback-claude` |
+| `--sandbox` | Constrain what the auto-approved tool calls can reach (passed to `agy` as `--sandbox`). Recommended for untrusted input — see the Security Notice below |
+| `--cwd DIR` | Directory the delegated `agy` runs in (default: the current directory). Rejected with `CCP-INVALID-001` if it is not an existing directory |
 
 If the task depends on a specific MCP server in Antigravity (for example a browser-automation server), add `--mcp <name>` so a missing or disabled server is reported before delegation instead of the delegated task failing quietly.
 
@@ -56,7 +58,7 @@ To disable auto-approval entirely, set `CCP_AGY_SKIP_PERMISSIONS=0` (also accept
 Only the `antigravity-rescue` subagent (`agents/antigravity-rescue.md`) runs the following single Bash pattern. Do not run it from this command; delegate as the Delegation section describes.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]]
+node "${CLAUDE_PLUGIN_ROOT}/scripts/antigravity-companion.mjs" rescue --task "<task>" [--background] [--max-tokens N] [--files <glob>] [--timeout-ms N] [--fallback-claude] [--mcp NAME[,NAME...]] [--sandbox] [--cwd DIR]
 ```
 
 ## Output (Foreground Success)

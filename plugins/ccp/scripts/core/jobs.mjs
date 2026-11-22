@@ -7,7 +7,8 @@
 // added a read-time key-alias normalization layer (see readJobMeta below); writing
 // the legacy `status` alias alongside `state` is opt-in per call (writeStatusAlias)
 // so each adapter's pre-refactor on-disk shape — and whatever downstream reads it —
-// is reproduced exactly rather than unified by default.
+// is reproduced exactly rather than unified by default; session id read from
+// CLAUDE_CODE_SESSION_ID first.
 //
 // License-isolation note: this file carries only the Apache-2.0-derived job-state
 // implementation, generalized for multi-adapter use. A companion whose meta
@@ -51,9 +52,9 @@ function readRawMeta(jobsDir, jobId) {
  * everywhere downstream is `job_id`/`state`/`result_path`.
  *
  * Priority when both `status` and `state` are present and differ: `status`
- * wins. `hooks/rescue-finalize.js` reads a record's state with this same
- * priority, and when it finalizes an orphan it rewrites only the keys the
- * record already has. The *write* side (below) deliberately withholds the
+ * wins. `core/orphan.mjs` (shared by the SubagentStop hook and `status`)
+ * reads a record's state with this same priority, and when it finalizes an
+ * orphan it rewrites only the keys the record already has. The *write* side (below) deliberately withholds the
  * `status` key for adapters that never had it on disk to begin with, so this
  * branch is a no-op for those and only matters once an alternate-shaped meta
  * file (one that does carry `status`) is normalized here.
@@ -232,14 +233,26 @@ export function listJobs(jobsDir) {
 }
 
 /**
+ * Id of the Claude Code session that invoked this process.
+ * CLAUDE_CODE_SESSION_ID is the documented variable Claude Code sets for Bash
+ * tool and hook subprocesses (a subagent's Bash included); it equals the hook
+ * input's session_id. CLAUDE_SESSION_ID is an older, undocumented name kept as a
+ * fallback. `ppid:<pid>` when neither is set.
+ * @returns {string}
+ */
+export function currentSessionId() {
+  return process.env.CLAUDE_CODE_SESSION_ID || process.env.CLAUDE_SESSION_ID || `ppid:${process.ppid}`;
+}
+
+/**
  * Filter only jobs that belong to the current Claude session.
- * If env CLAUDE_SESSION_ID is missing, fall back to process.ppid.
+ * Defaults to currentSessionId().
  *
  * @param {object[]} jobs
  * @param {string} [sessionId]  explicit session ID
  */
 export function filterJobsForCurrentSession(jobs, sessionId) {
-  const sid = sessionId || process.env.CLAUDE_SESSION_ID || `ppid:${process.ppid}`;
+  const sid = sessionId || currentSessionId();
   return jobs.filter((j) => {
     if (!j) return false;
     if (j.claude_session_id == null) return true; // Include unspecified jobs too (compatibility)

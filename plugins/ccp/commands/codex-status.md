@@ -7,7 +7,7 @@ allowed-tools:
 
 # /ccp:codex-status
 
-Checks the progress state of a codex job created in background mode (queued / running / completed / failed / cancelled / timeout).
+Checks the progress state of a codex job created in background mode (queued / running / completed / failed / cancelled / timeout). If the job is still `running` but its worker process has exited, the companion records it as `failed` before reporting (the same rule the `SubagentStop` hook uses), so `details.state` shows `failed` instead of `running`.
 
 ## Usage
 

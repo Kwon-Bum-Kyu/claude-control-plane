@@ -79,7 +79,7 @@ npm install -g @openai/codex
 /ccp:codex-rescue "이 변경 사항의 diff 를 검토하고 잠재적인 버그를 찾아줘"
 ```
 
-Codex는 코드 리뷰, 버그 조사, diff 분석에 강합니다. `--effort`·`--sandbox`·`--cwd`·`--model` 같은 Codex 전용 플래그의 의미는 [슬래시 커맨드](./slash-commands.md)를 참고합니다.
+Codex는 코드 리뷰, 버그 조사, diff 분석에 강합니다. `--effort`·`--model`은 Codex 전용 플래그이고, `--sandbox`·`--cwd`는 두 CLI가 모두 받지만 동작이 다릅니다. 각 플래그의 의미는 [슬래시 커맨드](./slash-commands.md)를 참고합니다.
 
 ## 설정과 보안
 
@@ -96,7 +96,8 @@ Codex는 코드 리뷰, 버그 조사, diff 분석에 강합니다. `--effort`·
 | `CCP_AGY_SKIP_PERMISSIONS` | `--dangerously-skip-permissions` 자동 부착을 끄는 옵트아웃 변수입니다. |
 | `CCP_ENVELOPE_STRICT` | `1`이면 응답 형식 자체 검증에 실패했을 때 예외를 던집니다. 기본값은 표준 에러에 경고만 남기고 계속 진행하는 것입니다. |
 | `ANTIGRAVITY_API_KEY` | Antigravity를 API 키 방식으로 인증합니다. |
-| `CLAUDE_SESSION_ID` | 백그라운드 job의 메타 정보에 호출한 세션의 식별자로 기록됩니다. 없으면 부모 프로세스 ID로 대체합니다. |
+| `CLAUDE_CODE_SESSION_ID` | Claude Code가 Bash 도구와 훅 프로세스에 넘기는 현재 세션 ID입니다. 백그라운드 job의 메타 정보에 호출한 세션의 식별자로 기록됩니다. 없으면 `CLAUDE_SESSION_ID`를, 그것도 없으면 부모 프로세스 ID를 씁니다. |
+| `CLAUDE_SESSION_ID` | `CLAUDE_CODE_SESSION_ID`가 없을 때만 읽는 예전 이름입니다. |
 | `CI` | 헤드리스 환경 신호 중 하나입니다. |
 | `CLAUDE_CODE_NONINTERACTIVE` | 헤드리스 환경 신호 중 하나입니다. |
 | `CLAUDE_CODE_ENTRYPOINT` | 헤드리스 환경 신호 중 하나입니다. 값이 있고 `cli`가 아니면 헤드리스로 판정합니다. |
