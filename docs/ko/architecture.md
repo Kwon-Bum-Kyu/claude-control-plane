@@ -93,7 +93,7 @@ CCP는 세 개의 훅을 등록합니다. `UserPromptSubmit` 에는 `router-sugg
 
 - `boot-check.js`(`SessionStart`): Node.js 버전, agy 설치와 버전, 인증 상태를 미리 점검합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검은 세션 시작을 막지 않습니다.
 - `router-suggest.js`(`UserPromptSubmit`): 라우팅 판단을 `[CCP-ROUTER-001]` 추천으로 주입합니다. `auto_routing`이 켜져 있고 세션이 canonical로 판정되면, 또는 판단이 애초에 `claude`이면 아무 것도 주입하지 않습니다. 앞의 경우에는 그 판단을 `router` 서브에이전트에게 넘깁니다. 헤드리스 자동화가 의심되는 프롬프트에는 `[CCP-META-WARN]` 안내를 덧붙입니다.
-- `rescue-finalize.js`(`SubagentStop`): antigravity job 중 상태가 계속 `running` 인 채로 시작 후 5분(300000ms)이 지난 것을 찾아 `failed`로 강제 종료 처리하고 `CCP-TIMEOUT-001`을 기록합니다. codex는 이 상태 키를 사용하지 않으므로 정리 대상에서 제외됩니다.
+- `rescue-finalize.js`(`SubagentStop`): 상태가 `running`으로 남아 있지만 더 이상 끝날 수 없는 job을 찾아 `failed`로 기록하고 `CCP-TIMEOUT-001`을 남깁니다. 작업 프로세스 pid가 기록된 job(두 CLI의 백그라운드 job)은 그 프로세스가 종료됐을 때 정리하고, 프로세스가 살아 있으면 얼마나 오래 걸리든 건드리지 않습니다. pid가 없는 job(antigravity의 포그라운드 job)은 시작 후 그 job의 타임아웃에 유예 5분을 더한 시간이 지났을 때 정리합니다. 예를 들어 슬래시 커맨드로 실행한 포그라운드 호출은 타임아웃이 540000ms이므로 14분 뒤입니다. 정리할 때는 원래 기록에 있던 상태 키(`state`, `status`)만 바꿉니다.
 
 세 훅은 실패를 조용히 처리합니다. stdin이 JSON 형식이 아니거나 처리 중 예외가 발생하면 빈 객체를 표준출력에 쓰고 종료합니다. 사용자의 입력 흐름은 막지 않습니다.
 

@@ -14,7 +14,7 @@
 | CCP-JOB-003 | antigravity | job 메타데이터가 손상되었습니다(codex는 같은 상황도 CCP-JOB-001로 처리합니다) | job 디렉터리를 삭제하고 새 job을 만듭니다 | abort |
 | CCP-JOB-004 | 공용 | 결과 파일이 없습니다. codex는 완료되지 않은 상태(실패, 취소 등) 전부를 이 코드로 나타냅니다 | rescue를 다시 호출합니다 | abort |
 | CCP-JOB-409 | codex | 현재 상태에서는 취소할 수 없습니다(antigravity는 cancel 서브커맨드가 없어 이 코드에 도달하지 않습니다) | job 상태를 확인하고 다시 시도합니다 | abort |
-| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. 백그라운드 job이 응답 없이 5분을 넘기면 서브에이전트 종료를 감지하는 훅이 이 코드로 강제 종료 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
+| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. 작업 프로세스가 종료됐는데 `running`으로 남은 job이나, 작업 프로세스 pid가 없는 job이 그 job의 타임아웃에 유예 시간을 더한 시간을 넘기고도 `running`이면, 서브에이전트 종료를 감지하는 훅이 이 코드로 `failed` 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
 | CCP-SETUP-002 | 공용 | Node.js 메이저 버전이 요구치 미만입니다 | Node.js를 설치하거나 갱신하고 다시 실행합니다. 정확한 최소 버전은 [시작하기](./getting-started.md)를 참고하십시오 | abort |
 | CCP-MCP-001 | 공용 | rescue에 `--mcp`로 적은 MCP 서버가 대상 CLI에 등록되어 있지 않거나, 등록되어 있지만 비활성이거나, 등록 목록을 읽지 못했습니다. 어느 경우인지는 `details.mcp`(antigravity는 `error.details.mcp`)의 `missing`, `disabled`, `list_error`로 구분합니다 | `action`에 적힌 등록 명령(`mcp add`)이나 활성화 명령(`mcp enable`)을 직접 실행하고 같은 rescue 호출을 다시 합니다. 등록 명령의 자리표시자는 서버 실행 명령으로 바꿉니다. 목록을 읽지 못한 경우에는 `action`에 적힌 조회 명령을 직접 실행해 확인하거나 `--mcp` 없이 다시 호출합니다 | abort |
 | CCP-SETUP-001 | antigravity | agy가 설치되어 있지 않거나 버전이 최소 요구치 미만입니다 | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`로 설치하거나 `agy update`로 갱신하고, `~/.local/bin`이 PATH에 있는지 확인한 뒤 `/ccp:antigravity-setup`을 다시 실행합니다 | abort |
