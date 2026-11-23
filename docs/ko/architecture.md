@@ -54,7 +54,8 @@ companion은 공유 코어와 CLI 별 어댑터로 나뉩니다. 코어는 여�
 - `core/args.mjs`: 플래그를 파싱합니다.
 - `core/mcp.mjs`: rescue의 `--mcp` 값을 검사하고, 어댑터가 읽어 낸 MCP 서버 목록과 대조해 안내 문구를 만듭니다.
 - `core/orphan.mjs`: 더 이상 끝날 수 없는 `running` job을 판정해 `failed`로 기록합니다. `SubagentStop` 훅과 status 서브커맨드가 같은 구현을 씁니다.
-- `core/runtime.mjs`: 서브커맨드별 처리, 실패 분류, 백그라운드 작업 실행을 담당합니다.
+- `core/outcome.mjs`: 위임 CLI 실행 한 번을 시간 초과, 실행 실패, 결과 판독 실패, 성공 중 하나로 판정하고 실패 job 기록의 모양을 정합니다. 포그라운드와 백그라운드가 같은 구현을 씁니다.
+- `core/runtime.mjs`: 서브커맨드별 처리와 백그라운드 작업 실행을 담당합니다.
 
 두 어댑터(`adapters/antigravity.mjs`, `adapters/codex.mjs`)는 각 CLI에 고유한 값을 선언합니다. 지원 플래그와 거부 플래그, 명령줄을 만드는 함수(`buildArgs`), CLI 출력을 읽는 함수(`parseResult`), MCP 서버 목록을 조회하는 인자와 그 목록을 읽고 조치 명령을 만드는 함수(`mcp`), 타임아웃, 에러 카탈로그, 바이너리 경로 환경 변수 등입니다. 코어는 이 선언 값을 읽어 실행을 조율합니다. 어댑터가 값을 선언하지 않으면 코어의 안전한 기본값을 사용합니다.
 
@@ -90,13 +91,15 @@ job이 저장되는 디렉터리(`JOBS_DIR`)는 다섯 단계 우선순위를 �
 
 CLI 별로 남기는 산출물의 구성도 다릅니다. antigravity는 포그라운드로 실행해도 항상 job 기록을 남깁니다. `_workspace/_jobs/<uuid>/` 아래에 `meta.json`, `agy.log`, `result.md`가 생깁니다. codex는 백그라운드로 실행할 때만 `_workspace/_jobs/<uuid>/` 아래에 `meta.json`, `result.txt`를 남깁니다. 백그라운드로 실행하면 두 CLI 모두 같은 디렉터리에 `stdout.log`와 `stderr.log`가 추가로 생깁니다. codex의 포그라운드 실행은 원칙적으로 기록을 남기지 않지만, 요약이 잘렸을 때는 예외적으로 `meta.json` 없이 `result.txt`만 있는 임시 디렉터리가 생깁니다. 이 디렉터리의 수명을 관리하는 주체가 없어 계속 쌓입니다. 이는 알려진 제약입니다.
 
+CLI 실행이 끝나 companion이나 워커가 결과를 적은 job 기록(`meta.json`)은 antigravity 포그라운드와 두 CLI의 백그라운드 모두 `exit_code`와 `duration_ms`를 남깁니다. 취소된 job과 고아로 정리된 job은 해당하지 않습니다. 실패하면 `error.code`와 `error.stderr_head`를 남기고, CLI를 실행하지 못했거나 출력이 표준출력·표준에러 합계 256 MiB를 넘었으면 `error.spawn_code`도 함께 남깁니다.
+
 job 산출물 경로는 두 어댑터 모두 `JOBS_DIR` 기준의 절대 경로(`pathStyle:'absolute'`)로 노출됩니다. 저장소 상대 경로로 노출하는 분기(`'repo-relative'`)도 코드에 남아 있지만 현재 어느 어댑터도 선언하지 않아 사용되지 않습니다.
 
 ## 훅
 
 CCP는 세 개의 훅을 등록합니다. `UserPromptSubmit` 에는 `router-suggest.js`, `SubagentStop` 에는 `rescue-finalize.js`, `SessionStart` 에는 `boot-check.js`가 등록되어 있습니다. 컨텍스트 사용량 경고는 Claude Code가 자체 제공하므로 CCP는 별도 훅을 두지 않습니다.
 
-- `boot-check.js`(`SessionStart`): Node.js 버전, agy 설치와 버전, 인증 상태를 미리 점검합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검은 세션 시작을 막지 않습니다.
+- `boot-check.js`(`SessionStart`): Node.js 버전과, 설치된 CLI의 버전·인증을 어댑터 선언으로 미리 점검합니다. 설치되지 않은 CLI는 안내하지 않고, 지원 CLI가 하나도 없을 때만 setup 커맨드를 한 줄로 안내합니다. CLI마다 버전 확인에 5초 상한을 두고(넘으면 확인하지 못한 것으로 보고 안내하지 않습니다), 훅 전체는 `hooks.json`의 `timeout` 15초가 상한입니다. 어댑터 파일을 추가하면 훅을 고치지 않아도 점검 대상이 됩니다. codex 인증은 확인 명령을 실행해야 알 수 있어 세션 시작 때 확인하지 않고, setup과 rescue가 확인합니다. 문제를 찾으면 안내만 하고, 문제가 없으면 아무 것도 하지 않습니다. 이 점검은 세션 시작을 막지 않습니다.
 - `router-suggest.js`(`UserPromptSubmit`): 라우팅 판단을 `[CCP-ROUTER-001]` 추천으로 주입합니다. `auto_routing`이 켜져 있고 세션이 canonical로 판정되면, 또는 판단이 애초에 `claude`이면 아무 것도 주입하지 않습니다. 앞의 경우에는 그 판단을 `router` 서브에이전트에게 넘깁니다. 헤드리스 자동화가 의심되는 프롬프트에는 `[CCP-META-WARN]` 안내를 덧붙입니다.
 - `rescue-finalize.js`(`SubagentStop`): 상태가 `running`으로 남아 있지만 더 이상 끝날 수 없는 job을 찾아 `failed`로 기록하고 `CCP-TIMEOUT-001`을 남깁니다. job을 맡은 프로세스의 pid가 기록된 job은 그 프로세스가 종료됐을 때 정리하고, 프로세스가 살아 있으면 얼마나 오래 걸리든 건드리지 않습니다. 백그라운드 job은 작업 프로세스의 pid를, antigravity 포그라운드 job은 CLI를 기다리는 companion 프로세스의 pid를 기록합니다. pid가 없는 job(pid를 기록하기 전에 만들어진 기록)은 시작 후 그 job의 타임아웃에 유예 5분을 더한 시간이 지났을 때 정리합니다. 예를 들어 슬래시 커맨드로 실행한 포그라운드 호출은 타임아웃이 540000ms이므로 14분 뒤입니다. 정리할 때는 원래 기록에 있던 상태 키(`state`, `status`)만 바꿉니다. 판정과 기록은 `core/orphan.mjs`에 있고, status 서브커맨드도 job을 조회하기 전에 같은 규칙으로 그 job 하나를 정리합니다. 훅이 이 모듈을 불러오지 못하면 어떤 기록도 바꾸지 않습니다.
 

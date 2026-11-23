@@ -14,19 +14,19 @@
 | CCP-JOB-003 | antigravity | job 메타데이터가 손상되었습니다(codex는 같은 상황도 CCP-JOB-001로 처리합니다) | job 디렉터리를 삭제하고 새 job을 만듭니다 | abort |
 | CCP-JOB-004 | 공용 | 결과 파일이 없습니다. codex는 완료되지 않은 상태(실패, 취소 등) 전부를 이 코드로 나타냅니다 | rescue를 다시 호출합니다 | abort |
 | CCP-JOB-409 | codex | 현재 상태에서는 취소할 수 없습니다(antigravity는 cancel 서브커맨드가 없어 이 코드에 도달하지 않습니다) | job 상태를 확인하고 다시 시도합니다 | abort |
-| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. job을 맡은 프로세스(백그라운드는 작업 프로세스, antigravity 포그라운드는 companion 프로세스)가 종료됐는데 `running`으로 남은 job이나, pid가 없는 job이 그 job의 타임아웃에 유예 시간을 더한 시간을 넘기고도 `running`이면, 서브에이전트 종료를 감지하는 훅이나 status 조회가 이 코드로 `failed` 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
+| CCP-TIMEOUT-001 | 공용 | CLI 응답이 시간 안에 끝나지 않았습니다. CLI 실행이 이 코드로 끝나는 것은 제한 시간을 넘긴 경우뿐이며, 제한 시간 전에 다른 이유로 종료 신호를 받은 CLI는 실행 실패 코드로 보고합니다. job을 맡은 프로세스(백그라운드는 작업 프로세스, antigravity 포그라운드는 companion 프로세스)가 종료됐는데 `running`으로 남은 job이나, pid가 없는 job이 그 job의 타임아웃에 유예 시간을 더한 시간을 넘기고도 `running`이면, 서브에이전트 종료를 감지하는 훅이나 status 조회가 이 코드로 `failed` 처리하기도 합니다 | 다시 시도하거나 `--background`로 비동기 실행합니다 | retry |
 | CCP-SETUP-002 | 공용 | Node.js 메이저 버전이 요구치 미만입니다 | Node.js를 설치하거나 갱신하고 다시 실행합니다. 정확한 최소 버전은 [시작하기](./getting-started.md)를 참고하십시오 | abort |
 | CCP-MCP-001 | 공용 | rescue에 `--mcp`로 적은 MCP 서버가 대상 CLI에 등록되어 있지 않거나, 등록되어 있지만 비활성이거나, 등록 목록을 읽지 못했습니다. 어느 경우인지는 `details.mcp`(antigravity는 `error.details.mcp`)의 `missing`, `disabled`, `list_error`로 구분합니다 | `action`에 적힌 등록 명령(`mcp add`)이나 활성화 명령(`mcp enable`)을 직접 실행하고 같은 rescue 호출을 다시 합니다. 등록 명령의 자리표시자는 서버 실행 명령으로 바꿉니다. 목록을 읽지 못한 경우에는 `action`에 적힌 조회 명령을 직접 실행해 확인하거나 `--mcp` 없이 다시 호출합니다 | abort |
 | CCP-SETUP-001 | antigravity | agy가 설치되어 있지 않거나 버전이 최소 요구치 미만입니다 | `curl -fsSL https://antigravity.google/cli/install.sh \| bash`로 설치하거나 `agy update`로 갱신하고, `~/.local/bin`이 PATH에 있는지 확인한 뒤 `/ccp:antigravity-setup`을 다시 실행합니다 | abort |
 | CCP-OAUTH-001 | antigravity | antigravity 인증이 없거나 유효하지 않습니다 | `agy`를 한 번 대화형으로 실행해 인증하거나 `/ccp:antigravity-rescue --fallback-claude "<원래 작업>"`으로 전환합니다. 인증 관련 환경 변수는 [시작하기](./getting-started.md)를 참고하십시오 | fallback |
-| CCP-AG-001 | antigravity | antigravity CLI 실행이 실패했습니다(그 외 실패의 기본 분류입니다) | job 디렉터리의 `agy.log`를 확인하거나(에러 상세에 job_id가 있습니다) 메인 Claude 에이전트로 다시 시도합니다 | retry |
+| CCP-AG-001 | antigravity | antigravity CLI 실행이 실패했습니다(그 외 실패의 기본 분류입니다). CLI를 실행하지 못한 경우(실행 권한 없음, 경로 없음)와 CLI 출력이 표준출력·표준에러 합계 256 MiB를 넘은 경우도 이 코드입니다. 백그라운드 job이면 기록의 `error.spawn_code`에 원인이 남습니다 | job 디렉터리의 `agy.log`를 확인하거나(에러 상세에 job_id가 있습니다) 메인 Claude 에이전트로 다시 시도합니다 | retry |
 | CCP-AG-002 | antigravity | antigravity 무료 등급 쿼터를 초과했습니다 | 나중에 다시 시도하거나 `--fallback-claude`를 씁니다 | fallback |
 | CCP-API-001 | 현재 발생하지 않음 | Claude Code 버전이 CCP 요구치 미만이라는 뜻으로 카탈로그에 선언되어 있지만, 이 조건을 실제로 검사하는 코드가 없습니다 | 해당 없음 | abort |
 | CCP-SETUP-101 | codex | Codex CLI가 설치되어 있지 않습니다 | `brew install codex` 또는 `npm install -g @openai/codex`로 설치하고 다시 실행합니다 | abort |
 | CCP-SETUP-102 | codex | Codex CLI 버전이 최소 요구치 미만입니다 | Codex CLI를 갱신하고 다시 실행합니다. 정확한 최소 버전은 [시작하기](./getting-started.md)를 참고하십시오 | abort |
 | CCP-OAUTH-101 | codex | Codex 인증이 필요합니다. codex는 rescue 호출마다 실제로 인증 상태를 확인합니다 | `codex login`을 실행하거나 `--fallback-claude`를 씁니다 | fallback_claude |
-| CCP-CODEX-001 | codex | Codex CLI 실행이 실패했습니다. 타임아웃이 아닌 실패는 전부 이 코드 하나로 분류됩니다 | 백그라운드 job이면 job 디렉터리의 `stderr.log`를 확인하고, 아니면 Claude에서 다시 시도합니다 | retry |
-| CCP-CODEX-002 | codex | Codex 응답에서 유효한 JSONL 이벤트를 찾지 못했습니다 | `details.stdout_head`(첫 200자)를 확인하고 다시 시도하거나 Claude에서 처리합니다 | retry |
+| CCP-CODEX-001 | codex | Codex CLI 실행이 실패했습니다. 타임아웃이 아닌 실패는 전부 이 코드 하나로 분류됩니다. CLI를 실행하지 못한 경우(실행 권한 없음, 경로 없음)와 CLI 출력이 표준출력·표준에러 합계 256 MiB를 넘은 경우도 이 코드입니다. 백그라운드 job이면 기록의 `error.spawn_code`에 원인이 남습니다 | 백그라운드 job이면 job 디렉터리의 `stderr.log`를 확인하고, 아니면 Claude에서 다시 시도합니다 | retry |
+| CCP-CODEX-002 | codex | Codex 응답에서 유효한 JSONL 이벤트를 찾지 못했습니다. 포그라운드와 백그라운드가 같습니다. 백그라운드 job은 `failed`(`exit_code` 0)로 기록되고 `/ccp:codex-result`는 CCP-JOB-004를 돌려줍니다 | `details.stdout_head`(첫 200자)를 확인하고 다시 시도하거나 Claude에서 처리합니다. 백그라운드 job에는 `stdout_head`가 남지 않으므로 포그라운드로 다시 실행합니다 | retry |
 | CCP-AUDIT-001 | 감사(`/ccp:audit`) | 감사할 job 데이터가 없습니다 | `--since` 범위를 조정하고 다시 시도합니다 | abort |
 | CCP-AUDIT-002 | 감사(`/ccp:audit`) | 감사 스크립트 실행이 실패했습니다(보고서 쓰기 실패를 포함합니다) | 나중에 다시 시도하거나 로그를 확인합니다 | retry |
 | CCP-INVALID-001 | 라우터(`router-decide.mjs`) | `--prompt`도, 표준 입력의 `prompt`도 없이 실행했습니다(exit code 2) | `--prompt "<텍스트>"`를 주거나 표준 입력으로 `{"prompt":"..."}`를 넘깁니다 | user_action_required |
@@ -48,6 +48,8 @@
 2. CLI 설치와 버전을 확인합니다. 미달이면 antigravity는 CCP-SETUP-001, codex는 설치 누락이면 CCP-SETUP-101, 버전 미달이면 CCP-SETUP-102로 중단합니다.
 3. 인증을 실제 호출로 확인합니다. antigravity는 60000ms, codex는 30000ms 안에 응답이 없으면 시간 초과로 처리합니다.
 
+2번의 버전 확인도 인증 확인과 같은 시간(antigravity 60000ms, codex 30000ms) 안에 끝나지 않으면 설치되지 않은 것으로 처리합니다. 아래 알려진 한계를 참고하십시오.
+
 setup이 확인하는 인증과 rescue 호출 직전의 인증은 확인 방식이 다릅니다. antigravity는 rescue 호출마다 자격 증명이 존재하는지만 저비용으로 확인하고, 실제 CLI 호출로 인증을 확인하는 것은 setup 뿐입니다. codex는 rescue 호출마다 실제로 인증 상태를 확인하는 호출을 수행합니다.
 
 CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 참고하십시오.
@@ -60,6 +62,12 @@ CLI 설치와 인증 명령 자체는 [시작하기](./getting-started.md)를 �
 - **타임아웃 기본값이 궁금합니다.** `--timeout-ms`를 주지 않으면 슬래시 커맨드로 실행한 포그라운드 호출은 540000ms를 씁니다. 서브에이전트가 이 값을 붙이므로, CLI가 끝나지 않아도 Bash `timeout`(600000ms)보다 먼저 companion이 `CCP-TIMEOUT-001`을 돌려줍니다. 백그라운드 워커는 어댑터의 `timeouts.background`를, companion을 직접 실행한 포그라운드 호출은 `timeouts.foreground`를 씁니다. 현재 두 CLI 모두 두 값이 600000ms입니다. 정확한 기본값은 [슬래시 커맨드](./slash-commands.md)를 참고하십시오.
 - **포그라운드 rescue가 envelope 대신 'moved to the background' 안내를 돌려줬습니다.** 포그라운드 호출은 서브에이전트가 지정한 Bash `timeout`(600000ms) 안에서만 envelope을 돌려줄 수 있습니다. `--timeout-ms`를 540000보다 크게 주었거나, 환경 변수 `BASH_MAX_TIMEOUT_MS`로 Bash 도구의 최대 제한 시간(10분)을 그보다 낮춘 환경에서는 companion이 응답하기 전에 명령이 백그라운드로 넘어가고, 서브에이전트가 끝날 때 작업이 함께 중단될 수 있습니다. 이때 서브에이전트는 그 안내를 그대로 돌려주고 다시 실행하지 않습니다. 오래 걸리는 작업은 `--background`로 실행한 뒤 status·result 커맨드로 결과를 받으십시오.
 - **감사(`/ccp:audit`) 점수가 예상보다 낮게 나옵니다.** 마켓플레이스로 설치한 환경에는 `LICENSES/` 디렉터리가 없을 수 있어 차용 코드 문서화 점수가 낮아질 수 있습니다. 이 항목은 설치 방식에 따른 차이이며 코드 결함이 아닙니다.
+
+## 알려진 한계
+
+- setup과 preflight에서 버전 확인이 시간 상한(antigravity 60000ms, codex 30000ms)을 넘기면 시간 초과가 아니라 미설치 또는 구버전 코드(CCP-SETUP-001, CCP-SETUP-101)가 나옵니다. CCP-TIMEOUT-001의 안내인 `--background`는 setup에 맞지 않아 기존 코드로 안내합니다.
+- codex가 설치되어 있지 않으면 rescue는 CCP-SETUP-101이 아니라 CCP-OAUTH-101을 돌려줍니다. rescue 전에 같은 바이너리로 도는 인증 확인이 먼저 실패하기 때문입니다. `/ccp:codex-setup`으로 설치 여부를 확인하십시오.
+- rescue 중 CLI 바이너리를 찾지 못하면(ENOENT) 미설치 코드가 아니라 실행 실패 코드(CCP-AG-001, CCP-CODEX-001)가 나옵니다. 백그라운드 job이면 기록의 `error.spawn_code`가 `ENOENT`입니다.
 
 ## 버그 신고
 
