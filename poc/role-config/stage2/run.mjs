@@ -10,7 +10,6 @@ import { validateEnvelope } from '../../../plugins/ccp/scripts/lib/envelope-vali
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ENTRY = join(HERE, 'entry.mjs');
-const GOLDEN_STUBS = join(HERE, '..', '..', '..', 'tests', 'companion', 'golden', 'stubs');
 const verbose = process.argv.includes('--verbose');
 const TMP = mkdtempSync(join(tmpdir(), 'ccp-stage2-'));
 const JOBS = join(TMP, 'jobs');
@@ -22,7 +21,6 @@ const alive = (pid) => {
   try { process.kill(pid, 0); } catch { return false; }
   try { return !/^\d+ \(.*\) Z/.test(readFileSync(`/proc/${pid}/stat`, 'utf8')); } catch { return true; }
 };
-const pids = new Set();
 let seq = 0;
 
 // One entry.mjs call. opts: { stub: 'imagegen'|'codex'|null, mode, config }
@@ -31,24 +29,22 @@ function call(role, args, opts = {}) {
   const env = { ...process.env, CCP_JOBS_DIR: JOBS, STAGE2_ARGV_FILE: argvFile };
   for (const k of ['CCP_ROLE_CONFIG', 'CCP_IMAGEGEN_BIN', 'CCP_CODEX_BIN', 'CCP_AGY_BIN', 'CLAUDE_PROJECT_DIR', 'CLAUDE_PROJECT_ROOT', 'CCP_ENVELOPE_STRICT']) delete env[k];
   if (opts.stub === 'imagegen') { env.CCP_IMAGEGEN_BIN = join(HERE, 'stub-imagegen'); env.STAGE2_IMAGEGEN_MODE = opts.mode || 'ok'; }
-  if (opts.stub === 'codex') { env.CCP_CODEX_BIN = join(HERE, 'stub-wrap'); env.STAGE2_WRAP_TARGET = join(GOLDEN_STUBS, 'codex'); }
+  if (opts.stub === 'codex') env.CCP_CODEX_BIN = join(HERE, 'stub-wrap');
   if (opts.config) env.CCP_ROLE_CONFIG = opts.config;
   const r = spawnSync(process.execPath, [ENTRY, role, ...args], { cwd: WORK, env, encoding: 'utf8', timeout: 60000 });
-  const lines = r.stdout.trim().split('\n').filter(Boolean);
   let env_ = null;
-  try { env_ = JSON.parse(lines[lines.length - 1]); } catch { /* not JSON */ }
+  try { env_ = JSON.parse(r.stdout); } catch { /* not JSON */ }
   const calls = existsSync(argvFile) ? readFileSync(argvFile, 'utf8').trim().split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
-  for (const c of calls) pids.add(c.pid);
   return { code: r.status, env: env_, stderr: r.stderr, calls, argvFile };
 }
 // Argv of the one call that did the work (the stub's task call).
 const taskArgv = (r, first) => r.calls.find((c) => (first ? c.argv[0] === first : true))?.argv || [];
 const pair = (argv, flag, val) => { const i = argv.indexOf(flag); return i >= 0 && argv[i + 1] === val; };
 
-async function waitState(role, jobId, opts, wanted = ['completed', 'failed', 'cancelled']) {
+async function waitState(role, jobId, opts) {
   for (let i = 0; i < 200; i++) {
     const r = call(role, ['status', jobId], opts);
-    if (wanted.includes(r.env?.details?.state)) return r;
+    if (['completed', 'failed', 'cancelled'].includes(r.env?.details?.state)) return r;
     await sleep(100);
   }
   return null;
@@ -116,7 +112,7 @@ sc('bg-cancel', 'probe', async () => {
   const q = call('image', ['rescue', '--background', '--task', 'x'], o); const id = q.env?.job_id;
   for (let i = 0; i < 50 && !existsSync(q.argvFile); i++) await sleep(100);
   const c = call('image', ['cancel', id], o); await sleep(400);
-  const calls = readFileSync(q.argvFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l)); calls.forEach((x) => pids.add(x.pid));
+  const calls = readFileSync(q.argvFile, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
   const s = call('image', ['status', id], o);
   return { note: `cancel: ${errLine(c.env)}; status state=${s.env?.details?.state}; stub alive=${alive(calls[0].pid)} (worker pid ${q.env.details.pid} alive=${alive(q.env.details.pid)})`, r: s };
 });
@@ -127,11 +123,9 @@ sc('fg-silent', 'probe', async () => { const r = call('image', ['rescue', '--tas
 sc('bg-silent', 'probe', async () => {
   const o = { stub: 'imagegen', mode: 'silent' };
   const id = call('image', ['rescue', '--background', '--task', 'x'], o).env?.job_id; const s = await waitState('image', id, o);
-  const meta = JSON.parse(readFileSync(join(JOBS, id, 'meta.json'), 'utf8')); const files = readdirSync(join(JOBS, id)).filter((f) => f.endsWith('.png'));
+  const meta = readMeta(id); const files = readdirSync(join(JOBS, id)).filter((f) => f.endsWith('.png'));
   const res = call('image', ['result', id], o);
-  const rt = readFileSync(join(HERE, '..', '..', '..', 'plugins', 'ccp', 'scripts', 'core', 'runtime.mjs'), 'utf8').split('\n');
-  const ln = rt.findIndex((l) => /r\.status === 0 && r\.stdout\)/.test(l)) + 1;
-  return { note: `state=${s?.env.details.state} meta.error=${JSON.stringify(meta.error?.code)} exit_code=${meta.exit_code} files_on_disk=${files.length}; result: ${errLine(res.env)}. Cause: core/runtime.mjs:${ln || '?'} worker needs non-empty stdout for success (fg-silent has no such check, so it succeeds); bg-image passes only because the stub prints file names`, r: res };
+  return { note: `state=${s?.env.details.state} meta.error=${JSON.stringify(meta.error?.code)} exit_code=${meta.exit_code} files_on_disk=${files.length}; result: ${errLine(res.env)}. Cause: core/runtime.mjs handleTaskWorker needs non-empty stdout for success (fg-silent has no such check, so it succeeds); bg-image passes only because the stub prints file names`, r: res };
 });
 sc('unsupported-flag', 'probe', async () => { const r = call('image', ['rescue', '--effort', 'high', '--task', 'x'], IMG); return { note: `${errLine(r.env)} stub_called=${r.calls.length > 0}`, r }; });
 sc('entry-errors', 'must', async () => {
@@ -140,7 +134,7 @@ sc('entry-errors', 'must', async () => {
   const bad = []; let last;
   for (const [role, frag, o] of cases) {
     const r = call(role, ['rescue', '--task', 'x'], { stub: 'imagegen', ...o }); last = r; const m = r.env?.error?.message || '';
-    if (r.code !== 1 || r.env?.exit_code !== 1 || r.env?.error?.code !== 'CCP-ROLE-001' || !m.includes(`"${role}"`) && !m.includes(role) || !m.includes(frag) || r.stderr.length > 0) bad.push(`${role}: ${errLine(r.env)} code=${r.code} stderr=${r.stderr.slice(0, 60)}`);
+    if (r.code !== 1 || r.env?.exit_code !== 1 || r.env?.error?.code !== 'CCP-ROLE-001' || !m.includes(role) || !m.includes(frag) || r.stderr.length > 0) bad.push(`${role}: ${errLine(r.env)} code=${r.code} stderr=${r.stderr.slice(0, 60)}`);
   }
   return { bad, note: '5 roles -> exit 1, CCP-ROLE-001, role + reason named, empty stderr', r: last };
 });
@@ -184,7 +178,7 @@ sc('builtin-model-override', 'must', async () => {
 sc('builtin-e2e', 'must', async () => {
   const q = call('e2e', ['rescue', '--background', '--task', 'Run checkout flow'], CODEX); const id = q.env?.job_id;
   if (!id) return { bad: ['no job_id'], note: errLine(q.env), r: q };
-  const s = await waitState('e2e', id, CODEX); const meta = JSON.parse(readFileSync(join(JOBS, id, 'meta.json'), 'utf8'));
+  const s = await waitState('e2e', id, CODEX); const meta = readMeta(id);
   return { bad: checks([[meta.params.timeoutMs === 1800000, `meta.params.timeoutMs=${meta.params.timeoutMs}`], [s?.env.details.state === 'completed', 'job completed']]), note: `verified from the stored job params in the background path (timeoutMs=${meta.params.timeoutMs}); no timeout was made to fire. Over-limit clamp: see timeout-routing`, r: s };
 });
 for (const [id, role] of [['builtin-research', 'research'], ['builtin-tuned-coding', 'tuned-coding'], ['builtin-claude', 'arch-review'], ['multi-target', 'brainstorm']]) {
@@ -200,7 +194,6 @@ try {
     rows.push({ id: s.id, kind: s.kind, outcome: failed ? 'FAIL' : s.kind === 'probe' ? 'RECORDED' : 'PASS', note: failed ? out.bad.join('; ') : out.note, r: out.r });
   }
 } finally {
-  for (const p of pids) if (alive(p)) { try { process.kill(p, 'SIGKILL'); } catch { /* gone */ } }
   const w = Math.max(...rows.map((r) => r.id.length));
   console.log(`${'scenario'.padEnd(w)}  kind   outcome   note`);
   for (const r of rows) {

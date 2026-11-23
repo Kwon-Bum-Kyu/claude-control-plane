@@ -1,9 +1,6 @@
 #!/usr/bin/env node
-// Records argv, then runs the real golden stub named by STAGE2_WRAP_TARGET unchanged.
+// Records argv, then runs the real golden codex stub unchanged.
 import { appendFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 
-const argv = process.argv.slice(2);
-if (process.env.STAGE2_ARGV_FILE) appendFileSync(process.env.STAGE2_ARGV_FILE, JSON.stringify({ pid: process.pid, argv }) + '\n');
-const r = spawnSync(process.execPath, [process.env.STAGE2_WRAP_TARGET, ...argv], { stdio: 'inherit' });
-process.exit(r.status ?? 1);
+appendFileSync(process.env.STAGE2_ARGV_FILE, JSON.stringify({ pid: process.pid, argv: process.argv.slice(2) }) + '\n');
+await import('../../../tests/companion/golden/stubs/codex');

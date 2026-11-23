@@ -5,25 +5,17 @@
 // (every role key becomes `--<kebab-key>`) and the real core answers; nothing is dropped here.
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { run } from '../../../plugins/ccp/scripts/core/runtime.mjs';
 import { emitError } from '../../../plugins/ccp/scripts/core/envelope.mjs';
 import { parseArgsForAdapter } from '../../../plugins/ccp/scripts/core/args.mjs';
-import { mergeErrorCatalog } from '../../../plugins/ccp/scripts/core/errors.mjs';
 import { renderArgv } from '../variant-b/resolve.mjs';
 import { createRunnerAdapter } from './runner-adapter.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const ADAPTERS = join(HERE, '..', '..', '..', 'plugins', 'ccp', 'scripts', 'adapters');
-const CATALOG = {
-  ...mergeErrorCatalog({}),
-  'CCP-ROLE-001': { message: 'Invalid role configuration', action: 'Fix the role in ccp.json.', recovery: 'abort' },
-  'CCP-ROLE-002': { message: 'Not supported in stage 2', action: 'Use a role with a single codex, antigravity or declared runner.', recovery: 'abort' },
-};
-const die = (code, message, action) => emitError(CATALOG, code, { message, action });
+const die = (code, message, action) => emitError({ [code]: { recovery: 'abort' } }, code, { message, action });
 
 const [roleName, sub, ...rest] = process.argv.slice(2);
-if (!roleName || !sub) die('CCP-INVALID-001', 'Usage: entry.mjs <role> <subcommand> [...args]', 'Pass a role name and a subcommand.');
 
 let config;
 const configPath = process.env.CCP_ROLE_CONFIG || join(HERE, '..', 'variant-b', 'ccp.json');
@@ -43,20 +35,13 @@ if ('timeout_ms' in role && !(Number.isInteger(role.timeout_ms) && role.timeout_
 }
 
 const entryOpts = { entryScriptPath: fileURLToPath(import.meta.url), workerArgsPrefix: [roleName] };
-const kebab = (k) => k.replace(/_/g, '-');
 
 if (role.runner === 'claude') {
   die('CCP-ROLE-002', `role "${roleName}" uses the built-in runner "claude", which has no adapter in stage 2`, 'Use codex, antigravity or a declared runner.');
 } else if (role.runner === 'codex' || role.runner === 'antigravity') {
-  const adapter = (await import(pathToFileURL(join(ADAPTERS, `${role.runner}.mjs`)).href)).default;
-  const flags = [];
-  if (sub === 'rescue') { // role values first, so flags typed on the command line win (last one parsed wins)
-    for (const [k, v] of Object.entries(role)) {
-      if (k === 'runner' || v === false) continue;
-      flags.push(`--${kebab(k)}`);
-      if (v !== true) flags.push(typeof v === 'object' ? JSON.stringify(v) : String(v));
-    }
-  }
+  const { default: adapter } = await import(`../../../plugins/ccp/scripts/adapters/${role.runner}.mjs`);
+  const { runner, ...options } = role; // role values first, so flags typed on the command line win (last one parsed wins)
+  const flags = sub === 'rescue' ? Object.entries(options).flatMap(([k, v]) => [`--${k.replace(/_/g, '-')}`, ...(v === true ? [] : [String(v)])]) : [];
   run(adapter, [sub, ...flags, ...rest], entryOpts);
 } else {
   const def = config.runners?.[role.runner];

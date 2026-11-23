@@ -2,7 +2,7 @@
 // 역할 설정 구조 PoC 1단계(표현력): 시나리오 × 안을 전부 해석해 비교표를 출력한다.
 // 어떤 CLI 도 실행하지 않는다. 각 안의 resolve() 가 "실행될 명령"을 돌려주면 기대값과 대조만 한다.
 //
-// 사용법: node poc/role-config/run.mjs [--variant a|b|c] [--verbose]
+// 사용법: node poc/role-config/run.mjs [--verbose]
 //
 // 안 하나의 구성 (variant-<x>/):
 //   ccp.json      사용자가 쓰는 설정 파일
@@ -18,9 +18,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const JOB_DIR = 'jobs/example-job';
-const argv = process.argv.slice(2);
-const verbose = argv.includes('--verbose');
-const only = argv.includes('--variant') ? argv[argv.indexOf('--variant') + 1] : null;
+const verbose = process.argv.includes('--verbose');
 
 const { scenarios } = JSON.parse(readFileSync(join(ROOT, 'scenarios.json'), 'utf8'));
 
@@ -57,12 +55,7 @@ function check(scenario, result) {
   return problems;
 }
 
-const variants = readdirSync(ROOT)
-  .filter((d) => d.startsWith('variant-') && existsSync(join(ROOT, d, 'resolve.mjs')) && existsSync(join(ROOT, d, 'ccp.json')))
-  .filter((d) => !only || d === `variant-${only}`)
-  .sort();
-if (variants.length === 0) { console.error('no variant found'); process.exit(1); }
-
+const variants = ['variant-a', 'variant-b', 'variant-c'];
 const table = {}; // table[scenarioId][variant] = { status, notes }
 let failed = 0;
 for (const v of variants) {

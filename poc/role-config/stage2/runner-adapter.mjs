@@ -12,7 +12,6 @@ export function createRunnerAdapter(def, role, roleName) {
   // buildArgs and parseResult run in the same process for one call, so the job
   // directory seen by buildArgs can be remembered for parseResult.
   let jobDir = null;
-  const text = (s) => (typeof s === 'string' ? s.trim() : '');
 
   return {
     id: name,
@@ -30,9 +29,7 @@ export function createRunnerAdapter(def, role, roleName) {
         background: { key: 'background', type: 'bool' },
         'timeout-ms': { key: 'timeoutMs', type: 'int' },
         model: { key: 'model', type: 'string' },
-        cwd: { key: 'cwd', type: 'string' },
         task: { key: 'task', type: 'string' },
-        'job-id': { key: 'jobId', type: 'string' },
       },
       rejectFlags: [],
       validateFlagValue: () => null,
@@ -82,11 +79,11 @@ export function createRunnerAdapter(def, role, roleName) {
     parseResult({ stdout }) {
       const files = readdirSync(jobDir).filter((f) => !CORE_FILES.has(f)).sort();
       const head = files.length > 0 ? `Generated ${files.length} file(s) in ${jobDir}: ${files.join(', ')}` : '';
-      return { body: [head, text(stdout)].filter(Boolean).join('\n'), tokens: { input: 0, output: 0 }, meta: {} };
+      return { body: [head, stdout.trim()].filter(Boolean).join('\n'), tokens: { input: 0, output: 0 }, meta: {} };
     },
-    tokensFrom: (raw) => ({ input: raw?.input || 0, output: raw?.output || 0 }),
+    tokensFrom: () => ({ input: 0, output: 0 }),
     estimateTokens: (t) => Math.ceil((t || '').length / 4),
-    summarize: (body) => (typeof body === 'string' ? body.trim() : ''),
+    summarize: (body) => body,
     classifyFailure: ({ error }) => (error?.code === 'ENOENT' ? 'CCP-RUNNER-002' : 'CCP-RUNNER-001'),
   };
 }

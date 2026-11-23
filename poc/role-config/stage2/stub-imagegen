@@ -15,7 +15,6 @@ if (mode === 'fail') {
 }
 if (mode === 'hang') {
   setTimeout(() => process.exit(3), 60000); // safety cap so a test never leaves a stray process
-  setInterval(() => {}, 1000);
 } else {
   const names = ['image-1.png', 'image-2.png'];
   for (const n of names) writeFileSync(join(out, n), 'png');
