@@ -152,7 +152,10 @@ sc('entry-model-forms', 'must', async () => {
   }
   const t = call('image-no-model', ['rescue', '--task', 'x', '--model'], o); // bare trailing --model = no override
   if (t.code !== 1 || t.env?.error?.code !== 'CCP-ROLE-001') bad.push(`trailing --model: ${errLine(t.env)} code=${t.code}`);
-  return { bad, note: '--model v, --model=v accepted; trailing bare --model is not an override', r: t };
+  const before = readdirSync(JOBS).length; // `--task --model foo`: core reads "--model" as the task text, so there is no model
+  const v = call('image-no-model', ['rescue', '--task', '--model', 'foo'], o);
+  if (v.code !== 1 || v.env?.error?.code !== 'CCP-ROLE-001' || readdirSync(JOBS).length !== before) bad.push(`--task --model foo: ${errLine(v.env)} code=${v.code} new_jobs=${readdirSync(JOBS).length - before}`);
+  return { bad, note: '--model v, --model=v accepted; trailing bare --model and --model as the --task value are not overrides', r: t };
 });
 sc('timeout-routing', 'must', async () => {
   const stored = (role, extra, o) => { const q = call(role, ['rescue', '--background', ...extra, '--task', 'x'], o); return { id: q.env?.job_id, v: q.env?.job_id ? readMeta(q.env.job_id).params.timeoutMs : null }; };
@@ -189,8 +192,8 @@ try {
   for (const s of scenarios) {
     let out;
     try { out = await s.fn(); } catch (err) { out = { bad: [`threw: ${err.message}`], note: 'harness error' }; }
-    const failed = s.kind === 'must' && out.bad?.length > 0;
-    rows.push({ id: s.id, kind: s.kind, outcome: s.kind === 'probe' ? 'RECORDED' : failed ? 'FAIL' : 'PASS', note: failed ? out.bad.join('; ') : out.note, r: out.r });
+    const failed = out.bad?.length > 0; // a probe only has `bad` when it threw
+    rows.push({ id: s.id, kind: s.kind, outcome: failed ? 'FAIL' : s.kind === 'probe' ? 'RECORDED' : 'PASS', note: failed ? out.bad.join('; ') : out.note, r: out.r });
   }
 } finally {
   for (const p of pids) if (alive(p)) { try { process.kill(p, 'SIGKILL'); } catch { /* gone */ } }

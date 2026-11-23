@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { run } from '../../../plugins/ccp/scripts/core/runtime.mjs';
 import { emitError } from '../../../plugins/ccp/scripts/core/envelope.mjs';
+import { parseArgsForAdapter } from '../../../plugins/ccp/scripts/core/args.mjs';
 import { mergeErrorCatalog } from '../../../plugins/ccp/scripts/core/errors.mjs';
 import { renderArgv } from '../variant-b/resolve.mjs';
 import { createRunnerAdapter } from './runner-adapter.mjs';
@@ -61,17 +62,14 @@ if (role.runner === 'claude') {
   const def = config.runners?.[role.runner];
   if (!def) die('CCP-ROLE-001', `role "${roleName}": runner "${role.runner}" is neither built-in nor declared in "runners"`, 'Declare it under "runners".');
   if (typeof def.bin !== 'string' || !Array.isArray(def.args)) die('CCP-ROLE-001', `runner "${role.runner}" needs "bin" (string) and "args" (array)`, 'Fix the runner declaration.');
-  if (sub === 'rescue') { // fail with an envelope here, not with a throw inside core's buildArgs
-    // Same two spellings core's parser accepts: `--model v` and `--model=v`; the last one wins, a bare trailing `--model` is no override.
-    let cliModel;
-    for (let i = 0; i < rest.length && rest[i] !== '--'; i++) {
-      if (rest[i] === '--model') cliModel = rest[i + 1] || undefined;
-      else if (rest[i].startsWith('--model=')) cliModel = rest[i].slice(8) || undefined;
-    }
-    const { missing } = renderArgv(def.args, { ...role, ...(cliModel ? { model: cliModel } : {}), task: 'x', job_dir: 'x' });
-    if (missing.length > 0) die('CCP-ROLE-001', `role "${roleName}": runner "${role.runner}" needs a value for ${missing.map((k) => `{${k}}`).join(', ')}`, `Set it on the role or on the command line.`);
-  }
   // The role's timeout_ms goes through core's own --timeout-ms (same clamp as built-in roles); a command-line one comes later and wins.
   const flags = sub === 'rescue' && role.timeout_ms ? ['--timeout-ms', String(role.timeout_ms)] : [];
-  run(createRunnerAdapter(def, role, roleName), [sub, ...flags, ...rest], entryOpts);
+  const adapter = createRunnerAdapter(def, role, roleName);
+  const args = [sub, ...flags, ...rest];
+  if (sub === 'rescue') { // fail with an envelope here, not with a throw inside core's buildArgs
+    const model = parseArgsForAdapter(adapter, args).flags.model || role.model;
+    const { missing } = renderArgv(def.args, { ...role, model, task: 'x', job_dir: 'x' });
+    if (missing.length > 0) die('CCP-ROLE-001', `role "${roleName}": runner "${role.runner}" needs a value for ${missing.map((k) => `{${k}}`).join(', ')}`, `Set it on the role or on the command line.`);
+  }
+  run(adapter, args, entryOpts);
 }
