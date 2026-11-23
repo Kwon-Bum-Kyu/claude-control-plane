@@ -177,6 +177,10 @@ sc('builtin-coding', 'must', async () => {
   const r = call('coding', ['rescue', '--task', 'Add pagination'], CODEX); const argv = taskArgv(r, 'exec');
   return { bad: checks([[r.env?.exit_code === 0 && !r.env.error, `success (${errLine(r.env)})`], [pair(argv, '-m', 'codex-5.6'), '-m codex-5.6'], [pair(argv, '-s', 'workspace-write'), '-s workspace-write'], [validateEnvelope(r.env || {}).valid, 'validateEnvelope']]), note: `details.mode=${r.env?.details?.mode}`, r };
 });
+sc('builtin-model-override', 'must', async () => {
+  const r = call('coding', ['rescue', '--model', 'codex-next', '--task', 'x'], CODEX); const argv = taskArgv(r, 'exec');
+  return { bad: checks([[okEnv(r), `exit ${r.code} / success`], [pair(argv, '-m', 'codex-next') && !argv.includes('codex-5.6'), 'CLI model wins']]), note: 'cli model used', r };
+});
 sc('builtin-e2e', 'must', async () => {
   const q = call('e2e', ['rescue', '--background', '--task', 'Run checkout flow'], CODEX); const id = q.env?.job_id;
   if (!id) return { bad: ['no job_id'], note: errLine(q.env), r: q };
