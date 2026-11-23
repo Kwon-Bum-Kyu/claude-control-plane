@@ -4,19 +4,26 @@
 import { buildBuiltin, BUILTIN_RUNNERS } from '../shared/builtin.mjs';
 
 const fail = (message) => ({ ok: false, error: { message } });
-const MISSING = Symbol('missing');
-
-function render(item, vars) {
+// 선택 그룹(배열)은 안의 {key} 가 하나라도 비면 통째로 빠지고, 그 외 문자열의 빈 {key} 는 missing 에 모인다.
+function render(item, vars, missing) {
   if (Array.isArray(item)) {
-    const out = item.flatMap((x) => render(x, vars));
-    return out.includes(MISSING) ? [] : out;
+    const own = new Set();
+    const out = item.flatMap((x) => render(x, vars, own));
+    return own.size > 0 ? [] : out;
   }
-  let missing = false;
+  let bad = false;
   const s = item.replace(/\{(\w+)\}/g, (_, k) => {
-    if (vars[k] === undefined || vars[k] === null) { missing = true; return ''; }
+    if (vars[k] === undefined || vars[k] === null) { missing.add(k); bad = true; return ''; }
     return String(vars[k]);
   });
-  return [missing ? MISSING : s];
+  return bad ? [] : [s];
+}
+
+/** 템플릿을 argv 로 펼친다. 필수 자리표시자 중 값이 없는 것의 이름을 missing 으로 돌려준다 (2단계도 사용). */
+export function renderArgv(args, vars) {
+  const missing = new Set();
+  const argv = args.flatMap((x) => render(x, vars, missing));
+  return { argv, missing: [...missing] };
 }
 
 function build(spec, name, ctx) {
@@ -33,9 +40,8 @@ function build(spec, name, ctx) {
     const def = ctx.config.runners?.[runner];
     if (!def) return fail(`role "${name}": runner "${runner}" is neither built-in nor declared in "runners"`);
     const vars = { ...merged, task: ctx.task, job_dir: ctx.jobDir };
-    const argv = def.args.flatMap((x) => render(x, vars));
-    const bad = argv.indexOf(MISSING);
-    if (bad !== -1) return fail(`role "${name}": runner "${runner}" template has a required placeholder with no value`);
+    const { argv, missing } = renderArgv(def.args, vars);
+    if (missing.length > 0) return fail(`role "${name}": runner "${runner}" template has a required placeholder with no value: ${missing.map((k) => `{${k}}`).join(', ')}`);
     return { ok: true, command: { bin: def.bin, argv: [...argv, ...(merged.args || [])], timeout_ms } };
   } catch (err) {
     return fail(`role "${name}": ${err.message}`);
