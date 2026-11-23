@@ -1,0 +1,24 @@
+{
+  "roles": {
+    "research": { "runner": "antigravity", "model": "gemini-3.8" },
+    "coding": { "runner": "codex", "model": "codex-5.6", "sandbox": "workspace-write" },
+    "arch-review": { "runner": "claude", "model": "opus" },
+    "test-run": { "runner": "claude", "model": "haiku" },
+    "e2e": { "runner": "codex", "model": "codex-5.6", "timeout_ms": 1800000 },
+    "brainstorm": {
+      "targets": [
+        { "runner": "claude", "model": "opus" },
+        { "runner": "codex", "model": "codex-6.0" },
+        { "runner": "antigravity", "model": "gemini-4" }
+      ]
+    },
+    "tuned-coding": {
+      "runner": "codex",
+      "model": "codex-5.6",
+      "effort": "high",
+      "args": ["-c", "features.example=true"]
+    },
+    "broken-runner": { "runner": "ghost-cli" },
+    "broken-shape": {}
+  }
+}
