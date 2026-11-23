@@ -37,6 +37,10 @@ if (!role || typeof role !== 'object' || Array.isArray(role)) die('CCP-ROLE-001'
 if (role.targets !== undefined) die('CCP-ROLE-002', `role "${roleName}" has "targets" (fan-out); multi-target roles are not supported in stage 2`, 'Use a single-runner role.');
 if (typeof role.runner !== 'string') die('CCP-ROLE-001', `role "${roleName}" needs "runner" or "targets"`, 'Add a "runner" string.');
 
+if ('timeout_ms' in role && !(Number.isInteger(role.timeout_ms) && role.timeout_ms > 0)) {
+  die('CCP-ROLE-001', `role "${roleName}": timeout_ms must be a positive integer (got ${JSON.stringify(role.timeout_ms)})`, 'Fix timeout_ms in ccp.json.');
+}
+
 const entryOpts = { entryScriptPath: fileURLToPath(import.meta.url), workerArgsPrefix: [roleName] };
 const kebab = (k) => k.replace(/_/g, '-');
 
@@ -58,9 +62,16 @@ if (role.runner === 'claude') {
   if (!def) die('CCP-ROLE-001', `role "${roleName}": runner "${role.runner}" is neither built-in nor declared in "runners"`, 'Declare it under "runners".');
   if (typeof def.bin !== 'string' || !Array.isArray(def.args)) die('CCP-ROLE-001', `runner "${role.runner}" needs "bin" (string) and "args" (array)`, 'Fix the runner declaration.');
   if (sub === 'rescue') { // fail with an envelope here, not with a throw inside core's buildArgs
-    const cli = rest.indexOf('--model');
-    const { missing } = renderArgv(def.args, { ...role, ...(cli >= 0 ? { model: rest[cli + 1] } : {}), task: 'x', job_dir: 'x' });
+    // Same two spellings core's parser accepts: `--model v` and `--model=v`; the last one wins, a bare trailing `--model` is no override.
+    let cliModel;
+    for (let i = 0; i < rest.length && rest[i] !== '--'; i++) {
+      if (rest[i] === '--model') cliModel = rest[i + 1] || undefined;
+      else if (rest[i].startsWith('--model=')) cliModel = rest[i].slice(8) || undefined;
+    }
+    const { missing } = renderArgv(def.args, { ...role, ...(cliModel ? { model: cliModel } : {}), task: 'x', job_dir: 'x' });
     if (missing.length > 0) die('CCP-ROLE-001', `role "${roleName}": runner "${role.runner}" needs a value for ${missing.map((k) => `{${k}}`).join(', ')}`, `Set it on the role or on the command line.`);
   }
-  run(createRunnerAdapter(def, role, roleName), [sub, ...rest], entryOpts);
+  // The role's timeout_ms goes through core's own --timeout-ms (same clamp as built-in roles); a command-line one comes later and wins.
+  const flags = sub === 'rescue' && role.timeout_ms ? ['--timeout-ms', String(role.timeout_ms)] : [];
+  run(createRunnerAdapter(def, role, roleName), [sub, ...flags, ...rest], entryOpts);
 }

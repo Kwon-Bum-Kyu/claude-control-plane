@@ -9,7 +9,6 @@ const DEFAULT_TIMEOUT_MS = 600000;
 
 export function createRunnerAdapter(def, role, roleName) {
   const name = role.runner;
-  const limit = role.timeout_ms ?? DEFAULT_TIMEOUT_MS;
   // buildArgs and parseResult run in the same process for one call, so the job
   // directory seen by buildArgs can be remembered for parseResult.
   let jobDir = null;
@@ -42,7 +41,7 @@ export function createRunnerAdapter(def, role, roleName) {
     },
     knownViolations: [],
     argStyle: 'task-flag',
-    timeouts: { foreground: limit, background: limit, authProbe: 10000 },
+    timeouts: { foreground: DEFAULT_TIMEOUT_MS, background: DEFAULT_TIMEOUT_MS, authProbe: 10000 },
     // core hands buildArgs only logFile (= <job dir>/<logFileName>), and only when
     // logFileName is set and, in the foreground, persistForeground is true.
     // Declaring a log file is the only way to learn the job directory.
