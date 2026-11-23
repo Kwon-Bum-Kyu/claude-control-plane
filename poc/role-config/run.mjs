@@ -101,6 +101,7 @@ for (const sc of scenarios) {
     const cell = table[sc.id][v];
     if (cell.status !== 'PASS') console.log(`\n[${cell.status}] ${v} / ${sc.id} (${sc.desc})\n  - ${cell.notes.join('\n  - ')}`);
     if (verbose && cell.result?.ok) for (const c of cell.result.commands) console.log(`\n${v} / ${sc.id}: ${c.bin} ${JSON.stringify(c.argv)}${c.timeout_ms ? ` (timeout_ms=${c.timeout_ms})` : ''}`);
+    if (verbose && cell.result && !cell.result.ok) console.log(`\n${v} / ${sc.id}: error: ${cell.result.error?.message}`);
   }
 }
 process.exit(failed > 0 ? 1 : 0);
