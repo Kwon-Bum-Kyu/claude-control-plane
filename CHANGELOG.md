@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.5.2] - 2026-11-25
+
 ### 추가
 
 - 역할(리서치, 코딩, 이미지 생성 등)마다 어떤 CLI와 모델을 쓸지 설정 파일에 적는 구조를 비교하는 PoC를 `poc/role-config/`에 추가했습니다. 세 가지 설정안의 표현력을 비교하고, 그중 한 안을 가짜 CLI로 실제 companion 코어에 연결해 확인합니다. 플러그인 본체는 바뀌지 않으며 플러그인 설치본에도 포함되지 않습니다.
@@ -150,7 +152,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.2...HEAD
+[v0.5.2]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.2
 [v0.5.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.0
 [v0.4.5]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.5
