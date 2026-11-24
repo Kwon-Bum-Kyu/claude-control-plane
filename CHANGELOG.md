@@ -6,6 +6,8 @@
 
 ## [Unreleased]
 
+## [v0.5.1] - 2026-11-24
+
 ### 수정
 
 - CLI 출력이 1 MiB를 넘으면 정상으로 끝난 위임도 `CCP-TIMEOUT-001`로 보고되던 문제를 고쳤습니다. 이제 표준출력과 표준에러 합계 256 MiB까지는 정상 처리하고, 그보다 크면 시간 초과가 아니라 실행 실패(`CCP-AG-001`, `CCP-CODEX-001`)로 보고합니다. 제한 시간 전에 다른 이유로 종료 신호를 받은 CLI도 이제 실행 실패로 보고합니다.
@@ -144,7 +146,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.1...HEAD
+[v0.5.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.0
 [v0.4.5]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.5
 [v0.4.4]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.4
