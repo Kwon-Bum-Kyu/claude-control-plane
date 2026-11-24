@@ -15,7 +15,7 @@
 // one scenario's stdout/stderr/exit_code differs after masking.
 
 import { spawnSync } from 'node:child_process';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -151,10 +151,14 @@ function runCapture() {
     cwd: REPO_ROOT,
     encoding: 'utf8',
   });
-  if (result.status !== 0 && result.status !== 1) {
-    // capture.mjs exits 1 on script-level failures/contamination, which we
-    // still want to surface below rather than treat as a hard crash here.
-    console.error('capture.mjs crashed:\n' + (result.stderr || result.stdout || ''));
+  // capture.mjs exits 1 on script-level failures/contamination and still writes its file.
+  // Any other exit, or a run that left no file, is reported with everything capture printed,
+  // so the cause shows up in the CI log instead of a bare stack trace from reading a missing file.
+  if ((result.status !== 0 && result.status !== 1) || !existsSync(outPath)) {
+    console.error(`capture.mjs failed: exit status ${result.status}, signal ${result.signal}, result file ${existsSync(outPath) ? 'present' : 'missing'}${result.error ? `, spawn error ${result.error.message}` : ''}`);
+    console.error(`--- capture stdout ---\n${result.stdout || ''}`);
+    console.error(`--- capture stderr ---\n${result.stderr || ''}`);
+    rmSync(outDir, { recursive: true, force: true });
     process.exit(2);
   }
   const after = JSON.parse(readFileSync(outPath, 'utf8'));

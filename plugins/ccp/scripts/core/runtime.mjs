@@ -5,7 +5,10 @@
 // shared JSON envelope; subcommand routing driven by adapter declarations; timeout
 // detection keyed on spawnSync's ETIMEDOUT so a CLI that exits cleanly on SIGTERM
 // is still reported as a timeout; per-path timeout defaults (foreground/background);
-// rejection of flags an adapter does not declare; status-time finalization of orphaned jobs.
+// rejection of flags an adapter does not declare; status-time finalization of orphaned jobs;
+// foreground and background-worker runs judged by one shared outcome function (core/outcome.mjs)
+// on ETIMEDOUT alone; version probe bounded by the adapter's probe timeout; resolveBin and
+// compareSemver exported for the SessionStart hook.
 //
 // This is the single generic entry point every companion routes through.
 // It knows about *operation names* (setup, rescue, status, result, cancel,
@@ -24,6 +27,7 @@ import { join, resolve } from 'node:path';
 
 import { resolvePaths } from './paths.mjs';
 import { finalizeIfOrphan } from './orphan.mjs';
+import { judgeRun, failedMetaPatch } from './outcome.mjs';
 import { mergeErrorCatalog } from './errors.mjs';
 import { emitSuccess, emitBackground, emitError } from './envelope.mjs';
 import { clampSummaryAtBoundary, checkContextBudget, DEFAULT_SUMMARY_MAX_CHARS } from './budget.mjs';
@@ -210,7 +214,14 @@ export function assertAdapter(adapter) {
 // bin / version / auth probing — generic, driven entirely by adapter fields
 // ---------------------------------------------------------------------------
 
-function resolveBin(adapter) {
+/**
+ * Binary to run for an adapter: `bin.envVar`'s value when it names an existing path,
+ * else the first existing `bin.candidates` entry, else `bin.fallback` (looked up on PATH
+ * by the spawn). Also used by the SessionStart hook.
+ * @param {{ bin: { envVar?: string, candidates?: string[], fallback: string } }} adapter
+ * @returns {string}  never throws
+ */
+export function resolveBin(adapter) {
   const envVar = adapter.bin.envVar;
   if (envVar) {
     const v = process.env[envVar];
@@ -223,13 +234,20 @@ function resolveBin(adapter) {
 }
 
 function probeVersion(adapter, bin) {
-  const r = runSync({ bin, args: adapter.version.args, timeoutMs: undefined });
+  const r = runSync({ bin, args: adapter.version.args, timeoutMs: adapter.timeouts.authProbe });
   if (r.status === null || r.error || r.status !== 0) return null;
   const m = (r.stdout || '').match(adapter.version.pattern);
   return m ? m[1] : null;
 }
 
-function compareSemver(a, b) {
+/**
+ * Compare the first three dot-separated numeric parts; a missing part counts as 0.
+ * Also used by the SessionStart hook.
+ * @param {string} a
+ * @param {string} b
+ * @returns {-1|0|1}  never throws for strings
+ */
+export function compareSemver(a, b) {
   const pa = a.split('.').map((n) => parseInt(n, 10));
   const pb = b.split('.').map((n) => parseInt(n, 10));
   for (let i = 0; i < 3; i++) {
@@ -602,15 +620,6 @@ function handleRescue(ctx, parsed) {
   return runForeground(ctx, { prompt, cwd, params });
 }
 
-// A spawnSync timeout surfaces as error.code === 'ETIMEDOUT'. The child is
-// sent SIGTERM; one that dies from it reports signal 'SIGTERM' and status null,
-// but one that traps SIGTERM to shut down cleanly reports its own exit status
-// and no signal — so the error code, not the signal, is the reliable marker.
-// The signal and message checks stay for spawn shims that only set those.
-function isTimeout(r) {
-  return r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGTERM' || (r.error && /timeout/i.test(String(r.error.message)));
-}
-
 function runForeground(ctx, { prompt, cwd, params }) {
   const { adapter, paths } = ctx;
 
@@ -652,23 +661,25 @@ function runForeground(ctx, { prompt, cwd, params }) {
   const r = runSync({ bin: ctx.bin, args, cwd, timeoutMs });
   const duration = Date.now() - start;
 
-  if (isTimeout(r)) {
-    if (jobId) patchJobMeta(paths.JOBS_DIR, jobId, { state: 'failed', completed_at: new Date().toISOString(), error: { code: 'CCP-TIMEOUT-001' } }, { writeStatusAlias });
-    emitErr(ctx, 'CCP-TIMEOUT-001', { details: { ...baseDetails(adapter, 'rescue', {}), job_id: jobId ?? undefined, duration_ms: duration, timeout_ms: timeoutMs } });
+  const logText = logFile ? readTextFileSafe(logFile) : '';
+  const outcome = judgeRun(adapter, r, { logText });
+
+  if (outcome.kind !== 'success' && jobId) {
+    patchJobMeta(paths.JOBS_DIR, jobId, failedMetaPatch(outcome, r, duration), { writeStatusAlias });
   }
-  if (r.status !== 0) {
-    if (jobId) patchJobMeta(paths.JOBS_DIR, jobId, { state: 'failed', completed_at: new Date().toISOString() }, { writeStatusAlias });
-    const code = adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error });
-    emitErr(ctx, code, {
+  // emitErr exits the process, so only a success gets past these branches.
+  if (outcome.kind === 'timeout') {
+    emitErr(ctx, outcome.code, { details: { ...baseDetails(adapter, 'rescue', {}), job_id: jobId ?? undefined, duration_ms: duration, timeout_ms: timeoutMs } });
+  }
+  if (outcome.kind === 'failure') {
+    emitErr(ctx, outcome.code, {
       details: { ...baseDetails(adapter, 'rescue-failure', {}), ...adapter.details.extraFor('rescue-failure', { jobId, exitCode: r.status, stderrHead: (r.stderr || '').slice(0, 200) }) },
     });
   }
-
-  const logText = logFile ? readTextFileSafe(logFile) : '';
-  const parsedRes = adapter.parseResult({ stdout: r.stdout, stderr: r.stderr, status: r.status, logText });
-  if (parsedRes.errorCode) {
-    emitErr(ctx, parsedRes.errorCode, { details: { ...baseDetails(adapter, 'rescue', {}), ...(parsedRes.errorDetails || {}) } });
+  if (outcome.kind === 'parse') {
+    emitErr(ctx, outcome.code, { details: { ...baseDetails(adapter, 'rescue', {}), ...(outcome.parsed.errorDetails || {}) } });
   }
+  const parsedRes = outcome.parsed;
 
   const summaryText = adapter.summarize(parsedRes.body || '');
   const budget = checkContextBudget(summaryText, { estimateTokens: adapter.estimateTokens, tokenCap: SUMMARY_TOKEN_CAP, maxChars: DEFAULT_SUMMARY_MAX_CHARS });
@@ -695,11 +706,13 @@ function runForeground(ctx, { prompt, cwd, params }) {
       {
         state: 'completed',
         completed_at: new Date().toISOString(),
+        exit_code: 0,
         result_path: resultPathOut,
         summary_3lines: clamped.text,
         ...(clamped.truncated ? { summary_truncated: true } : {}),
         token_usage: adapter.tokensFrom(parsedRes.tokens),
         ...(parsedRes.meta || {}),
+        duration_ms: duration,
       },
       { writeStatusAlias }
     );
@@ -869,66 +882,48 @@ function handleTaskWorker(ctx, parsed) {
   const r = runSync({ bin: ctx.bin, args, cwd: process.cwd(), timeoutMs: meta.params?.timeoutMs || adapter.timeouts.background });
   const duration = Date.now() - start;
   const { dir: artifactDir, resultPath } = jobArtifactPaths(adapter, paths, jobId);
-  // Decide "timed out" before looking at the exit status: a CLI that traps
-  // SIGTERM may report status 0 with partial output, and that must never be
-  // recorded as a completed job (the foreground path checks in the same order).
-  const timedOut = isTimeout(r);
-  const exitCode = timedOut && r.status === 0 ? 1 : (r.status ?? 1); // never report a timeout as exit 0
+  const logText = logFile ? readTextFileSafe(logFile) : '';
+  const outcome = judgeRun(adapter, r, { logText });
 
-  if (!timedOut && r.status === 0 && r.stdout) {
-    const logText = logFile ? readTextFileSafe(logFile) : '';
-    const parsedRes = adapter.parseResult({ stdout: r.stdout, stderr: r.stderr, status: r.status, logText });
-    const summaryText = adapter.summarize(parsedRes.body || '');
-    const budget = checkContextBudget(summaryText, { estimateTokens: adapter.estimateTokens, tokenCap: SUMMARY_TOKEN_CAP, maxChars: DEFAULT_SUMMARY_MAX_CHARS });
-    const clamped = budget.exceeded
-      ? clampSummaryAtBoundary(summaryText, DEFAULT_SUMMARY_MAX_CHARS)
-      : { text: summaryText, truncated: false };
-    const fullBody = parsedRes.body || summaryText;
-    const tokens = adapter.tokensFrom(parsedRes.tokens);
-    // For adapters whose result file lives outside JOBS_DIR (the
-    // repo-relative anchor), that directory was never created by the
-    // pre-dispatch ensureJobDir call above (which only ever targets
-    // JOBS_DIR) — create it here so a CCP_JOBS_DIR override doesn't leave
-    // the write with nowhere to land. A no-op (existsSync short-circuits)
-    // whenever the two locations already coincide, which is every default,
-    // non-overridden run.
-    ensureJobDir(artifactDir, '');
-    writeFileSync(resultPath, fullBody, 'utf8');
-    patchJobMeta(
-      paths.JOBS_DIR,
-      jobId,
-      {
-        state: 'completed',
-        completed_at: new Date().toISOString(),
-        exit_code: 0,
-        result_path: exposedResultPath(adapter, paths, resultPath),
-        summary_3lines: clamped.text || '(empty)',
-        ...(clamped.truncated ? { summary_truncated: true } : {}),
-        token_usage: tokens,
-        ...(parsedRes.meta || {}),
-        duration_ms: duration,
-      },
-      { writeStatusAlias }
-    );
-  } else {
-    const errorPayload = {
-      code: timedOut || r.status === null ? 'CCP-TIMEOUT-001' : adapter.classifyFailure({ stdout: r.stdout, stderr: r.stderr, status: r.status, signal: r.signal, error: r.error }),
-      stderr_head: (r.stderr || '').slice(0, 500),
-    };
-    patchJobMeta(
-      paths.JOBS_DIR,
-      jobId,
-      {
-        state: 'failed',
-        completed_at: new Date().toISOString(),
-        exit_code: exitCode,
-        error: errorPayload,
-        duration_ms: duration,
-      },
-      { writeStatusAlias }
-    );
+  if (outcome.kind !== 'success') {
+    const patch = failedMetaPatch(outcome, r, duration);
+    patchJobMeta(paths.JOBS_DIR, jobId, patch, { writeStatusAlias });
+    process.exit(patch.exit_code);
   }
-  process.exit(exitCode);
+  const parsedRes = outcome.parsed;
+  const summaryText = adapter.summarize(parsedRes.body || '');
+  const budget = checkContextBudget(summaryText, { estimateTokens: adapter.estimateTokens, tokenCap: SUMMARY_TOKEN_CAP, maxChars: DEFAULT_SUMMARY_MAX_CHARS });
+  const clamped = budget.exceeded
+    ? clampSummaryAtBoundary(summaryText, DEFAULT_SUMMARY_MAX_CHARS)
+    : { text: summaryText, truncated: false };
+  const fullBody = parsedRes.body || summaryText;
+  const tokens = adapter.tokensFrom(parsedRes.tokens);
+  // For adapters whose result file lives outside JOBS_DIR (the
+  // repo-relative anchor), that directory was never created by the
+  // pre-dispatch ensureJobDir call above (which only ever targets
+  // JOBS_DIR) — create it here so a CCP_JOBS_DIR override doesn't leave
+  // the write with nowhere to land. A no-op (existsSync short-circuits)
+  // whenever the two locations already coincide, which is every default,
+  // non-overridden run.
+  ensureJobDir(artifactDir, '');
+  writeFileSync(resultPath, fullBody, 'utf8');
+  patchJobMeta(
+    paths.JOBS_DIR,
+    jobId,
+    {
+      state: 'completed',
+      completed_at: new Date().toISOString(),
+      exit_code: 0,
+      result_path: exposedResultPath(adapter, paths, resultPath),
+      summary_3lines: clamped.text || '(empty)',
+      ...(clamped.truncated ? { summary_truncated: true } : {}),
+      token_usage: tokens,
+      ...(parsedRes.meta || {}),
+      duration_ms: duration,
+    },
+    { writeStatusAlias }
+  );
+  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------

@@ -131,6 +131,12 @@ jobs:
         run: node tests/agents/rescue-forwarding-instructions-test.mjs
       - name: run rescue-finalize hook check (0 failures)
         run: node tests/hooks/rescue-finalize-test.mjs
+      - name: run outcome judging and large-output check (0 failures)
+        run: node tests/companion/failure-paths-test.mjs
+      - name: run boot-check hook check (0 failures)
+        run: node tests/hooks/boot-check-test.mjs
+      - name: run golden diff capture-failure check (0 failures)
+        run: node tests/companion/golden/diff-capture-failure-test.mjs
 
   audit:
     name: harness-audit (>= 33/40)

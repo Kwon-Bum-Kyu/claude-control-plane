@@ -6,6 +6,24 @@
 
 ## [Unreleased]
 
+## [v0.5.1] - 2026-11-24
+
+### 수정
+
+- CLI 출력이 1 MiB를 넘으면 정상으로 끝난 위임도 `CCP-TIMEOUT-001`로 보고되던 문제를 고쳤습니다. 이제 표준출력과 표준에러 합계 256 MiB까지는 정상 처리하고, 그보다 크면 시간 초과가 아니라 실행 실패(`CCP-AG-001`, `CCP-CODEX-001`)로 보고합니다. 제한 시간 전에 다른 이유로 종료 신호를 받은 CLI도 이제 실행 실패로 보고합니다.
+- 같은 실행 결과를 포그라운드와 백그라운드가 다르게 판정하던 문제를 고쳤습니다. codex가 JSONL 이벤트 없이 끝나면 백그라운드도 포그라운드처럼 `CCP-CODEX-002`로 기록합니다(이전에는 평문이면 빈 결과로 완료, 빈 출력이면 `CCP-CODEX-001`). antigravity가 아무것도 출력하지 않고 정상 종료하면 백그라운드도 포그라운드처럼 요약 `(empty)`로 완료합니다(이전에는 `CCP-AG-001` 실패).
+- 위 변경으로 codex 백그라운드 job이 JSONL이 아닌 평문으로 끝났을 때 `/ccp:codex-result`가 빈 본문 대신 `CCP-JOB-004`를 돌려줍니다.
+- 백그라운드 작업이 CLI를 실행하지 못한 경우(실행 권한 없음, 경로 없음 등)를 `CCP-TIMEOUT-001`로 기록하던 문제를 고쳤습니다. 이제 포그라운드와 같은 실행 실패 코드로 기록하고, job 기록의 `error.spawn_code`에 원인(`EACCES` 등)을 남깁니다.
+- antigravity 포그라운드 job 기록이 실패 원인 코드를 남기지 않던 문제를 고쳤습니다. 실패하면 백그라운드와 같은 모양으로 `exit_code`, `error.code`, `duration_ms`를 기록하고, 성공해도 `exit_code`와 `duration_ms`를 남깁니다.
+- 세션 시작 점검이 Antigravity CLI만 확인해, codex만 쓰는 사용자에게도 매 세션 agy 미설치와 인증 없음 안내가 가던 문제를 고쳤습니다. 이제 설치된 CLI만 점검해 버전이 낮거나 인증이 없을 때 안내하고, 지원 CLI가 하나도 설치되어 있지 않을 때만 setup 커맨드를 한 줄로 안내합니다. 두 CLI 모두 버전이 최소 요구치보다 낮으면 새로 안내합니다. codex 인증은 세션 시작 때 확인하지 않습니다.
+- 세션 시작 점검에 훅 자체의 시간 상한이 없어, CLI 버전 확인이 멈추면 세션의 첫 응답이 그만큼 늦어지던 문제를 고쳤습니다. CLI마다 5초, 점검 전체는 15초가 상한입니다.
+- `/ccp:antigravity-setup`, `/ccp:codex-setup`의 버전 확인에 시간 상한이 없던 문제를 고쳤습니다. 인증 확인과 같은 시간(antigravity 60초, codex 30초)이 지나면 반환합니다.
+
+### 변경
+
+- 골든 envelope 비교 스크립트가 capture 단계에서 결과 파일을 얻지 못하면, 예외로 끝나는 대신 capture의 종료 코드와 출력 전체를 보이고 종료 코드 2로 끝납니다.
+- CI와 로컬 검증에 실행 결과 판정, 세션 시작 점검 훅, 골든 비교 진단 검사 3종을 추가했습니다.
+
 ## [v0.5.0] - 2026-11-22
 
 ### 수정
@@ -128,7 +146,8 @@
 
 **전체 변경 이력**: https://github.com/Kwon-Bum-Kyu/claude-control-plane/commits/v0.2.0
 
-[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/compare/v0.5.1...HEAD
+[v0.5.1]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.1
 [v0.5.0]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.5.0
 [v0.4.5]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.5
 [v0.4.4]: https://github.com/Kwon-Bum-Kyu/claude-control-plane/releases/tag/v0.4.4

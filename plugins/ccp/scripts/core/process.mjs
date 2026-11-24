@@ -2,24 +2,38 @@
 // Upstream commit 8e873d6f40511aa7d8081623d0b66804b7301de6 (release/v1.0.4)
 // Licensed under the Apache License 2.0 — see LICENSES/codex-plugin-cc-Apache-2.0.txt
 // Modified by CCP contributors: forced file-fd stdio and closed stdin; renamed the
-// runner to be CLI-neutral so any adapter can drive it; cancel signals the worker's whole process group.
+// runner to be CLI-neutral so any adapter can drive it; cancel signals the worker's whole process group; output buffer raised to a fixed 256 MiB cap.
 
 import { spawn, spawnSync } from 'node:child_process';
 import { openSync, closeSync } from 'node:fs';
 
+// ponytail: fixed 256 MiB cap on stdout+stderr combined (spawnSync counts both against
+// one limit). Past it the child is killed and the run fails with error.code 'ENOBUFS',
+// which the caller reports as the adapter's run-failure code. Kept well under V8's
+// maximum string length (536870888 chars on Node 20.19 and 22.12) so the buffer-to-string
+// conversion cannot throw and leave no envelope. Upgrade path: give the child a file fd
+// for stdout/stderr (as spawnDetachedWorker does) and read the file afterwards.
+export const MAX_OUTPUT_BYTES = 256 * 1024 * 1024;
+
 /**
  * Run a CLI synchronously in the foreground. Forces stdin closed.
+ * Output beyond MAX_OUTPUT_BYTES (stdout and stderr combined) kills the child.
  * @param {object} opts
  * @param {string} opts.bin    binary name or an absolute path
  * @param {string[]} opts.args
  * @param {string} [opts.cwd]
- * @param {number} opts.timeoutMs
- * @returns {{ status: number|null, stdout: string, stderr: string, signal: string|null, error: Error|null }}
+ * @param {number} [opts.timeoutMs]  undefined = no time limit
+ * @returns {{ status: number|null, stdout: string, stderr: string, signal: string|null,
+ *            error: (Error & { code?: string })|null }}
+ *   error.code is 'ETIMEDOUT' (timeoutMs passed), 'ENOBUFS' (output over the cap),
+ *   or a spawn errno such as 'ENOENT' / 'EACCES' (the binary could not be started).
+ *   Never throws.
  */
 export function runSync({ bin, args, cwd, timeoutMs }) {
   const r = spawnSync(bin, args, {
     cwd: cwd || process.cwd(),
     timeout: timeoutMs,
+    maxBuffer: MAX_OUTPUT_BYTES,
     stdio: ['ignore', 'pipe', 'pipe'],
     encoding: 'utf8',
   });
