@@ -125,7 +125,7 @@ sc('bg-silent', 'probe', async () => {
   const id = call('image', ['rescue', '--background', '--task', 'x'], o).env?.job_id; const s = await waitState('image', id, o);
   const meta = readMeta(id); const files = readdirSync(join(JOBS, id)).filter((f) => f.endsWith('.png'));
   const res = call('image', ['result', id], o);
-  return { note: `state=${s?.env.details.state} meta.error=${JSON.stringify(meta.error?.code)} exit_code=${meta.exit_code} files_on_disk=${files.length}; result: ${errLine(res.env)}. Cause: core/runtime.mjs handleTaskWorker needs non-empty stdout for success (fg-silent has no such check, so it succeeds); bg-image passes only because the stub prints file names`, r: res };
+  return { note: `state=${s?.env.details.state} meta.error=${JSON.stringify(meta.error?.code)} exit_code=${meta.exit_code} files_on_disk=${files.length}; result: ${errLine(res.env)}`, r: res };
 });
 sc('unsupported-flag', 'probe', async () => { const r = call('image', ['rescue', '--effort', 'high', '--task', 'x'], IMG); return { note: `${errLine(r.env)} stub_called=${r.calls.length > 0}`, r }; });
 sc('entry-errors', 'must', async () => {
