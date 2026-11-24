@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+// Records argv, then runs the real golden codex stub unchanged.
+import { appendFileSync } from 'node:fs';
+
+appendFileSync(process.env.STAGE2_ARGV_FILE, JSON.stringify({ pid: process.pid, argv: process.argv.slice(2) }) + '\n');
+await import('../../../tests/companion/golden/stubs/codex');

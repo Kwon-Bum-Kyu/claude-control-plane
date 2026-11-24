@@ -1,0 +1,90 @@
+{
+  "note": "모든 안이 똑같이 풀어야 하는 공통 시나리오. 모델 이름은 예시 문자열이며 CCP 는 검증하지 않고 CLI 에 그대로 넘긴다. imagegen-cli 는 가상의 CLI 로, 호출 형태는 `imagegen-cli generate --model <model> [--size <WxH>] --out <dir> <prompt>` 이다.",
+  "scenarios": [
+    {
+      "id": "research",
+      "desc": "리서치 → antigravity + 모델 지정",
+      "input": { "role": "research", "task": "Compare three state management libraries" },
+      "expect": { "ok": true, "commands": [{ "bin": "agy", "argvIncludes": ["gemini-3.8"] }] }
+    },
+    {
+      "id": "coding",
+      "desc": "FE·BE 코딩 → codex + 모델 + 쓰기 가능한 샌드박스",
+      "input": { "role": "coding", "task": "Add pagination to the orders endpoint" },
+      "expect": { "ok": true, "commands": [{ "bin": "codex", "argvIncludes": ["-m", "codex-5.6", "workspace-write"] }] }
+    },
+    {
+      "id": "arch-review",
+      "desc": "아키텍처 리뷰 → claude + opus",
+      "input": { "role": "arch-review", "task": "Review the module boundaries of the billing service" },
+      "expect": { "ok": true, "commands": [{ "bin": "claude", "argvIncludes": ["--model", "opus"] }] }
+    },
+    {
+      "id": "test-run",
+      "desc": "테스트 실행·검수 → claude + haiku",
+      "input": { "role": "test-run", "task": "Run the unit tests and report failures" },
+      "expect": { "ok": true, "commands": [{ "bin": "claude", "argvIncludes": ["--model", "haiku"] }] }
+    },
+    {
+      "id": "e2e",
+      "desc": "e2e 검증 → codex + 30분 타임아웃",
+      "input": { "role": "e2e", "task": "Run the checkout flow end to end" },
+      "expect": { "ok": true, "commands": [{ "bin": "codex", "argvIncludes": ["codex-5.6"], "timeout_ms": 1800000 }] }
+    },
+    {
+      "id": "brainstorm",
+      "desc": "브레인스토밍 → 세 대상에 동시에 (다른 역할과 모델이 다르다)",
+      "input": { "role": "brainstorm", "task": "Ideas for reducing cold start time" },
+      "expect": {
+        "ok": true,
+        "commands": [
+          { "bin": "claude", "argvIncludes": ["opus"] },
+          { "bin": "codex", "argvIncludes": ["codex-6.0"] },
+          { "bin": "agy", "argvIncludes": ["gemini-4"] }
+        ]
+      }
+    },
+    {
+      "id": "tuned-coding",
+      "desc": "옵션 조정 → codex 에 effort 와 CCP 가 모르는 설정 오버라이드를 함께 전달",
+      "input": { "role": "tuned-coding", "task": "Refactor the retry helper" },
+      "expect": { "ok": true, "commands": [{ "bin": "codex", "argvIncludes": ["model_reasoning_effort=high", "features.example=true"] }] }
+    },
+    {
+      "id": "call-time-override",
+      "desc": "호출 시점에 준 값이 역할에 적힌 값보다 우선한다",
+      "input": { "role": "coding", "task": "Fix the flaky date test", "overrides": { "model": "codex-next" } },
+      "expect": { "ok": true, "commands": [{ "bin": "codex", "argvIncludes": ["codex-next"], "argvExcludes": ["codex-5.6"] }] }
+    },
+    {
+      "id": "image",
+      "desc": "이미지 생성 → CCP 가 모르는 CLI 를 사용자가 추가, 산출물은 job 디렉터리에",
+      "input": { "role": "image", "task": "A lighthouse at dusk, flat illustration" },
+      "expect": { "ok": true, "commands": [{ "bin": "imagegen-cli", "argvIncludes": ["generate", "image-model-x", "--size", "1024x1024", "--out", "<JOB_DIR>"] }] }
+    },
+    {
+      "id": "image-default-size",
+      "desc": "선택 옵션 생략 → size 를 적지 않은 역할은 --size 인자 자체가 빠져야 한다",
+      "input": { "role": "image-quick", "task": "A paper boat, line art" },
+      "expect": { "ok": true, "commands": [{ "bin": "imagegen-cli", "argvIncludes": ["generate", "image-model-x", "--out", "<JOB_DIR>"], "argvExcludes": ["--size", "{size}"] }] }
+    },
+    {
+      "id": "unknown-role",
+      "desc": "실패: 설정에 없는 역할",
+      "input": { "role": "no-such-role", "task": "anything" },
+      "expect": { "ok": false, "errorIncludes": ["no-such-role"] }
+    },
+    {
+      "id": "undefined-runner",
+      "desc": "실패: 역할 broken-runner 가 존재하지 않는 러너 ghost-cli 를 가리킨다 (다른 역할은 계속 동작해야 한다)",
+      "input": { "role": "broken-runner", "task": "anything" },
+      "expect": { "ok": false, "errorIncludes": ["ghost-cli"] }
+    },
+    {
+      "id": "malformed-role",
+      "desc": "실패: 역할 broken-shape 에 runner 도 targets 도 없다",
+      "input": { "role": "broken-shape", "task": "anything" },
+      "expect": { "ok": false, "errorIncludes": ["broken-shape"] }
+    }
+  ]
+}

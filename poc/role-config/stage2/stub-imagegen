@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+// Fake `imagegen-cli`. Mode: STAGE2_IMAGEGEN_MODE = ok | silent | fail | hang.
+// Appends {pid, argv} to the file named by STAGE2_ARGV_FILE.
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const argv = process.argv.slice(2);
+if (process.env.STAGE2_ARGV_FILE) appendFileSync(process.env.STAGE2_ARGV_FILE, JSON.stringify({ pid: process.pid, argv }) + '\n');
+const mode = process.env.STAGE2_IMAGEGEN_MODE || 'ok';
+const out = argv[argv.indexOf('--out') + 1];
+
+if (mode === 'fail') {
+  process.stderr.write('imagegen: quota exceeded for model\n');
+  process.exit(2);
+}
+if (mode === 'hang') {
+  setTimeout(() => process.exit(3), 60000); // safety cap so a test never leaves a stray process
+} else {
+  const names = ['image-1.png', 'image-2.png'];
+  for (const n of names) writeFileSync(join(out, n), 'png');
+  if (mode === 'ok') process.stdout.write(names.join('\n') + '\n');
+}
